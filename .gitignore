@@ -1,0 +1,28 @@
+# .NET
+bin/
+obj/
+*.user
+*.suo
+.vs/
+
+# Avalonia
+*.designer.cs
+
+# IDE
+.idea/
+.vs/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# App data
+*.db
+*.db-shm
+*.db-wal
+publish/
+TestResults/
+
+# Logs
+logs/
+*.log
