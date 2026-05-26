@@ -1,0 +1,36 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:ConstructionFinance.Desktop.ViewModels.Vendors"
+             x:Class="ConstructionFinance.Desktop.Views.Vendors.VendorEditDialog"
+             x:DataType="vm:VendorEditDialogViewModel"
+             MinWidth="480">
+    <Grid ColumnDefinitions="140,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto">
+        <TextBlock Grid.Row="0" Grid.Column="0" Text="Mã NCC" VerticalAlignment="Center"/>
+        <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding VendorCode}"/>
+
+        <TextBlock Grid.Row="1" Grid.Column="0" Text="Tên nhà cung cấp *" VerticalAlignment="Center"/>
+        <StackPanel Grid.Row="1" Grid.Column="1">
+            <TextBox Text="{Binding VendorName}"/>
+            <TextBlock Text="{Binding VendorNameError}" Foreground="Red" FontSize="11"
+                       IsVisible="{Binding VendorNameError, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+        </StackPanel>
+
+        <TextBlock Grid.Row="2" Grid.Column="0" Text="Mã số thuế" VerticalAlignment="Center"/>
+        <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding TaxCode}"/>
+
+        <TextBlock Grid.Row="3" Grid.Column="0" Text="Địa chỉ" VerticalAlignment="Center"/>
+        <TextBox Grid.Row="3" Grid.Column="1" Text="{Binding Address}"/>
+
+        <TextBlock Grid.Row="4" Grid.Column="0" Text="Điện thoại" VerticalAlignment="Center"/>
+        <TextBox Grid.Row="4" Grid.Column="1" Text="{Binding Phone}"/>
+
+        <TextBlock Grid.Row="5" Grid.Column="0" Text="Email" VerticalAlignment="Center"/>
+        <TextBox Grid.Row="5" Grid.Column="1" Text="{Binding Email}"/>
+
+        <TextBlock Grid.Row="6" Grid.Column="0" Text="Người liên hệ" VerticalAlignment="Center"/>
+        <TextBox Grid.Row="6" Grid.Column="1" Text="{Binding ContactPerson}"/>
+
+        <TextBlock Grid.Row="7" Grid.Column="0" Text="Ghi chú" VerticalAlignment="Top"/>
+        <TextBox Grid.Row="7" Grid.Column="1" Text="{Binding Notes}" AcceptsReturn="True" Height="80" TextWrapping="Wrap"/>
+    </Grid>
+</UserControl>

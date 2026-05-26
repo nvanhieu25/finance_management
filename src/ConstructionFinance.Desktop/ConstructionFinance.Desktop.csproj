@@ -1,14 +1,38 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
-
+<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
+    <OutputType>WinExe</OutputType>
     <RootNamespace>ConstructionFinance.Desktop</RootNamespace>
+    <AssemblyName>ConstructionFinance</AssemblyName>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\ConstructionFinance.Application\ConstructionFinance.Application.csproj" />
-    <ProjectReference Include="..\ConstructionFinance.Infrastructure\ConstructionFinance.Infrastructure.csproj" />
-    <ProjectReference Include="..\ConstructionFinance.Data\ConstructionFinance.Data.csproj" />
-    <ProjectReference Include="..\ConstructionFinance.Domain\ConstructionFinance.Domain.csproj" />
+    <PackageReference Include="Avalonia" />
+    <PackageReference Include="Avalonia.Desktop" />
+    <PackageReference Include="Avalonia.Themes.Fluent" />
+    <PackageReference Include="Avalonia.Fonts.Inter" />
+    <PackageReference Include="FluentAvaloniaUI" />
+    <PackageReference Include="Avalonia.Controls.TreeDataGrid" />
+    <PackageReference Include="CommunityToolkit.Mvvm" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Json" />
+    <PackageReference Include="Serilog" />
+    <PackageReference Include="Serilog.Extensions.Hosting" />
+    <PackageReference Include="Serilog.Sinks.File" />
+    <PackageReference Include="Serilog.Sinks.Console" />
+    <!-- Diagnostics ONLY in Debug -->
+    <PackageReference Include="Avalonia.Diagnostics" Condition="'$(Configuration)' == 'Debug'" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\ConstructionFinance.Application\ConstructionFinance.Application.csproj" />
+    <ProjectReference Include="..\ConstructionFinance.Data\ConstructionFinance.Data.csproj" />
+    <ProjectReference Include="..\ConstructionFinance.Domain\ConstructionFinance.Domain.csproj" />
+    <ProjectReference Include="..\ConstructionFinance.Infrastructure\ConstructionFinance.Infrastructure.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <AvaloniaResource Include="Assets\**" />
+  </ItemGroup>
 </Project>

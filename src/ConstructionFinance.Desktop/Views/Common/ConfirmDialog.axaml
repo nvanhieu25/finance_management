@@ -1,0 +1,10 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:ConstructionFinance.Desktop.ViewModels.Common"
+             x:Class="ConstructionFinance.Desktop.Views.Common.ConfirmDialog"
+             x:DataType="vm:ConfirmDialogViewModel"
+             MinWidth="380" Padding="16">
+    <StackPanel Spacing="12">
+        <TextBlock Text="{Binding Message}" TextWrapping="Wrap"/>
+    </StackPanel>
+</UserControl>

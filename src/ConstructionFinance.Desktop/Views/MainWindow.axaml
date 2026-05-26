@@ -1,0 +1,33 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:ConstructionFinance.Desktop.ViewModels"
+        xmlns:ui="using:FluentAvalonia.UI.Controls"
+        x:Class="ConstructionFinance.Desktop.Views.MainWindow"
+        x:DataType="vm:MainWindowViewModel"
+        Title="{Binding Title}"
+        Width="1280" Height="800"
+        MinWidth="900" MinHeight="600"
+        WindowStartupLocation="CenterScreen">
+    <DockPanel>
+        <Border DockPanel.Dock="Bottom" Background="#F3F3F3" Padding="10,4">
+            <TextBlock Text="{Binding StatusText}" FontSize="12"/>
+        </Border>
+        <ui:NavigationView x:Name="Nav"
+                           PaneDisplayMode="Left"
+                           IsPaneToggleButtonVisible="True"
+                           IsSettingsVisible="False"
+                           IsBackButtonVisible="False"
+                           OpenPaneLength="220">
+            <ui:NavigationView.MenuItems>
+                <ui:NavigationViewItem Content="Trang chủ" Tag="Home" IconSource="Home"/>
+                <ui:NavigationViewItem Content="Quyết định" Tag="Decisions" IconSource="Document"/>
+                <ui:NavigationViewItem Content="Cây Dự án" Tag="Projects" IconSource="GridView"/>
+                <ui:NavigationViewItem Content="Nhà cung cấp" Tag="Vendors" IconSource="People"/>
+                <ui:NavigationViewItem Content="Báo cáo" Tag="Reports" IconSource="OpenFile"/>
+                <ui:NavigationViewItem Content="Lịch sử" Tag="Audit" IconSource="History"/>
+                <ui:NavigationViewItem Content="Cài đặt" Tag="Settings" IconSource="Settings"/>
+            </ui:NavigationView.MenuItems>
+            <ContentControl Content="{Binding CurrentContent}" Margin="16"/>
+        </ui:NavigationView>
+    </DockPanel>
+</Window>

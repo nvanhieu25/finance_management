@@ -1,0 +1,30 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:ConstructionFinance.Desktop.ViewModels.Vendors"
+             x:Class="ConstructionFinance.Desktop.Views.Vendors.VendorListView"
+             x:DataType="vm:VendorListViewModel">
+    <DockPanel>
+        <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Spacing="8" Margin="0,0,0,12">
+            <Button Content="+ Thêm" Command="{Binding AddCommand}"/>
+            <Button Content="Sửa" Command="{Binding EditCommand}"/>
+            <Button Content="Xóa" Command="{Binding DeleteCommand}"/>
+            <ProgressBar IsIndeterminate="True" IsVisible="{Binding IsBusy}" Width="100" VerticalAlignment="Center"/>
+            <TextBlock Text="{Binding ErrorMessage}" Foreground="Red" VerticalAlignment="Center"/>
+        </StackPanel>
+        <DataGrid ItemsSource="{Binding Vendors}"
+                  SelectedItem="{Binding SelectedVendor}"
+                  CanUserSortColumns="True"
+                  IsReadOnly="True"
+                  GridLinesVisibility="Horizontal"
+                  HeadersVisibility="Column">
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="Mã" Binding="{Binding VendorCode}" Width="100"/>
+                <DataGridTextColumn Header="Tên nhà cung cấp" Binding="{Binding VendorName}" Width="*"/>
+                <DataGridTextColumn Header="MST" Binding="{Binding TaxCode}" Width="120"/>
+                <DataGridTextColumn Header="SĐT" Binding="{Binding Phone}" Width="120"/>
+                <DataGridTextColumn Header="Email" Binding="{Binding Email}" Width="200"/>
+                <DataGridTextColumn Header="Người liên hệ" Binding="{Binding ContactPerson}" Width="160"/>
+            </DataGrid.Columns>
+        </DataGrid>
+    </DockPanel>
+</UserControl>
