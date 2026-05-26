@@ -10,11 +10,12 @@ namespace ConstructionFinance.Data.Interceptors;
 
 public class AuditInterceptor : SaveChangesInterceptor
 {
-    public override InterceptionResult<int> SavingChanges(
-        DbContextEventData eventData,
-        InterceptionResult<int> result)
+    // Insert entries whose EntityId must be read AFTER SaveChanges assigns the autoincrement Id.
+    private readonly List<(EntityEntry Entry, AuditLog Log)> _pendingCreates = new();
+
+    public override InterceptionResult<int> SavingChanges(DbContextEventData eventData, InterceptionResult<int> result)
     {
-        CaptureAudit(eventData.Context);
+        Capture(eventData.Context);
         return base.SavingChanges(eventData, result);
     }
 
@@ -23,15 +24,30 @@ public class AuditInterceptor : SaveChangesInterceptor
         InterceptionResult<int> result,
         CancellationToken cancellationToken = default)
     {
-        CaptureAudit(eventData.Context);
+        Capture(eventData.Context);
         return base.SavingChangesAsync(eventData, result, cancellationToken);
     }
 
-    private static void CaptureAudit(DbContext? ctx)
+    public override int SavedChanges(SaveChangesCompletedEventData eventData, int result)
+    {
+        FlushPendingCreates(eventData.Context);
+        return base.SavedChanges(eventData, result);
+    }
+
+    public override ValueTask<int> SavedChangesAsync(
+        SaveChangesCompletedEventData eventData,
+        int result,
+        CancellationToken cancellationToken = default)
+    {
+        FlushPendingCreates(eventData.Context);
+        return base.SavedChangesAsync(eventData, result, cancellationToken);
+    }
+
+    private void Capture(DbContext? ctx)
     {
         if (ctx is null) return;
         var now = DateTime.UtcNow;
-        var logs = new List<AuditLog>();
+        var immediateLogs = new List<AuditLog>();
 
         foreach (var entry in ctx.ChangeTracker.Entries())
         {
@@ -41,24 +57,25 @@ public class AuditInterceptor : SaveChangesInterceptor
                 continue;
 
             var entityType = entry.Entity.GetType().Name;
-            var id = entry.Property("Id").CurrentValue is int idVal ? idVal : 0;
 
             if (entry.State == EntityState.Added)
             {
-                logs.Add(new AuditLog
+                var log = new AuditLog
                 {
                     EntityType = entityType,
-                    EntityId = id,
+                    EntityId = 0, // patched in SavedChanges
                     Action = AuditAction.Create,
                     NewValue = SerializeSnapshot(entry),
                     ChangedAt = now
-                });
+                };
+                _pendingCreates.Add((entry, log));
             }
             else if (entry.State == EntityState.Modified)
             {
+                var id = GetId(entry);
                 if (IsSoftDelete(entry))
                 {
-                    logs.Add(new AuditLog
+                    immediateLogs.Add(new AuditLog
                     {
                         EntityType = entityType,
                         EntityId = id,
@@ -71,7 +88,7 @@ public class AuditInterceptor : SaveChangesInterceptor
                 foreach (var prop in entry.Properties.Where(p => p.IsModified))
                 {
                     if (prop.Metadata.Name == nameof(BaseEntity.UpdatedAt)) continue;
-                    logs.Add(new AuditLog
+                    immediateLogs.Add(new AuditLog
                     {
                         EntityType = entityType,
                         EntityId = id,
@@ -85,10 +102,10 @@ public class AuditInterceptor : SaveChangesInterceptor
             }
             else if (entry.State == EntityState.Deleted)
             {
-                logs.Add(new AuditLog
+                immediateLogs.Add(new AuditLog
                 {
                     EntityType = entityType,
-                    EntityId = id,
+                    EntityId = GetId(entry),
                     Action = AuditAction.Delete,
                     OldValue = SerializeSnapshot(entry),
                     ChangedAt = now
@@ -96,17 +113,30 @@ public class AuditInterceptor : SaveChangesInterceptor
             }
         }
 
-        if (logs.Count > 0)
-            ctx.Set<AuditLog>().AddRange(logs);
+        if (immediateLogs.Count > 0)
+            ctx.Set<AuditLog>().AddRange(immediateLogs);
     }
+
+    private void FlushPendingCreates(DbContext? ctx)
+    {
+        if (ctx is null || _pendingCreates.Count == 0) return;
+        foreach (var (entry, log) in _pendingCreates)
+            log.EntityId = GetId(entry);
+        ctx.Set<AuditLog>().AddRange(_pendingCreates.Select(p => p.Log));
+        _pendingCreates.Clear();
+        // Persist the Create logs after Ids are known. AuditLog itself is not [Auditable],
+        // so this nested SaveChanges does not recurse into more pending creates.
+        ctx.SaveChanges();
+    }
+
+    private static int GetId(EntityEntry entry) =>
+        entry.Property("Id").CurrentValue is int id ? id : 0;
 
     private static bool IsSoftDelete(EntityEntry entry)
     {
         if (entry.Entity is not ISoftDeletable) return false;
         var deletedAt = entry.Property(nameof(ISoftDeletable.DeletedAt));
-        var wasNull = deletedAt.OriginalValue is null;
-        var isNotNull = deletedAt.CurrentValue is not null;
-        return wasNull && isNotNull;
+        return deletedAt.OriginalValue is null && deletedAt.CurrentValue is not null;
     }
 
     private static string SerializeSnapshot(EntityEntry entry)

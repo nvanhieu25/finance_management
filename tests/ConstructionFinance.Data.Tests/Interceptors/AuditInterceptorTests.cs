@@ -71,4 +71,17 @@ public class AuditInterceptorTests
 
         ctx.AuditLogs.ShouldContain(l => l.Action == AuditAction.Delete && l.EntityType == nameof(Vendor));
     }
+
+    [Fact]
+    public void Insert_audit_log_captures_real_generated_EntityId()
+    {
+        using var ctx = CreateCtx();
+        var v = new Vendor { VendorName = "X" };
+        ctx.Vendors.Add(v);
+        ctx.SaveChanges();
+
+        v.Id.ShouldBeGreaterThan(0);
+        var log = ctx.AuditLogs.Single(l => l.Action == AuditAction.Create);
+        log.EntityId.ShouldBe(v.Id);
+    }
 }
