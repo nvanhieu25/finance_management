@@ -8,4 +8,9 @@
     <ProjectReference Include="..\ConstructionFinance.Domain\ConstructionFinance.Domain.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <PackageReference Include="FluentValidation" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
+  </ItemGroup>
+
 </Project>

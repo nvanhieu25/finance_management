@@ -21,6 +21,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ConstructionFinance.Domain.
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ConstructionFinance.Data.Tests", "tests\ConstructionFinance.Data.Tests\ConstructionFinance.Data.Tests.csproj", "{31A9ED4F-92D1-48D5-AC6F-7817DD61359C}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ConstructionFinance.Application.Tests", "tests\ConstructionFinance.Application.Tests\ConstructionFinance.Application.Tests.csproj", "{FCAFD1B7-D06D-4F2E-8D6F-6B44DF903FDB}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -58,6 +60,10 @@ Global
 		{31A9ED4F-92D1-48D5-AC6F-7817DD61359C}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{31A9ED4F-92D1-48D5-AC6F-7817DD61359C}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{31A9ED4F-92D1-48D5-AC6F-7817DD61359C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{FCAFD1B7-D06D-4F2E-8D6F-6B44DF903FDB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FCAFD1B7-D06D-4F2E-8D6F-6B44DF903FDB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FCAFD1B7-D06D-4F2E-8D6F-6B44DF903FDB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FCAFD1B7-D06D-4F2E-8D6F-6B44DF903FDB}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{E01795DB-CFAB-4AEF-B8B8-383BD7A12B0F} = {B26DBAED-2870-4BDC-91BD-A35A1936E6AC}
@@ -67,5 +73,6 @@ Global
 		{80E0C2D7-6B4D-4B4B-8A71-40FE3F0311B6} = {B26DBAED-2870-4BDC-91BD-A35A1936E6AC}
 		{717150E0-709C-471F-8699-F6F4C8640E54} = {B103BB89-CD1C-4778-9A2D-EB57001D9603}
 		{31A9ED4F-92D1-48D5-AC6F-7817DD61359C} = {B103BB89-CD1C-4778-9A2D-EB57001D9603}
+		{FCAFD1B7-D06D-4F2E-8D6F-6B44DF903FDB} = {B103BB89-CD1C-4778-9A2D-EB57001D9603}
 	EndGlobalSection
 EndGlobal
