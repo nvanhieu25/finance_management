@@ -1,10 +1,10 @@
+using ConstructionFinance.Domain.Common;
 using ConstructionFinance.Domain.Enums;
 
 namespace ConstructionFinance.Domain.Entities;
 
-public class AuditLog
+public class AuditLog : BaseEntity
 {
-    public int Id { get; set; }
     public required string EntityType { get; set; }
     public int EntityId { get; set; }
     public AuditAction Action { get; set; }

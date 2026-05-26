@@ -145,6 +145,9 @@ namespace ConstructionFinance.Data.Migrations
                     b.Property<DateTime>("ChangedAt")
                         .HasColumnType("TEXT");
 
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
                     b.Property<int>("EntityId")
                         .HasColumnType("INTEGER");
 
@@ -161,6 +164,9 @@ namespace ConstructionFinance.Data.Migrations
                         .HasColumnType("TEXT");
 
                     b.Property<string>("OldValue")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("TEXT");
 
                     b.HasKey("Id");
