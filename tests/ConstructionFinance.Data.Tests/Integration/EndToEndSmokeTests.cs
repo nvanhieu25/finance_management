@@ -1,6 +1,7 @@
 using ConstructionFinance.Data.Interceptors;
 using ConstructionFinance.Data.Repositories;
 using ConstructionFinance.Data.Seed;
+using ConstructionFinance.Domain.Abstractions;
 using ConstructionFinance.Domain.Entities;
 using ConstructionFinance.Domain.Enums;
 using Microsoft.EntityFrameworkCore;

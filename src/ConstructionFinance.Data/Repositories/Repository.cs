@@ -1,3 +1,5 @@
+using System.Linq.Expressions;
+using ConstructionFinance.Domain.Abstractions;
 using ConstructionFinance.Domain.Common;
 using Microsoft.EntityFrameworkCore;
 
@@ -22,6 +24,12 @@ public class Repository<T> : IRepository<T> where T : BaseEntity
 
     public async Task<IReadOnlyList<T>> ListIncludingDeletedAsync(CancellationToken ct = default) =>
         await DbSet.IgnoreQueryFilters().AsNoTracking().ToListAsync(ct);
+
+    public async Task<IReadOnlyList<T>> FindAsync(Expression<Func<T, bool>> predicate, CancellationToken ct = default) =>
+        await DbSet.Where(predicate).AsNoTracking().ToListAsync(ct);
+
+    public Task<bool> ExistsAsync(Expression<Func<T, bool>> predicate, CancellationToken ct = default) =>
+        DbSet.AnyAsync(predicate, ct);
 
     public Task AddAsync(T entity, CancellationToken ct = default) =>
         DbSet.AddAsync(entity, ct).AsTask();

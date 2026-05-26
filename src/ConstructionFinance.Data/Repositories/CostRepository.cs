@@ -1,3 +1,4 @@
+using ConstructionFinance.Domain.Abstractions;
 using ConstructionFinance.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 
@@ -43,6 +44,13 @@ public class CostRepository : Repository<CostItem>, ICostRepository
             .OrderBy(c => c.Path)
             .ThenBy(c => c.SortOrder)
             .AsNoTracking()
+            .ToListAsync(ct);
+
+    public async Task<IReadOnlyList<CostItem>> GetTrackedTreeByProjectAsync(int projectId, CancellationToken ct = default) =>
+        await DbSet
+            .Where(c => c.ProjectId == projectId)
+            .OrderBy(c => c.Path)
+            .ThenBy(c => c.SortOrder)
             .ToListAsync(ct);
 
     public async Task<IReadOnlyList<CostItem>> GetSubtreeAsync(int nodeId, CancellationToken ct = default)
