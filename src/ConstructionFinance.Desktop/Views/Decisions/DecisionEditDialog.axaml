@@ -1,0 +1,43 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:ConstructionFinance.Desktop.ViewModels.Decisions"
+             xmlns:common="using:ConstructionFinance.Desktop.Common"
+             x:Class="ConstructionFinance.Desktop.Views.Decisions.DecisionEditDialog"
+             x:DataType="vm:DecisionEditDialogViewModel"
+             MinWidth="520">
+    <Grid ColumnDefinitions="170,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto">
+        <TextBlock Grid.Row="0" Grid.Column="0" Text="Mã Quyết định *" VerticalAlignment="Center"/>
+        <StackPanel Grid.Row="0" Grid.Column="1">
+            <TextBox Text="{Binding DecisionCode}"/>
+            <TextBlock Text="{Binding DecisionCodeError}" Foreground="Red" FontSize="11"
+                       IsVisible="{Binding DecisionCodeError, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+        </StackPanel>
+
+        <TextBlock Grid.Row="1" Grid.Column="0" Text="Trích yếu *" VerticalAlignment="Center"/>
+        <StackPanel Grid.Row="1" Grid.Column="1">
+            <TextBox Text="{Binding DecisionTitle}" AcceptsReturn="True" Height="60" TextWrapping="Wrap"/>
+            <TextBlock Text="{Binding DecisionTitleError}" Foreground="Red" FontSize="11"
+                       IsVisible="{Binding DecisionTitleError, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+        </StackPanel>
+
+        <TextBlock Grid.Row="2" Grid.Column="0" Text="Ngày ban hành" VerticalAlignment="Center"/>
+        <DatePicker Grid.Row="2" Grid.Column="1" SelectedDate="{Binding DecisionDate, Mode=TwoWay, Converter={x:Static common:DateOnlyConverter.Instance}}"/>
+
+        <TextBlock Grid.Row="3" Grid.Column="0" Text="Cơ quan ban hành *" VerticalAlignment="Center"/>
+        <StackPanel Grid.Row="3" Grid.Column="1">
+            <TextBox Text="{Binding IssuingAuthority}"/>
+            <TextBlock Text="{Binding IssuingAuthorityError}" Foreground="Red" FontSize="11"
+                       IsVisible="{Binding IssuingAuthorityError, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+        </StackPanel>
+
+        <TextBlock Grid.Row="4" Grid.Column="0" Text="Tổng giá trị (VND) *" VerticalAlignment="Center"/>
+        <StackPanel Grid.Row="4" Grid.Column="1">
+            <NumericUpDown Value="{Binding TotalApprovedAmount}" Minimum="0" FormatString="#,##0"/>
+            <TextBlock Text="{Binding TotalApprovedAmountError}" Foreground="Red" FontSize="11"
+                       IsVisible="{Binding TotalApprovedAmountError, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+        </StackPanel>
+
+        <TextBlock Grid.Row="5" Grid.Column="0" Text="Ghi chú" VerticalAlignment="Top"/>
+        <TextBox Grid.Row="5" Grid.Column="1" Text="{Binding Notes}" AcceptsReturn="True" Height="80" TextWrapping="Wrap"/>
+    </Grid>
+</UserControl>

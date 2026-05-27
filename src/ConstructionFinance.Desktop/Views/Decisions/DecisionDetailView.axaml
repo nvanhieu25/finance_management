@@ -1,0 +1,39 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:ConstructionFinance.Desktop.ViewModels.Decisions"
+             x:Class="ConstructionFinance.Desktop.Views.Decisions.DecisionDetailView"
+             x:DataType="vm:DecisionDetailViewModel">
+    <DockPanel>
+        <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Spacing="12" Margin="0,0,0,12">
+            <Button Content="← Quay lại" Command="{Binding GoBackCommand}"/>
+            <TextBlock FontSize="18" FontWeight="SemiBold" VerticalAlignment="Center"
+                       Text="{Binding Decision.DecisionCode, StringFormat='Quyết định {0}'}"/>
+        </StackPanel>
+        <Grid RowDefinitions="Auto,*">
+            <Border Grid.Row="0" Background="#F9F9F9" Padding="16" CornerRadius="4">
+                <Grid ColumnDefinitions="180,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto">
+                    <TextBlock Grid.Row="0" Grid.Column="0" Text="Trích yếu:" FontWeight="SemiBold"/>
+                    <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding Decision.DecisionTitle}" TextWrapping="Wrap"/>
+
+                    <TextBlock Grid.Row="1" Grid.Column="0" Text="Ngày ban hành:" FontWeight="SemiBold"/>
+                    <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding Decision.DecisionDate}"/>
+
+                    <TextBlock Grid.Row="2" Grid.Column="0" Text="Cơ quan:" FontWeight="SemiBold"/>
+                    <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding Decision.IssuingAuthority}"/>
+
+                    <TextBlock Grid.Row="3" Grid.Column="0" Text="Tổng giá trị duyệt:" FontWeight="SemiBold"/>
+                    <TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding Decision.TotalApprovedAmount, StringFormat=#\,##0}"/>
+
+                    <TextBlock Grid.Row="4" Grid.Column="0" Text="Ghi chú:" FontWeight="SemiBold"/>
+                    <TextBlock Grid.Row="4" Grid.Column="1" Text="{Binding Decision.Notes}" TextWrapping="Wrap"/>
+                </Grid>
+            </Border>
+            <Border Grid.Row="1" BorderBrush="#DDDDDD" BorderThickness="1" CornerRadius="4">
+                <DockPanel>
+                    <TextBlock DockPanel.Dock="Top" Text="Hợp đồng thuộc Quyết định này" FontWeight="SemiBold" Margin="12,8" FontSize="14"/>
+                    <ContentControl Content="{Binding Contracts}" Margin="8"/>
+                </DockPanel>
+            </Border>
+        </Grid>
+    </DockPanel>
+</UserControl>
