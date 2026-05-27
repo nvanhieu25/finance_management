@@ -2,6 +2,7 @@ using ConstructionFinance.Application.DTOs;
 using ConstructionFinance.Application.Services.Interfaces;
 using ConstructionFinance.Desktop.Tests.Common;
 using ConstructionFinance.Desktop.ViewModels.Contracts;
+using ConstructionFinance.Desktop.ViewModels.Projects;
 using Microsoft.Extensions.DependencyInjection;
 using Moq;
 using Shouldly;
@@ -21,7 +22,15 @@ public class ContractListViewModelTests
             .ReturnsAsync((initial ?? Array.Empty<ContractDto>()).ToList());
         var dlg = new FakeDialogService();
         var nav = new FakeNavigationService();
-        var sp = new ServiceCollection().BuildServiceProvider();
+        var sc = new ServiceCollection();
+        var projectSvc = new Mock<IProjectService>(MockBehavior.Loose);
+        projectSvc.Setup(s => s.GetByContractAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<ProjectDto>());
+        sc.AddSingleton(projectSvc.Object);
+        sc.AddSingleton<ConstructionFinance.Desktop.Services.IDialogService>(dlg);
+        sc.AddSingleton<ConstructionFinance.Desktop.Services.INavigationService>(nav);
+        sc.AddTransient<ProjectListViewModel>();
+        var sp = sc.BuildServiceProvider();
         var vm = new ContractListViewModel(svc.Object, dlg, nav, sp);
         vm.SetDecisionId(decisionId);
         return (vm, svc, dlg, nav);

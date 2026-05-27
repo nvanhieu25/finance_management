@@ -105,9 +105,9 @@ public partial class ContractListViewModel : ViewModelBase
     private Task OpenDetailAsync()
     {
         if (SelectedContract is null) return Task.CompletedTask;
-        var detail = new ContractDetailViewModel(SelectedContract);
+        var detail = new ContractDetailViewModel(SelectedContract, _nav, _services);
         _nav.NavigateTo(detail);
-        return Task.CompletedTask;
+        return detail.InitializeAsync();
     }
 
     private bool HasSelection() => SelectedContract is not null;
