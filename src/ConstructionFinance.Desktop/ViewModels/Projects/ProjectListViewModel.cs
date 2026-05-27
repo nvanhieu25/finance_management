@@ -1,22 +1,110 @@
 using System.Collections.ObjectModel;
+using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 using ConstructionFinance.Application.DTOs;
 using ConstructionFinance.Application.Services.Interfaces;
 using ConstructionFinance.Desktop.Common;
 using ConstructionFinance.Desktop.Services;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace ConstructionFinance.Desktop.ViewModels.Projects;
 
-// Stub — full implementation in Task 9.
 public partial class ProjectListViewModel : ViewModelBase
 {
+    private readonly IProjectService _service;
+    private readonly IDialogService _dialog;
+    private readonly INavigationService _nav;
+    private readonly IServiceProvider _services;
+
     public ProjectListViewModel(IProjectService service, IDialogService dialog, INavigationService nav, IServiceProvider services)
     {
-        _ = service; _ = dialog; _ = nav; _ = services;
+        _service = service;
+        _dialog = dialog;
+        _nav = nav;
+        _services = services;
     }
 
-    public int ContractId { get; set; }
+    public int ContractId { get; private set; }
     public ObservableCollection<ProjectDto> Projects { get; } = new();
 
+    [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(EditCommand))]
+    [NotifyCanExecuteChangedFor(nameof(DeleteCommand))]
+    [NotifyCanExecuteChangedFor(nameof(OpenDetailCommand))]
+    private ProjectDto? _selectedProject;
+
+    [ObservableProperty] private bool _isBusy;
+    [ObservableProperty] private string? _errorMessage;
+
     public void SetContractId(int contractId) => ContractId = contractId;
-    public Task LoadAsync() => Task.CompletedTask;
+
+    public async Task LoadAsync()
+    {
+        IsBusy = true;
+        ErrorMessage = null;
+        try
+        {
+            var list = await _service.GetByContractAsync(ContractId);
+            Projects.Clear();
+            foreach (var p in list) Projects.Add(p);
+        }
+        catch (Exception ex) { ErrorMessage = ex.Message; }
+        finally { IsBusy = false; }
+    }
+
+    [RelayCommand]
+    private async Task AddAsync()
+    {
+        var editVm = new ProjectEditDialogViewModel(initial: null, contractId: ContractId);
+        var ok = await _dialog.ShowDialogAsync(editVm);
+        if (ok != true) return;
+        try
+        {
+            var created = await _service.CreateAsync(editVm.ToCreateDto());
+            Projects.Add(created);
+        }
+        catch (Exception ex) { await _dialog.ShowMessageAsync("Lỗi", ex.Message); }
+    }
+
+    [RelayCommand(CanExecute = nameof(HasSelection))]
+    private async Task EditAsync()
+    {
+        if (SelectedProject is null) return;
+        var editVm = new ProjectEditDialogViewModel(initial: SelectedProject, contractId: ContractId);
+        var ok = await _dialog.ShowDialogAsync(editVm);
+        if (ok != true) return;
+        try
+        {
+            var updated = await _service.UpdateAsync(editVm.ToUpdateDto(SelectedProject.Id));
+            var idx = Projects.IndexOf(SelectedProject);
+            if (idx >= 0) Projects[idx] = updated;
+        }
+        catch (Exception ex) { await _dialog.ShowMessageAsync("Lỗi", ex.Message); }
+    }
+
+    [RelayCommand(CanExecute = nameof(HasSelection))]
+    private async Task DeleteAsync()
+    {
+        if (SelectedProject is null) return;
+        var ok = await _dialog.ConfirmAsync("Xóa Dự án",
+            $"Bạn có chắc muốn xóa Dự án \"{SelectedProject.ProjectCode}\"?");
+        if (!ok) return;
+        try
+        {
+            await _service.DeleteAsync(SelectedProject.Id);
+            Projects.Remove(SelectedProject);
+        }
+        catch (Exception ex) { await _dialog.ShowMessageAsync("Lỗi", ex.Message); }
+    }
+
+    [RelayCommand(CanExecute = nameof(HasSelection))]
+    private Task OpenDetailAsync()
+    {
+        if (SelectedProject is null) return Task.CompletedTask;
+        var detail = new ProjectDetailViewModel(SelectedProject);
+        _nav.NavigateTo(detail);
+        return Task.CompletedTask;
+    }
+
+    private bool HasSelection() => SelectedProject is not null;
 }
