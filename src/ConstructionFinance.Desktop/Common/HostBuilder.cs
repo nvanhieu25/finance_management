@@ -33,6 +33,7 @@ public static class HostBuilder
                 services.AddApplicationServices();
                 services.AddSingleton<ViewModels.MainWindowViewModel>();
                 services.AddSingleton<Services.IDialogService, Services.DialogService>();
+                services.AddSingleton<Services.INavigationService, Services.NavigationService>();
                 services.AddTransient<ViewModels.Vendors.VendorListViewModel>();
                 // ViewModels + IDialogService/INavigationService registered in later tasks.
             })
