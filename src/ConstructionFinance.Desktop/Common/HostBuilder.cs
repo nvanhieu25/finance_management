@@ -35,6 +35,10 @@ public static class HostBuilder
                 services.AddSingleton<Services.IDialogService, Services.DialogService>();
                 services.AddSingleton<Services.INavigationService, Services.NavigationService>();
                 services.AddTransient<ViewModels.Vendors.VendorListViewModel>();
+                services.AddTransient<ViewModels.Decisions.DecisionListViewModel>();
+                services.AddTransient<ViewModels.Contracts.ContractListViewModel>();
+                services.AddTransient<ViewModels.Projects.ProjectListViewModel>();
+                services.AddSingleton<IServiceProvider>(sp => sp);
                 // ViewModels + IDialogService/INavigationService registered in later tasks.
             })
             .Build();
