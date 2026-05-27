@@ -1,0 +1,36 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:ConstructionFinance.Desktop.ViewModels.Contracts"
+             x:Class="ConstructionFinance.Desktop.Views.Contracts.ContractDetailView"
+             x:DataType="vm:ContractDetailViewModel">
+    <DockPanel>
+        <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Spacing="12" Margin="0,0,0,12">
+            <Button Content="← Quay lại" Command="{Binding GoBackCommand}"/>
+            <TextBlock FontSize="18" FontWeight="SemiBold" VerticalAlignment="Center"
+                       Text="{Binding Contract.ContractCode, StringFormat='Hợp đồng {0}'}"/>
+        </StackPanel>
+        <Grid RowDefinitions="Auto,*">
+            <Border Grid.Row="0" Background="#F9F9F9" Padding="16" CornerRadius="4">
+                <Grid ColumnDefinitions="170,*" RowDefinitions="Auto,Auto,Auto,Auto">
+                    <TextBlock Grid.Row="0" Grid.Column="0" Text="Tên HĐ:" FontWeight="SemiBold"/>
+                    <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding Contract.ContractName}" TextWrapping="Wrap"/>
+
+                    <TextBlock Grid.Row="1" Grid.Column="0" Text="Ngày HĐ:" FontWeight="SemiBold"/>
+                    <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding Contract.ContractDate}"/>
+
+                    <TextBlock Grid.Row="2" Grid.Column="0" Text="Giá trị HĐ:" FontWeight="SemiBold"/>
+                    <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding Contract.ContractValue, StringFormat=#\,##0}"/>
+
+                    <TextBlock Grid.Row="3" Grid.Column="0" Text="Ghi chú:" FontWeight="SemiBold"/>
+                    <TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding Contract.Notes}" TextWrapping="Wrap"/>
+                </Grid>
+            </Border>
+            <Border Grid.Row="1" BorderBrush="#DDDDDD" BorderThickness="1" CornerRadius="4">
+                <DockPanel>
+                    <TextBlock DockPanel.Dock="Top" Text="Dự án thuộc Hợp đồng này" FontWeight="SemiBold" Margin="12,8" FontSize="14"/>
+                    <ContentControl Content="{Binding Projects}" Margin="8"/>
+                </DockPanel>
+            </Border>
+        </Grid>
+    </DockPanel>
+</UserControl>

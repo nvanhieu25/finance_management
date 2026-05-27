@@ -1,0 +1,54 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:ConstructionFinance.Desktop.ViewModels.Projects"
+             x:Class="ConstructionFinance.Desktop.Views.Projects.ProjectDetailView"
+             x:DataType="vm:ProjectDetailViewModel">
+    <DockPanel>
+        <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Spacing="12" Margin="0,0,0,12">
+            <Button Content="← Quay lại" Command="{Binding GoBackCommand}"/>
+            <TextBlock FontSize="18" FontWeight="SemiBold" VerticalAlignment="Center"
+                       Text="{Binding Project.ProjectCode, StringFormat='Dự án {0}'}"/>
+        </StackPanel>
+        <TabControl>
+            <TabItem Header="Thông tin">
+                <Grid ColumnDefinitions="200,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto" Margin="16">
+                    <TextBlock Grid.Row="0" Grid.Column="0" Text="Tên Dự án:" FontWeight="SemiBold"/>
+                    <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding Project.ProjectName}" TextWrapping="Wrap"/>
+
+                    <TextBlock Grid.Row="1" Grid.Column="0" Text="Loại CT:" FontWeight="SemiBold"/>
+                    <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding Project.ProjectType}"/>
+
+                    <TextBlock Grid.Row="2" Grid.Column="0" Text="Địa điểm:" FontWeight="SemiBold"/>
+                    <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding Project.Location}"/>
+
+                    <TextBlock Grid.Row="3" Grid.Column="0" Text="Thời gian:" FontWeight="SemiBold"/>
+                    <StackPanel Grid.Row="3" Grid.Column="1" Orientation="Horizontal" Spacing="8">
+                        <TextBlock Text="{Binding Project.StartDate}"/>
+                        <TextBlock Text="→"/>
+                        <TextBlock Text="{Binding Project.EndDate}"/>
+                    </StackPanel>
+
+                    <TextBlock Grid.Row="4" Grid.Column="0" Text="Trạng thái:" FontWeight="SemiBold"/>
+                    <ComboBox Grid.Row="4" Grid.Column="1" ItemsSource="{Binding AvailableStatuses}"
+                              SelectedItem="{Binding Project.Status, Mode=OneWay}"
+                              SelectionChanged="OnStatusChanged" Width="200"/>
+
+                    <TextBlock Grid.Row="5" Grid.Column="0" Text="Tổng dự toán:" FontWeight="SemiBold"/>
+                    <TextBlock Grid.Row="5" Grid.Column="1" Text="{Binding Project.TotalBudget, StringFormat=#\,##0}"/>
+                </Grid>
+            </TabItem>
+            <TabItem Header="Chi phí">
+                <TextBlock Margin="16" Foreground="Gray"
+                           Text="Cây đầu mục chi phí — sẽ được triển khai ở Plan 05."/>
+            </TabItem>
+            <TabItem Header="Báo cáo">
+                <TextBlock Margin="16" Foreground="Gray"
+                           Text="Báo cáo dự án — sẽ được triển khai ở plan sau."/>
+            </TabItem>
+            <TabItem Header="Tài liệu">
+                <TextBlock Margin="16" Foreground="Gray"
+                           Text="Tài liệu đính kèm — sẽ được triển khai ở plan sau."/>
+            </TabItem>
+        </TabControl>
+    </DockPanel>
+</UserControl>

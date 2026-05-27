@@ -1,0 +1,27 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:ConstructionFinance.Desktop.ViewModels.Contracts"
+             x:Class="ConstructionFinance.Desktop.Views.Contracts.ContractListView"
+             x:DataType="vm:ContractListViewModel">
+    <DockPanel>
+        <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Spacing="8" Margin="0,0,0,8">
+            <Button Content="+ Thêm" Command="{Binding AddCommand}"/>
+            <Button Content="Sửa" Command="{Binding EditCommand}"/>
+            <Button Content="Xóa" Command="{Binding DeleteCommand}"/>
+            <Button Content="Xem chi tiết →" Command="{Binding OpenDetailCommand}"/>
+            <TextBlock Text="{Binding ErrorMessage}" Foreground="Red" VerticalAlignment="Center"/>
+        </StackPanel>
+        <DataGrid ItemsSource="{Binding Contracts}"
+                  SelectedItem="{Binding SelectedContract}"
+                  IsReadOnly="True"
+                  GridLinesVisibility="Horizontal"
+                  HeadersVisibility="Column">
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="Mã HĐ" Binding="{Binding ContractCode}" Width="150"/>
+                <DataGridTextColumn Header="Tên HĐ" Binding="{Binding ContractName}" Width="*"/>
+                <DataGridTextColumn Header="Ngày HĐ" Binding="{Binding ContractDate}" Width="110"/>
+                <DataGridTextColumn Header="Giá trị" Binding="{Binding ContractValue, StringFormat=#\,##0}" Width="160"/>
+            </DataGrid.Columns>
+        </DataGrid>
+    </DockPanel>
+</UserControl>

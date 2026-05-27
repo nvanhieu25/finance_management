@@ -1,0 +1,27 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:ConstructionFinance.Desktop.ViewModels.Projects"
+             x:Class="ConstructionFinance.Desktop.Views.Projects.ProjectListView"
+             x:DataType="vm:ProjectListViewModel">
+    <DockPanel>
+        <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Spacing="8" Margin="0,0,0,8">
+            <Button Content="+ Thêm" Command="{Binding AddCommand}"/>
+            <Button Content="Sửa" Command="{Binding EditCommand}"/>
+            <Button Content="Xóa" Command="{Binding DeleteCommand}"/>
+            <Button Content="Xem chi tiết →" Command="{Binding OpenDetailCommand}"/>
+            <TextBlock Text="{Binding ErrorMessage}" Foreground="Red" VerticalAlignment="Center"/>
+        </StackPanel>
+        <DataGrid ItemsSource="{Binding Projects}"
+                  SelectedItem="{Binding SelectedProject}"
+                  IsReadOnly="True"
+                  GridLinesVisibility="Horizontal"
+                  HeadersVisibility="Column">
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="Mã DA" Binding="{Binding ProjectCode}" Width="120"/>
+                <DataGridTextColumn Header="Tên Dự án" Binding="{Binding ProjectName}" Width="*"/>
+                <DataGridTextColumn Header="Trạng thái" Binding="{Binding Status}" Width="120"/>
+                <DataGridTextColumn Header="Dự toán" Binding="{Binding TotalBudget, StringFormat=#\,##0}" Width="160"/>
+            </DataGrid.Columns>
+        </DataGrid>
+    </DockPanel>
+</UserControl>
