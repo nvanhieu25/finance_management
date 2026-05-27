@@ -102,9 +102,9 @@ public partial class DecisionListViewModel : ViewModelBase
     private Task OpenDetailAsync()
     {
         if (SelectedDecision is null) return Task.CompletedTask;
-        var detail = new DecisionDetailViewModel(SelectedDecision);
+        var detail = new DecisionDetailViewModel(SelectedDecision, _nav, _services);
         _nav.NavigateTo(detail);
-        return Task.CompletedTask;
+        return detail.InitializeAsync();
     }
 
     private bool HasSelection() => SelectedDecision is not null;

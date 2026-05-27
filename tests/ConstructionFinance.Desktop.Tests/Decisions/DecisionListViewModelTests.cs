@@ -21,7 +21,15 @@ public class DecisionListViewModelTests
             .ReturnsAsync((initial ?? Array.Empty<DecisionDto>()).ToList());
         var dlg = new FakeDialogService();
         var nav = new FakeNavigationService();
-        var sp = new Microsoft.Extensions.DependencyInjection.ServiceCollection().BuildServiceProvider();
+        var sc = new ServiceCollection();
+        var contractSvc = new Mock<ConstructionFinance.Application.Services.Interfaces.IContractService>(MockBehavior.Loose);
+        contractSvc.Setup(s => s.GetByDecisionAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<ContractDto>());
+        sc.AddSingleton(contractSvc.Object);
+        sc.AddSingleton<ConstructionFinance.Desktop.Services.IDialogService>(dlg);
+        sc.AddSingleton<ConstructionFinance.Desktop.Services.INavigationService>(nav);
+        sc.AddTransient<ConstructionFinance.Desktop.ViewModels.Contracts.ContractListViewModel>();
+        var sp = sc.BuildServiceProvider();
         var vm = new DecisionListViewModel(svc.Object, dlg, nav, sp);
         return (vm, svc, dlg, nav);
     }
