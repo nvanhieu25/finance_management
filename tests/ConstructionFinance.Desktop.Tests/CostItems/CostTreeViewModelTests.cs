@@ -2,6 +2,7 @@ using ConstructionFinance.Application.DTOs;
 using ConstructionFinance.Application.Services.Interfaces;
 using ConstructionFinance.Desktop.Tests.Common;
 using ConstructionFinance.Desktop.ViewModels.CostItems;
+using ConstructionFinance.Desktop.ViewModels.Payments;
 using ConstructionFinance.Domain.Enums;
 using Moq;
 using Shouldly;
@@ -330,5 +331,45 @@ public class CostTreeViewModelTests
         await vm.ApplyEditAsync(node);
 
         cost.Verify(s => s.UpdateNodeAsync(It.IsAny<UpdateCostItemDto>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task OpenPaymentsCommand_opens_PaymentListDialog_when_leaf_selected()
+    {
+        var (vm, _, pay, _, dlg) = Create(new[]
+        {
+            Dto(1, null, "Móng", 0, "/1/", isLeaf: true, estimated: 1_000m)
+        });
+        pay.Setup(s => s.GetByCostItemAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<PaymentDto>());
+        pay.Setup(s => s.GetSummaryAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new PaymentSummaryDto(1, 1_000m, 0m, 1_000m, 0m));
+        dlg.DialogResult = true;
+
+        await vm.LoadAsync();
+        vm.SelectedNode = vm.RootNodes[0];
+
+        await vm.OpenPaymentsCommand.ExecuteAsync(null);
+
+        dlg.OpenedDialogs.Count.ShouldBe(1);
+        dlg.OpenedDialogs[0].ShouldBeOfType<PaymentListDialogViewModel>();
+    }
+
+    [Fact]
+    public async Task OpenPaymentsCommand_disabled_when_no_selection_or_non_leaf()
+    {
+        var (vm, _, _, _, _) = Create(new[]
+        {
+            Dto(1, null, "Nhóm", 0, "/1/", isLeaf: false)
+        });
+        await vm.LoadAsync();
+
+        // No selection
+        vm.SelectedNode = null;
+        vm.OpenPaymentsCommand.CanExecute(null).ShouldBeFalse();
+
+        // Non-leaf selected
+        vm.SelectedNode = vm.RootNodes[0];
+        vm.OpenPaymentsCommand.CanExecute(null).ShouldBeFalse();
     }
 }

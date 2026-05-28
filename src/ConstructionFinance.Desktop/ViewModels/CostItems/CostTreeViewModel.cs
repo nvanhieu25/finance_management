@@ -5,6 +5,7 @@ using ConstructionFinance.Application.DTOs;
 using ConstructionFinance.Application.Services.Interfaces;
 using ConstructionFinance.Desktop.Common;
 using ConstructionFinance.Desktop.Services;
+using ConstructionFinance.Desktop.ViewModels.Payments;
 using ConstructionFinance.Domain.Enums;
 
 namespace ConstructionFinance.Desktop.ViewModels.CostItems;
@@ -37,6 +38,7 @@ public partial class CostTreeViewModel : ViewModelBase
     [NotifyCanExecuteChangedFor(nameof(DeleteCommand))]
     [NotifyCanExecuteChangedFor(nameof(IndentCommand))]
     [NotifyCanExecuteChangedFor(nameof(OutdentCommand))]
+    [NotifyCanExecuteChangedFor(nameof(OpenPaymentsCommand))]
     private CostTreeNode? _selectedNode;
 
     [ObservableProperty] private bool _isBusy;
@@ -171,6 +173,20 @@ public partial class CostTreeViewModel : ViewModelBase
         }
         catch (Exception ex) { await _dialog.ShowMessageAsync("Lỗi", ex.Message); }
     }
+
+    [RelayCommand(CanExecute = nameof(CanOpenPayments))]
+    private async Task OpenPaymentsAsync()
+    {
+        if (SelectedNode is null || !SelectedNode.IsLeaf) return;
+        var dialogVm = new PaymentListDialogViewModel(_payment, _dialog);
+        dialogVm.SetCostItem(SelectedNode.Id, SelectedNode.ItemName);
+        await dialogVm.LoadAsync();
+        await _dialog.ShowDialogAsync(dialogVm);
+        // Payments may have changed → refresh tree so EstimatedAmount/parent rollup stay in sync.
+        await LoadAsync();
+    }
+
+    private bool CanOpenPayments() => SelectedNode is not null && SelectedNode.IsLeaf;
 
     /// Persists cell-level edits on <paramref name="node"/>. Called by the View on
     /// commit boundaries (e.g. <c>TextBox.LostFocus</c>) rather than every keystroke,
