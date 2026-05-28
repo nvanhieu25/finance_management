@@ -11,6 +11,11 @@
             <Button Content="Xem chi tiết →" Command="{Binding OpenDetailCommand}"/>
             <TextBlock Text="{Binding ErrorMessage}" Foreground="Red" VerticalAlignment="Center"/>
         </StackPanel>
+        <Border DockPanel.Dock="Top" Background="#FFF8E1" BorderBrush="#F5C518" BorderThickness="1"
+                Padding="10,6" Margin="0,0,0,8" IsVisible="{Binding IsGlobalView}">
+            <TextBlock Text="Đang xem toàn bộ Dự án (chế độ chỉ đọc). Để thêm/sửa/xóa, vào qua menu Quyết định → Hợp đồng → Dự án."
+                       TextWrapping="Wrap" Foreground="#5D4037"/>
+        </Border>
         <DataGrid ItemsSource="{Binding Projects}"
                   SelectedItem="{Binding SelectedProject}"
                   IsReadOnly="True"

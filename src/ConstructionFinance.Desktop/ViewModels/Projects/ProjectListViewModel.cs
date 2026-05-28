@@ -36,7 +36,16 @@ public partial class ProjectListViewModel : ViewModelBase
     [ObservableProperty] private bool _isBusy;
     [ObservableProperty] private string? _errorMessage;
 
-    public void SetContractId(int contractId) => ContractId = contractId;
+    public void SetContractId(int contractId)
+    {
+        ContractId = contractId;
+        OnPropertyChanged(nameof(IsGlobalView));
+        AddCommand.NotifyCanExecuteChanged();
+        EditCommand.NotifyCanExecuteChanged();
+        DeleteCommand.NotifyCanExecuteChanged();
+    }
+
+    public bool IsGlobalView => ContractId == 0;
 
     public async Task LoadAsync()
     {
@@ -54,7 +63,7 @@ public partial class ProjectListViewModel : ViewModelBase
         finally { IsBusy = false; }
     }
 
-    [RelayCommand]
+    [RelayCommand(CanExecute = nameof(CanWrite))]
     private async Task AddAsync()
     {
         var editVm = new ProjectEditDialogViewModel(initial: null, contractId: ContractId);
@@ -68,7 +77,7 @@ public partial class ProjectListViewModel : ViewModelBase
         catch (Exception ex) { await _dialog.ShowMessageAsync("Lỗi", ex.Message); }
     }
 
-    [RelayCommand(CanExecute = nameof(HasSelection))]
+    [RelayCommand(CanExecute = nameof(CanWriteAndHasSelection))]
     private async Task EditAsync()
     {
         if (SelectedProject is null) return;
@@ -84,7 +93,7 @@ public partial class ProjectListViewModel : ViewModelBase
         catch (Exception ex) { await _dialog.ShowMessageAsync("Lỗi", ex.Message); }
     }
 
-    [RelayCommand(CanExecute = nameof(HasSelection))]
+    [RelayCommand(CanExecute = nameof(CanWriteAndHasSelection))]
     private async Task DeleteAsync()
     {
         if (SelectedProject is null) return;
@@ -109,4 +118,6 @@ public partial class ProjectListViewModel : ViewModelBase
     }
 
     private bool HasSelection() => SelectedProject is not null;
+    private bool CanWrite() => ContractId != 0;
+    private bool CanWriteAndHasSelection() => ContractId != 0 && SelectedProject is not null;
 }
