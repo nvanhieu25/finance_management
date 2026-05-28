@@ -1,0 +1,26 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:ConstructionFinance.Desktop.ViewModels.Settings"
+             x:Class="ConstructionFinance.Desktop.Views.Settings.BackupManagementView"
+             x:DataType="vm:BackupManagementViewModel">
+    <DockPanel Margin="16">
+        <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Spacing="8" Margin="0,0,0,12">
+            <Button Content="Backup ngay" Command="{Binding BackupNowCommand}"/>
+            <Button Content="Restore từ bản đã chọn" Command="{Binding RestoreSelectedCommand}"/>
+            <ProgressBar IsIndeterminate="True" IsVisible="{Binding IsBusy}" Width="80" VerticalAlignment="Center"/>
+            <TextBlock Text="{Binding StatusMessage}" VerticalAlignment="Center"/>
+        </StackPanel>
+        <DataGrid ItemsSource="{Binding Backups}"
+                  SelectedItem="{Binding SelectedBackup}"
+                  IsReadOnly="True"
+                  GridLinesVisibility="Horizontal"
+                  HeadersVisibility="Column">
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="Tên file" Binding="{Binding FileName}" Width="*"/>
+                <DataGridTextColumn Header="Loại" Binding="{Binding BackupType}" Width="120"/>
+                <DataGridTextColumn Header="Tạo lúc (UTC)" Binding="{Binding CreatedAtUtc}" Width="180"/>
+                <DataGridTextColumn Header="Kích thước (bytes)" Binding="{Binding SizeBytes, StringFormat=\{0:#\,##0\}}" Width="160"/>
+            </DataGrid.Columns>
+        </DataGrid>
+    </DockPanel>
+</UserControl>

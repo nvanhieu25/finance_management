@@ -1,0 +1,20 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:ConstructionFinance.Desktop.ViewModels.Settings"
+             x:Class="ConstructionFinance.Desktop.Views.Settings.SettingsView"
+             x:DataType="vm:SettingsViewModel">
+    <DockPanel>
+        <TextBlock DockPanel.Dock="Top" Text="Cài đặt hệ thống" FontSize="20" FontWeight="SemiBold" Margin="0,0,0,12"/>
+        <TabControl>
+            <TabItem Header="Thông tin cơ quan">
+                <ContentControl Content="{Binding CompanyInfo}"/>
+            </TabItem>
+            <TabItem Header="Backup &amp; Restore">
+                <ContentControl Content="{Binding Backup}"/>
+            </TabItem>
+            <TabItem Header="Tùy chọn chung">
+                <ContentControl Content="{Binding Preferences}"/>
+            </TabItem>
+        </TabControl>
+    </DockPanel>
+</UserControl>

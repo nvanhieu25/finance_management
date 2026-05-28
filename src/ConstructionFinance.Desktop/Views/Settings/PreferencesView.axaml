@@ -1,0 +1,11 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:ConstructionFinance.Desktop.ViewModels.Settings"
+             x:Class="ConstructionFinance.Desktop.Views.Settings.PreferencesView"
+             x:DataType="vm:PreferencesViewModel">
+    <StackPanel Margin="16" Spacing="12">
+        <CheckBox IsChecked="{Binding AutoBackupOnExit}" Content="Tự động backup khi đóng app (nếu có thay đổi trong phiên)"/>
+        <TextBlock TextWrapping="Wrap" Foreground="Gray" FontSize="11"
+                   Text="Lưu ý: backup tự động sẽ ghi vào thư mục Backups trong %LocalAppData%/ConstructionFinance/. Bạn có thể tắt nếu không cần."/>
+    </StackPanel>
+</UserControl>
