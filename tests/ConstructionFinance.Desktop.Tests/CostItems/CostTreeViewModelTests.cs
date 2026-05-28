@@ -99,4 +99,123 @@ public class CostTreeViewModelTests
 
         vm.GrandTotal.ShouldBe(5_000m);
     }
+
+    [Fact]
+    public async Task AddRootCommand_calls_service_with_correct_dto()
+    {
+        var (vm, cost, _, _, _) = Create();
+        cost.Setup(s => s.CreateNodeAsync(It.IsAny<CreateCostItemDto>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Dto(99, null, "Mới", 0, "/99/", isLeaf: false));
+        cost.Setup(s => s.RecalculateRollupAsync(It.IsAny<int>(), It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
+
+        await vm.LoadAsync();
+        await vm.AddRootCommand.ExecuteAsync(null);
+
+        cost.Verify(s => s.CreateNodeAsync(
+            It.Is<CreateCostItemDto>(d => d.ProjectId == 7 && d.ParentId == null && !d.IsLeaf),
+            It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task AddChildCommand_passes_selected_node_as_parent_and_marks_it_non_leaf()
+    {
+        var (vm, cost, _, _, _) = Create(new[]
+        {
+            Dto(1, null, "Root", 0, "/1/", isLeaf: true, estimated: 100m)
+        });
+        cost.Setup(s => s.CreateNodeAsync(It.IsAny<CreateCostItemDto>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Dto(2, 1, "Con", 1, "/1/2/", isLeaf: true));
+        cost.Setup(s => s.RecalculateRollupAsync(It.IsAny<int>(), It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
+
+        await vm.LoadAsync();
+        vm.SelectedNode = vm.RootNodes[0];
+
+        await vm.AddChildCommand.ExecuteAsync(null);
+
+        cost.Verify(s => s.CreateNodeAsync(
+            It.Is<CreateCostItemDto>(d => d.ParentId == 1 && d.IsLeaf),
+            It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task AddChildCommand_disabled_when_no_selection()
+    {
+        var (vm, _, _, _, _) = Create();
+        await vm.LoadAsync();
+        vm.SelectedNode = null;
+        vm.AddChildCommand.CanExecute(null).ShouldBeFalse();
+    }
+
+    [Fact]
+    public async Task AddSiblingCommand_uses_selected_node_ParentId_and_IsLeaf()
+    {
+        var (vm, cost, _, _, _) = Create(new[]
+        {
+            Dto(1, null, "P", 0, "/1/", isLeaf: false),
+            Dto(2, 1,    "A", 1, "/1/2/", isLeaf: true)
+        });
+        cost.Setup(s => s.CreateNodeAsync(It.IsAny<CreateCostItemDto>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Dto(3, 1, "B", 1, "/1/3/", isLeaf: true));
+        cost.Setup(s => s.RecalculateRollupAsync(It.IsAny<int>(), It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
+
+        await vm.LoadAsync();
+        vm.SelectedNode = vm.RootNodes[0].Children[0];
+
+        await vm.AddSiblingCommand.ExecuteAsync(null);
+
+        cost.Verify(s => s.CreateNodeAsync(
+            It.Is<CreateCostItemDto>(d => d.ParentId == 1 && d.IsLeaf),
+            It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task DeleteCommand_calls_service_when_user_confirms()
+    {
+        var (vm, cost, _, _, dlg) = Create(new[]
+        {
+            Dto(1, null, "Root", 0, "/1/", isLeaf: true)
+        });
+        cost.Setup(s => s.DeleteNodeAsync(1, It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
+        cost.Setup(s => s.RecalculateRollupAsync(It.IsAny<int>(), It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
+        dlg.ConfirmResult = true;
+
+        await vm.LoadAsync();
+        vm.SelectedNode = vm.RootNodes[0];
+
+        await vm.DeleteCommand.ExecuteAsync(null);
+
+        cost.Verify(s => s.DeleteNodeAsync(1, It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task DeleteCommand_skipped_when_user_declines()
+    {
+        var (vm, cost, _, _, dlg) = Create(new[]
+        {
+            Dto(1, null, "Root", 0, "/1/", isLeaf: true)
+        });
+        dlg.ConfirmResult = false;
+        await vm.LoadAsync();
+        vm.SelectedNode = vm.RootNodes[0];
+
+        await vm.DeleteCommand.ExecuteAsync(null);
+
+        cost.Verify(s => s.DeleteNodeAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Commands_disabled_when_IsReadOnly()
+    {
+        var (vm, _, _, _, _) = Create();
+        vm.SetProject(projectId: 7, status: ProjectStatus.Completed);
+        await vm.LoadAsync();
+
+        vm.AddRootCommand.CanExecute(null).ShouldBeFalse();
+
+        var node = new CostTreeNode(Dto(1, null, "X", 0, "/1/", isLeaf: true));
+        vm.SelectedNode = node;
+        vm.AddChildCommand.CanExecute(null).ShouldBeFalse();
+        vm.AddSiblingCommand.CanExecute(null).ShouldBeFalse();
+        vm.DeleteCommand.CanExecute(null).ShouldBeFalse();
+    }
 }
