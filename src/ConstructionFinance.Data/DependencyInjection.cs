@@ -10,6 +10,7 @@ public static class DependencyInjection
     {
         services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
         services.AddScoped<ICostRepository, CostRepository>();
+        services.AddScoped<ICostUnitTypeRepository, CostUnitTypeRepository>();
         services.AddScoped<IUnitOfWork, UnitOfWork>();
         return services;
     }

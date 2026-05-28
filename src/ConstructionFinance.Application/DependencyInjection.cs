@@ -26,6 +26,7 @@ public static class DependencyInjection
         services.AddScoped<IProjectService, ProjectService>();
         services.AddScoped<IPaymentService, PaymentService>();
         services.AddScoped<ICostService, CostService>();
+        services.AddScoped<ICostUnitTypeService, CostUnitTypeService>();
         services.AddScoped<IAuditService, AuditService>();
 
         return services;
