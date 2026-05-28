@@ -7,6 +7,7 @@ public interface IProjectService
 {
     Task<ProjectDto> GetByIdAsync(int id, CancellationToken ct = default);
     Task<IReadOnlyList<ProjectDto>> GetByContractAsync(int contractId, CancellationToken ct = default);
+    Task<IReadOnlyList<ProjectDto>> GetAllAsync(CancellationToken ct = default);
     Task<ProjectDto> CreateAsync(CreateProjectDto dto, CancellationToken ct = default);
     Task<ProjectDto> UpdateAsync(UpdateProjectDto dto, CancellationToken ct = default);
     Task<ProjectDto> UpdateStatusAsync(int id, ProjectStatus newStatus, CancellationToken ct = default);

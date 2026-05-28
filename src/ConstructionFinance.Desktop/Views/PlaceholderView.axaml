@@ -1,0 +1,11 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:ConstructionFinance.Desktop.ViewModels"
+             x:Class="ConstructionFinance.Desktop.Views.PlaceholderView"
+             x:DataType="vm:PlaceholderViewModel">
+    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="8">
+        <TextBlock Text="🚧" FontSize="48" HorizontalAlignment="Center"/>
+        <TextBlock Text="{Binding Tag, StringFormat='Mục: {0}'}" FontSize="14" Foreground="Gray" HorizontalAlignment="Center"/>
+        <TextBlock Text="Tính năng đang phát triển — sẽ có trong v1.1" FontSize="16" HorizontalAlignment="Center"/>
+    </StackPanel>
+</UserControl>

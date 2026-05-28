@@ -52,6 +52,12 @@ public class ProjectService : IProjectService
         return list.Select(x => x.ToDto()).ToList();
     }
 
+    public async Task<IReadOnlyList<ProjectDto>> GetAllAsync(CancellationToken ct = default)
+    {
+        var list = await _projects.ListAsync(ct);
+        return list.Select(x => x.ToDto()).ToList();
+    }
+
     public async Task<ProjectDto> CreateAsync(CreateProjectDto dto, CancellationToken ct = default)
     {
         if (await _contracts.GetByIdAsync(dto.ContractId, ct) is null)

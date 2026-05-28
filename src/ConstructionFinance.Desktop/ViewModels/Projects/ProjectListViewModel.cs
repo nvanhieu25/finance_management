@@ -44,7 +44,9 @@ public partial class ProjectListViewModel : ViewModelBase
         ErrorMessage = null;
         try
         {
-            var list = await _service.GetByContractAsync(ContractId);
+            var list = ContractId == 0
+                ? await _service.GetAllAsync()
+                : await _service.GetByContractAsync(ContractId);
             Projects.Clear();
             foreach (var p in list) Projects.Add(p);
         }

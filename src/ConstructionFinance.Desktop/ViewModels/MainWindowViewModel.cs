@@ -39,6 +39,13 @@ public partial class MainWindowViewModel : ViewModelBase
                 _nav.NavigateTo(vvm);
                 await vvm.LoadAsync();
                 break;
+            case "Projects":
+                var pvm = _services.GetRequiredService<ViewModels.Projects.ProjectListViewModel>();
+                pvm.SetContractId(0);
+                _nav.Reset();
+                _nav.NavigateTo(pvm);
+                await pvm.LoadAsync();
+                break;
             case "Settings":
                 var svm = _services.GetRequiredService<ViewModels.Settings.SettingsViewModel>();
                 _nav.Reset();
