@@ -41,6 +41,10 @@ public static class HostBuilder
                 services.AddTransient<ViewModels.Contracts.ContractListViewModel>();
                 services.AddTransient<ViewModels.Projects.ProjectListViewModel>();
                 services.AddTransient<ViewModels.CostItems.CostTreeViewModel>();
+                services.AddTransient<ViewModels.Settings.CompanyInfoViewModel>();
+                services.AddTransient<ViewModels.Settings.BackupManagementViewModel>();
+                services.AddTransient<ViewModels.Settings.PreferencesViewModel>();
+                services.AddTransient<ViewModels.Settings.SettingsViewModel>();
                 services.AddSingleton<IServiceProvider>(sp => sp);
                 // ViewModels + IDialogService/INavigationService registered in later tasks.
             })

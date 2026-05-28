@@ -39,6 +39,12 @@ public partial class MainWindowViewModel : ViewModelBase
                 _nav.NavigateTo(vvm);
                 await vvm.LoadAsync();
                 break;
+            case "Settings":
+                var svm = _services.GetRequiredService<ViewModels.Settings.SettingsViewModel>();
+                _nav.Reset();
+                _nav.NavigateTo(svm);
+                await svm.InitializeAsync();
+                break;
             default:
                 _nav.Reset();
                 _nav.NavigateTo(new PlaceholderViewModel { Tag = tag });
