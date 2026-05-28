@@ -22,7 +22,22 @@ public class ProjectListViewModelTests
             .ReturnsAsync((initial ?? Array.Empty<ProjectDto>()).ToList());
         var dlg = new FakeDialogService();
         var nav = new FakeNavigationService();
-        var sp = new ServiceCollection().BuildServiceProvider();
+
+        // OpenDetailCommand resolves CostTreeViewModel via _services. Register a minimal
+        // graph so the navigation test does not blow up at resolve time.
+        var sc = new ServiceCollection();
+        var cost = new Mock<ICostService>(MockBehavior.Loose);
+        cost.Setup(s => s.GetProjectTreeAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<CostItemDto>());
+        sc.AddSingleton(cost.Object);
+        sc.AddSingleton(new Mock<IPaymentService>(MockBehavior.Loose).Object);
+        var units = new Mock<ICostUnitTypeService>(MockBehavior.Loose);
+        units.Setup(s => s.GetAllAsync(It.IsAny<CancellationToken>())).ReturnsAsync(new List<CostUnitTypeDto>());
+        sc.AddSingleton(units.Object);
+        sc.AddSingleton<ConstructionFinance.Desktop.Services.IDialogService>(dlg);
+        sc.AddTransient<ConstructionFinance.Desktop.ViewModels.CostItems.CostTreeViewModel>();
+        var sp = sc.BuildServiceProvider();
+
         var vm = new ProjectListViewModel(svc.Object, dlg, nav, sp);
         vm.SetContractId(contractId);
         return (vm, svc, dlg, nav);

@@ -101,9 +101,9 @@ public partial class ProjectListViewModel : ViewModelBase
     private Task OpenDetailAsync()
     {
         if (SelectedProject is null) return Task.CompletedTask;
-        var detail = new ProjectDetailViewModel(SelectedProject, _service, _dialog, _nav);
+        var detail = new ProjectDetailViewModel(SelectedProject, _service, _dialog, _nav, _services);
         _nav.NavigateTo(detail);
-        return Task.CompletedTask;
+        return detail.InitializeAsync();
     }
 
     private bool HasSelection() => SelectedProject is not null;

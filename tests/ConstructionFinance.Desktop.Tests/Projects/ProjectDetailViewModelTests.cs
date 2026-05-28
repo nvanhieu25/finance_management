@@ -4,6 +4,7 @@ using ConstructionFinance.Application.Services.Interfaces;
 using ConstructionFinance.Desktop.Tests.Common;
 using ConstructionFinance.Desktop.ViewModels.Projects;
 using ConstructionFinance.Domain.Enums;
+using Microsoft.Extensions.DependencyInjection;
 using Moq;
 using Shouldly;
 using Xunit;
@@ -20,7 +21,22 @@ public class ProjectDetailViewModelTests
         var svc = new Mock<IProjectService>(MockBehavior.Strict);
         var dlg = new FakeDialogService();
         var nav = new FakeNavigationService();
-        var vm = new ProjectDetailViewModel(P(status), svc.Object, dlg, nav);
+
+        var sc = new ServiceCollection();
+        var cost = new Mock<ICostService>(MockBehavior.Loose);
+        cost.Setup(s => s.GetProjectTreeAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<CostItemDto>());
+        sc.AddSingleton(cost.Object);
+        var pay = new Mock<IPaymentService>(MockBehavior.Loose);
+        sc.AddSingleton(pay.Object);
+        var units = new Mock<ICostUnitTypeService>(MockBehavior.Loose);
+        units.Setup(s => s.GetAllAsync(It.IsAny<CancellationToken>())).ReturnsAsync(new List<CostUnitTypeDto>());
+        sc.AddSingleton(units.Object);
+        sc.AddSingleton<ConstructionFinance.Desktop.Services.IDialogService>(dlg);
+        sc.AddTransient<ConstructionFinance.Desktop.ViewModels.CostItems.CostTreeViewModel>();
+        var sp = sc.BuildServiceProvider();
+
+        var vm = new ProjectDetailViewModel(P(status), svc.Object, dlg, nav, sp);
         return (vm, svc, dlg, nav);
     }
 
@@ -33,6 +49,15 @@ public class ProjectDetailViewModelTests
     }
 
     [Fact]
+    public void Exposes_CostTree_initialized_with_project_id_and_status()
+    {
+        var (vm, _, _, _) = Create(ProjectStatus.InProgress);
+        vm.CostTree.ShouldNotBeNull();
+        vm.CostTree.ProjectId.ShouldBe(5);
+        vm.CostTree.IsReadOnly.ShouldBeFalse();
+    }
+
+    [Fact]
     public async Task ChangeStatusAsync_calls_service_and_updates_Project()
     {
         var (vm, svc, _, _) = Create(ProjectStatus.Planning);
@@ -42,6 +67,18 @@ public class ProjectDetailViewModelTests
         await vm.ChangeStatusAsync(ProjectStatus.InProgress);
 
         vm.Project.Status.ShouldBe(ProjectStatus.InProgress);
+    }
+
+    [Fact]
+    public async Task ChangeStatusAsync_to_Completed_makes_CostTree_read_only()
+    {
+        var (vm, svc, _, _) = Create(ProjectStatus.InProgress);
+        svc.Setup(s => s.UpdateStatusAsync(5, ProjectStatus.Completed, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(P(ProjectStatus.Completed));
+
+        await vm.ChangeStatusAsync(ProjectStatus.Completed);
+
+        vm.CostTree.IsReadOnly.ShouldBeTrue();
     }
 
     [Fact]

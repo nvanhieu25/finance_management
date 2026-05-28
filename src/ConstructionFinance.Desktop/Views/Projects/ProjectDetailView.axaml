@@ -38,8 +38,7 @@
                 </Grid>
             </TabItem>
             <TabItem Header="Chi phí">
-                <TextBlock Margin="16" Foreground="Gray"
-                           Text="Cây đầu mục chi phí — sẽ được triển khai ở Plan 05."/>
+                <ContentControl Content="{Binding CostTree}" Margin="8"/>
             </TabItem>
             <TabItem Header="Báo cáo">
                 <TextBlock Margin="16" Foreground="Gray"
