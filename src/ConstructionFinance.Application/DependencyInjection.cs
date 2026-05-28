@@ -28,6 +28,8 @@ public static class DependencyInjection
         services.AddScoped<ICostService, CostService>();
         services.AddScoped<ICostUnitTypeService, CostUnitTypeService>();
         services.AddScoped<IAuditService, AuditService>();
+        services.AddScoped<IAppSettingService, AppSettingService>();
+        services.AddScoped<ICompanyInfoService, CompanyInfoService>();
 
         return services;
     }
