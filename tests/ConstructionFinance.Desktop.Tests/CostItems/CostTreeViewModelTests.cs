@@ -290,4 +290,45 @@ public class CostTreeViewModelTests
 
         vm.OutdentCommand.CanExecute(null).ShouldBeFalse();
     }
+
+    [Fact]
+    public async Task ApplyEditAsync_calls_UpdateNodeAsync_and_rollup()
+    {
+        var data = new[]
+        {
+            Dto(1, null, "X", 0, "/1/", isLeaf: true, estimated: 100m)
+        };
+        var (vm, cost, _, _, _) = Create(data);
+        cost.Setup(s => s.UpdateNodeAsync(It.IsAny<UpdateCostItemDto>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Dto(1, null, "Y", 0, "/1/", isLeaf: true, estimated: 200m));
+        cost.Setup(s => s.RecalculateRollupAsync(It.IsAny<int>(), It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
+
+        await vm.LoadAsync();
+        var node = vm.RootNodes[0];
+        node.ItemName = "Y";
+        node.Quantity = 10m;
+        node.UnitPrice = 20m;
+
+        await vm.ApplyEditAsync(node);
+
+        cost.Verify(s => s.UpdateNodeAsync(
+            It.Is<UpdateCostItemDto>(d => d.Id == 1 && d.ItemName == "Y" && d.Quantity == 10m && d.UnitPrice == 20m),
+            It.IsAny<CancellationToken>()), Times.Once);
+        cost.Verify(s => s.RecalculateRollupAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.AtLeastOnce);
+    }
+
+    [Fact]
+    public async Task ApplyEditAsync_does_nothing_when_IsReadOnly()
+    {
+        var (vm, cost, _, _, _) = Create(new[] { Dto(1, null, "X", 0, "/1/", isLeaf: true) });
+        await vm.LoadAsync();
+        // Switch to Completed AFTER load so the node exists in RootNodes.
+        vm.SetProject(7, ProjectStatus.Completed);
+        var node = vm.RootNodes[0];
+        node.ItemName = "Y";
+
+        await vm.ApplyEditAsync(node);
+
+        cost.Verify(s => s.UpdateNodeAsync(It.IsAny<UpdateCostItemDto>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
 }

@@ -172,6 +172,33 @@ public partial class CostTreeViewModel : ViewModelBase
         catch (Exception ex) { await _dialog.ShowMessageAsync("Lỗi", ex.Message); }
     }
 
+    /// Persists cell-level edits on <paramref name="node"/>. Called by the View on
+    /// commit boundaries (e.g. <c>TextBox.LostFocus</c>) rather than every keystroke,
+    /// which keeps the round-trip cheap without needing an explicit debounce timer in the VM.
+    public async Task ApplyEditAsync(CostTreeNode node)
+    {
+        if (IsReadOnly) return;
+        try
+        {
+            await _cost.UpdateNodeAsync(new UpdateCostItemDto(
+                Id: node.Id,
+                UnitTypeId: node.UnitTypeId,
+                VendorId: node.VendorId,
+                ItemName: node.ItemName,
+                IsLeaf: node.IsLeaf,
+                BidPackage: node.BidPackage,
+                Quantity: node.Quantity,
+                UnitPrice: node.UnitPrice,
+                EstimatedAmount: node.EstimatedAmount,
+                SortOrder: 0,
+                Notes: node.Notes));
+            await _cost.RecalculateRollupAsync(ProjectId);
+            // Reload so parent EstimatedAmount values reflect the rollup.
+            await LoadAsync();
+        }
+        catch (Exception ex) { await _dialog.ShowMessageAsync("Lỗi", ex.Message); }
+    }
+
     private bool CanWrite() => !IsReadOnly;
     private bool CanWriteAndHasSelection() => !IsReadOnly && SelectedNode is not null;
 
