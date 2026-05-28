@@ -2,6 +2,7 @@ using ConstructionFinance.Application.DTOs;
 using ConstructionFinance.Application.Services.Implementations;
 using ConstructionFinance.Application.Services.Interfaces;
 using ConstructionFinance.Data;
+using ConstructionFinance.Data.Repositories;
 using Shouldly;
 using Xunit;
 
@@ -11,7 +12,7 @@ public class CompanyInfoServiceTests
 {
     private static ICompanyInfoService CreateService(AppDbContext ctx)
     {
-        var settings = new AppSettingService(ctx);
+        var settings = new AppSettingService(new AppSettingRepository(ctx), new UnitOfWork(ctx));
         return new CompanyInfoService(settings);
     }
 

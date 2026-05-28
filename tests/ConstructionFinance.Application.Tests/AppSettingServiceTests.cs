@@ -1,6 +1,7 @@
 using ConstructionFinance.Application.Services.Implementations;
 using ConstructionFinance.Application.Services.Interfaces;
 using ConstructionFinance.Data;
+using ConstructionFinance.Data.Repositories;
 using Shouldly;
 using Xunit;
 
@@ -9,7 +10,7 @@ namespace ConstructionFinance.Application.Tests;
 public class AppSettingServiceTests
 {
     private static IAppSettingService CreateService(AppDbContext ctx) =>
-        new AppSettingService(ctx);
+        new AppSettingService(new AppSettingRepository(ctx), new UnitOfWork(ctx));
 
     [Fact]
     public async Task GetAsync_returns_null_when_missing()

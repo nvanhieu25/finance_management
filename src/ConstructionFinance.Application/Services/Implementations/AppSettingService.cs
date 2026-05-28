@@ -1,51 +1,53 @@
 using ConstructionFinance.Application.DTOs;
 using ConstructionFinance.Application.Services.Interfaces;
-using ConstructionFinance.Data;
+using ConstructionFinance.Domain.Abstractions;
 using ConstructionFinance.Domain.Entities;
-using Microsoft.EntityFrameworkCore;
 
 namespace ConstructionFinance.Application.Services.Implementations;
 
 public class AppSettingService : IAppSettingService
 {
-    private readonly AppDbContext _db;
+    private readonly IAppSettingRepository _repo;
+    private readonly IUnitOfWork _uow;
 
-    public AppSettingService(AppDbContext db)
+    public AppSettingService(IAppSettingRepository repo, IUnitOfWork uow)
     {
-        _db = db;
+        _repo = repo;
+        _uow = uow;
     }
 
     public async Task<string?> GetAsync(string key, CancellationToken ct = default)
     {
-        var setting = await _db.AppSettings.FirstOrDefaultAsync(s => s.Key == key, ct);
-        return setting?.Value;
+        var existing = await _repo.GetByKeyAsync(key, ct);
+        return existing?.Value;
     }
 
     public async Task SetAsync(string key, string? value, string? description = null, CancellationToken ct = default)
     {
-        var existing = await _db.AppSettings.FirstOrDefaultAsync(s => s.Key == key, ct);
+        var existing = await _repo.GetByKeyAsync(key, ct);
         if (existing is null)
         {
-            _db.AppSettings.Add(new AppSetting
+            await _repo.AddAsync(new AppSetting
             {
                 Key = key,
                 Value = value,
                 Description = description,
                 UpdatedAt = DateTime.UtcNow
-            });
+            }, ct);
         }
         else
         {
             existing.Value = value;
             existing.Description = description ?? existing.Description;
             existing.UpdatedAt = DateTime.UtcNow;
+            _repo.Update(existing);
         }
-        await _db.SaveChangesAsync(ct);
+        await _uow.SaveChangesAsync(ct);
     }
 
     public async Task<IReadOnlyList<AppSettingDto>> GetAllAsync(CancellationToken ct = default)
     {
-        var all = await _db.AppSettings.ToListAsync(ct);
+        var all = await _repo.ListAsync(ct);
         return all.Select(s => new AppSettingDto(s.Key, s.Value, s.Description)).ToList();
     }
 }
