@@ -1,0 +1,5 @@
+Phần mềm Quản lý Tài chính Công trình
+Bản quyền © 2026 Sở Xây dựng
+
+Phần mềm này được xây dựng từ các thành phần mã nguồn mở giấy phép MIT/Apache 2.0.
+Sử dụng nội bộ trong cơ quan. Không bán lại.
