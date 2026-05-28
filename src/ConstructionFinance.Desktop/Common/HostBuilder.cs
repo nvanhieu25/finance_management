@@ -1,5 +1,6 @@
 using ConstructionFinance.Application;
 using ConstructionFinance.Data;
+using ConstructionFinance.Infrastructure;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -31,6 +32,7 @@ public static class HostBuilder
                     opt.UseSqlite(AppPaths.ConnectionString));
                 services.AddDataServices();
                 services.AddApplicationServices();
+                services.AddInfrastructureServices();
                 services.AddSingleton<ViewModels.MainWindowViewModel>();
                 services.AddSingleton<Services.IDialogService, Services.DialogService>();
                 services.AddSingleton<Services.INavigationService, Services.NavigationService>();
