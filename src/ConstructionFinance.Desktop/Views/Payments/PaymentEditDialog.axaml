@@ -1,0 +1,38 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:ConstructionFinance.Desktop.ViewModels.Payments"
+             xmlns:common="using:ConstructionFinance.Desktop.Common"
+             x:Class="ConstructionFinance.Desktop.Views.Payments.PaymentEditDialog"
+             x:DataType="vm:PaymentEditDialogViewModel"
+             MinWidth="500">
+    <Grid ColumnDefinitions="170,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto">
+        <TextBlock Grid.Row="0" Grid.Column="0" Text="Loại thanh toán" VerticalAlignment="Center" Margin="0,6"/>
+        <ComboBox Grid.Row="0" Grid.Column="1" ItemsSource="{Binding AvailableTypes}" SelectedItem="{Binding PaymentType}" Margin="0,6"/>
+
+        <TextBlock Grid.Row="1" Grid.Column="0" Text="Ngày thanh toán" VerticalAlignment="Center" Margin="0,6"/>
+        <DatePicker Grid.Row="1" Grid.Column="1"
+                    SelectedDate="{Binding PaymentDate, Mode=TwoWay, Converter={x:Static common:DateOnlyConverter.Instance}}"
+                    Margin="0,6"/>
+
+        <TextBlock Grid.Row="2" Grid.Column="0" Text="Số tiền (VND) *" VerticalAlignment="Center" Margin="0,6"/>
+        <StackPanel Grid.Row="2" Grid.Column="1" Margin="0,6">
+            <NumericUpDown Value="{Binding Amount}" Minimum="0" FormatString="#,##0"/>
+            <TextBlock Text="{Binding AmountError}" Foreground="Red" FontSize="11"
+                       IsVisible="{Binding AmountError, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+        </StackPanel>
+
+        <TextBlock Grid.Row="3" Grid.Column="0" Text="% so với dự toán" VerticalAlignment="Center" Margin="0,6"/>
+        <NumericUpDown Grid.Row="3" Grid.Column="1" Value="{Binding Percentage}" Minimum="0" Maximum="100" FormatString="0.00" Margin="0,6"/>
+
+        <TextBlock Grid.Row="4" Grid.Column="0" Text="Số hóa đơn" VerticalAlignment="Center" Margin="0,6"/>
+        <TextBox Grid.Row="4" Grid.Column="1" Text="{Binding InvoiceNo}" Margin="0,6"/>
+
+        <TextBlock Grid.Row="5" Grid.Column="0" Text="Ngày hóa đơn" VerticalAlignment="Center" Margin="0,6"/>
+        <DatePicker Grid.Row="5" Grid.Column="1"
+                    SelectedDate="{Binding InvoiceDate, Mode=TwoWay, Converter={x:Static common:NullableDateOnlyConverter.Instance}}"
+                    Margin="0,6"/>
+
+        <TextBlock Grid.Row="6" Grid.Column="0" Text="Ghi chú" VerticalAlignment="Top" Margin="0,6"/>
+        <TextBox Grid.Row="6" Grid.Column="1" Text="{Binding Notes}" AcceptsReturn="True" Height="60" TextWrapping="Wrap" Margin="0,6"/>
+    </Grid>
+</UserControl>
