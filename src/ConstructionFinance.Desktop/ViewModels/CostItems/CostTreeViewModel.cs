@@ -35,6 +35,8 @@ public partial class CostTreeViewModel : ViewModelBase
     [NotifyCanExecuteChangedFor(nameof(AddChildCommand))]
     [NotifyCanExecuteChangedFor(nameof(AddSiblingCommand))]
     [NotifyCanExecuteChangedFor(nameof(DeleteCommand))]
+    [NotifyCanExecuteChangedFor(nameof(IndentCommand))]
+    [NotifyCanExecuteChangedFor(nameof(OutdentCommand))]
     private CostTreeNode? _selectedNode;
 
     [ObservableProperty] private bool _isBusy;
@@ -50,6 +52,8 @@ public partial class CostTreeViewModel : ViewModelBase
         AddChildCommand.NotifyCanExecuteChanged();
         AddSiblingCommand.NotifyCanExecuteChanged();
         DeleteCommand.NotifyCanExecuteChanged();
+        IndentCommand.NotifyCanExecuteChanged();
+        OutdentCommand.NotifyCanExecuteChanged();
     }
 
     public async Task LoadAsync()
@@ -135,8 +139,81 @@ public partial class CostTreeViewModel : ViewModelBase
         return count;
     }
 
+    [RelayCommand(CanExecute = nameof(CanIndent))]
+    private async Task IndentAsync()
+    {
+        if (SelectedNode is null) return;
+        var prevSibling = FindPreviousSibling(SelectedNode);
+        if (prevSibling is null) return;
+
+        try
+        {
+            await _cost.MoveNodeAsync(SelectedNode.Id, prevSibling.Id);
+            await _cost.RecalculateRollupAsync(ProjectId);
+            await LoadAsync();
+        }
+        catch (Exception ex) { await _dialog.ShowMessageAsync("Lỗi", ex.Message); }
+    }
+
+    [RelayCommand(CanExecute = nameof(CanOutdent))]
+    private async Task OutdentAsync()
+    {
+        if (SelectedNode is null) return;
+        var parent = FindParent(SelectedNode);
+        if (parent is null) return; // already at root
+        var grandparentId = parent.ParentId; // null → move to root
+
+        try
+        {
+            await _cost.MoveNodeAsync(SelectedNode.Id, grandparentId);
+            await _cost.RecalculateRollupAsync(ProjectId);
+            await LoadAsync();
+        }
+        catch (Exception ex) { await _dialog.ShowMessageAsync("Lỗi", ex.Message); }
+    }
+
     private bool CanWrite() => !IsReadOnly;
     private bool CanWriteAndHasSelection() => !IsReadOnly && SelectedNode is not null;
+
+    private bool CanIndent() =>
+        !IsReadOnly && SelectedNode is not null && FindPreviousSibling(SelectedNode) is not null;
+
+    private bool CanOutdent() =>
+        !IsReadOnly && SelectedNode is not null && FindParent(SelectedNode) is not null;
+
+    private CostTreeNode? FindPreviousSibling(CostTreeNode node)
+    {
+        var siblings = node.ParentId is int pid
+            ? FindNodeById(pid)?.Children
+            : RootNodes;
+        if (siblings is null) return null;
+        var idx = siblings.IndexOf(node);
+        return idx > 0 ? siblings[idx - 1] : null;
+    }
+
+    private CostTreeNode? FindParent(CostTreeNode node) =>
+        node.ParentId is int pid ? FindNodeById(pid) : null;
+
+    private CostTreeNode? FindNodeById(int id)
+    {
+        foreach (var root in RootNodes)
+        {
+            var found = FindRecursive(root, id);
+            if (found is not null) return found;
+        }
+        return null;
+    }
+
+    private static CostTreeNode? FindRecursive(CostTreeNode node, int id)
+    {
+        if (node.Id == id) return node;
+        foreach (var c in node.Children)
+        {
+            var found = FindRecursive(c, id);
+            if (found is not null) return found;
+        }
+        return null;
+    }
 
     private static List<CostTreeNode> BuildHierarchy(IEnumerable<CostItemDto> flat)
     {

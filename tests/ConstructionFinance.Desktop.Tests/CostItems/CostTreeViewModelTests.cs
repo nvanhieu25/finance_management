@@ -218,4 +218,76 @@ public class CostTreeViewModelTests
         vm.AddSiblingCommand.CanExecute(null).ShouldBeFalse();
         vm.DeleteCommand.CanExecute(null).ShouldBeFalse();
     }
+
+    [Fact]
+    public async Task IndentCommand_moves_node_under_previous_sibling()
+    {
+        // root has children A, B. Selecting B + Indent → B becomes child of A.
+        var data = new[]
+        {
+            Dto(1, null, "root", 0, "/1/", isLeaf: false),
+            Dto(2, 1, "A", 1, "/1/2/", isLeaf: true),
+            Dto(3, 1, "B", 1, "/1/3/", isLeaf: true)
+        };
+        var (vm, cost, _, _, _) = Create(data);
+        cost.Setup(s => s.MoveNodeAsync(3, 2, It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
+        cost.Setup(s => s.RecalculateRollupAsync(It.IsAny<int>(), It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
+
+        await vm.LoadAsync();
+        vm.SelectedNode = vm.RootNodes[0].Children.Single(c => c.ItemName == "B");
+
+        await vm.IndentCommand.ExecuteAsync(null);
+
+        cost.Verify(s => s.MoveNodeAsync(3, 2, It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task IndentCommand_disabled_when_node_has_no_previous_sibling()
+    {
+        var data = new[]
+        {
+            Dto(1, null, "root", 0, "/1/", isLeaf: false),
+            Dto(2, 1, "A", 1, "/1/2/", isLeaf: true)
+        };
+        var (vm, _, _, _, _) = Create(data);
+        await vm.LoadAsync();
+        vm.SelectedNode = vm.RootNodes[0].Children[0];
+
+        vm.IndentCommand.CanExecute(null).ShouldBeFalse();
+    }
+
+    [Fact]
+    public async Task OutdentCommand_moves_node_to_grandparent_as_sibling()
+    {
+        var data = new[]
+        {
+            Dto(1, null, "root", 0, "/1/", isLeaf: false),
+            Dto(2, 1, "A", 1, "/1/2/", isLeaf: false),
+            Dto(3, 2, "A1", 2, "/1/2/3/", isLeaf: true)
+        };
+        var (vm, cost, _, _, _) = Create(data);
+        cost.Setup(s => s.MoveNodeAsync(3, 1, It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
+        cost.Setup(s => s.RecalculateRollupAsync(It.IsAny<int>(), It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
+
+        await vm.LoadAsync();
+        vm.SelectedNode = vm.RootNodes[0].Children[0].Children[0];
+
+        await vm.OutdentCommand.ExecuteAsync(null);
+
+        cost.Verify(s => s.MoveNodeAsync(3, 1, It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task OutdentCommand_disabled_when_node_already_at_root_level()
+    {
+        var data = new[]
+        {
+            Dto(1, null, "root", 0, "/1/", isLeaf: true)
+        };
+        var (vm, _, _, _, _) = Create(data);
+        await vm.LoadAsync();
+        vm.SelectedNode = vm.RootNodes[0];
+
+        vm.OutdentCommand.CanExecute(null).ShouldBeFalse();
+    }
 }
