@@ -29,6 +29,14 @@ public partial class CostTreeNode : ObservableObject
 
     public ObservableCollection<CostTreeNode> Children { get; } = new();
 
+    partial void OnQuantityChanged(decimal value) => RecomputeEstimatedIfLeaf();
+    partial void OnUnitPriceChanged(decimal value) => RecomputeEstimatedIfLeaf();
+
+    private void RecomputeEstimatedIfLeaf()
+    {
+        if (IsLeaf) EstimatedAmount = Quantity * UnitPrice;
+    }
+
     public CostTreeNode(CostItemDto dto)
     {
         Id = dto.Id;
