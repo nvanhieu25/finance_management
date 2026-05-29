@@ -90,9 +90,20 @@ public class CostService : ICostService
         // Process deepest first so child sums are ready when we reach the parent.
         foreach (var node in all.OrderByDescending(x => x.Level))
         {
-            decimal amount = node.IsLeaf
-                ? ComputeLeafEstimate(true, node.Quantity, node.UnitPrice, node.EstimatedAmount)
-                : (childSums.TryGetValue(node.Id, out var s) ? s : 0m);
+            decimal amount;
+            if (node.IsLeaf)
+            {
+                amount = ComputeLeafEstimate(true, node.Quantity, node.UnitPrice, node.EstimatedAmount);
+            }
+            else if (childSums.TryGetValue(node.Id, out var s))
+            {
+                amount = s;
+            }
+            else
+            {
+                // Non-leaf without children — treat like leaf to preserve user input.
+                amount = ComputeLeafEstimate(true, node.Quantity, node.UnitPrice, node.EstimatedAmount);
+            }
 
             if (node.EstimatedAmount != amount)
             {
