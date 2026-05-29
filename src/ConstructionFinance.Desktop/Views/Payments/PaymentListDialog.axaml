@@ -1,6 +1,7 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:ConstructionFinance.Desktop.ViewModels.Payments"
+             xmlns:common="using:ConstructionFinance.Desktop.Common"
              x:Class="ConstructionFinance.Desktop.Views.Payments.PaymentListDialog"
              x:DataType="vm:PaymentListDialogViewModel"
              MinWidth="700" MinHeight="450">
@@ -43,7 +44,7 @@
                   HeadersVisibility="Column">
             <DataGrid.Columns>
                 <DataGridTextColumn Header="Đợt" Binding="{Binding PaymentNo}" Width="60"/>
-                <DataGridTextColumn Header="Loại" Binding="{Binding PaymentType}" Width="120"/>
+                <DataGridTextColumn Header="Loại" Binding="{Binding PaymentType, Converter={x:Static common:EnumToVietnameseConverter.Instance}}" Width="160"/>
                 <DataGridTextColumn Header="Ngày" Binding="{Binding PaymentDate}" Width="120"/>
                 <DataGridTextColumn Header="Số tiền" Binding="{Binding Amount, StringFormat=#\,##0}" Width="160"/>
                 <DataGridTextColumn Header="%" Binding="{Binding Percentage, StringFormat=0.00}" Width="80"/>

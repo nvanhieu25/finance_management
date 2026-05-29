@@ -1,6 +1,8 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:ConstructionFinance.Desktop.ViewModels.Projects"
+             xmlns:common="using:ConstructionFinance.Desktop.Common"
+             xmlns:enums="using:ConstructionFinance.Domain.Enums"
              x:Class="ConstructionFinance.Desktop.Views.Projects.ProjectDetailView"
              x:DataType="vm:ProjectDetailViewModel">
     <DockPanel>
@@ -31,7 +33,13 @@
                     <TextBlock Grid.Row="4" Grid.Column="0" Text="Trạng thái:" FontWeight="SemiBold"/>
                     <ComboBox Grid.Row="4" Grid.Column="1" ItemsSource="{Binding AvailableStatuses}"
                               SelectedItem="{Binding Project.Status, Mode=OneWay}"
-                              SelectionChanged="OnStatusChanged" Width="200"/>
+                              SelectionChanged="OnStatusChanged" Width="200">
+                        <ComboBox.ItemTemplate>
+                            <DataTemplate DataType="enums:ProjectStatus">
+                                <TextBlock Text="{Binding ., Converter={x:Static common:EnumToVietnameseConverter.Instance}}"/>
+                            </DataTemplate>
+                        </ComboBox.ItemTemplate>
+                    </ComboBox>
 
                     <TextBlock Grid.Row="5" Grid.Column="0" Text="Tổng dự toán:" FontWeight="SemiBold"/>
                     <TextBlock Grid.Row="5" Grid.Column="1" Text="{Binding Project.TotalBudget, StringFormat=#\,##0}"/>

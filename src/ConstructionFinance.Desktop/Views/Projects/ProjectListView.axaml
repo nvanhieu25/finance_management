@@ -1,6 +1,7 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:ConstructionFinance.Desktop.ViewModels.Projects"
+             xmlns:common="using:ConstructionFinance.Desktop.Common"
              x:Class="ConstructionFinance.Desktop.Views.Projects.ProjectListView"
              x:DataType="vm:ProjectListViewModel">
     <DockPanel>
@@ -24,7 +25,7 @@
             <DataGrid.Columns>
                 <DataGridTextColumn Header="Mã DA" Binding="{Binding ProjectCode}" Width="120"/>
                 <DataGridTextColumn Header="Tên Dự án" Binding="{Binding ProjectName}" Width="*"/>
-                <DataGridTextColumn Header="Trạng thái" Binding="{Binding Status}" Width="120"/>
+                <DataGridTextColumn Header="Trạng thái" Binding="{Binding Status, Converter={x:Static common:EnumToVietnameseConverter.Instance}}" Width="160"/>
                 <DataGridTextColumn Header="Dự toán" Binding="{Binding TotalBudget, StringFormat=#\,##0}" Width="160"/>
             </DataGrid.Columns>
         </DataGrid>

@@ -1,6 +1,7 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:ConstructionFinance.Desktop.ViewModels.Settings"
+             xmlns:common="using:ConstructionFinance.Desktop.Common"
              x:Class="ConstructionFinance.Desktop.Views.Settings.BackupManagementView"
              x:DataType="vm:BackupManagementViewModel">
     <DockPanel Margin="16">
@@ -17,7 +18,7 @@
                   HeadersVisibility="Column">
             <DataGrid.Columns>
                 <DataGridTextColumn Header="Tên file" Binding="{Binding FileName}" Width="*"/>
-                <DataGridTextColumn Header="Loại" Binding="{Binding BackupType}" Width="120"/>
+                <DataGridTextColumn Header="Loại" Binding="{Binding BackupType, Converter={x:Static common:BackupTypeToVietnameseConverter.Instance}}" Width="200"/>
                 <DataGridTextColumn Header="Tạo lúc (UTC)" Binding="{Binding CreatedAtUtc}" Width="180"/>
                 <DataGridTextColumn Header="Kích thước (bytes)" Binding="{Binding SizeBytes, StringFormat=\{0:#\,##0\}}" Width="160"/>
             </DataGrid.Columns>

@@ -2,12 +2,19 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:ConstructionFinance.Desktop.ViewModels.Payments"
              xmlns:common="using:ConstructionFinance.Desktop.Common"
+             xmlns:enums="using:ConstructionFinance.Domain.Enums"
              x:Class="ConstructionFinance.Desktop.Views.Payments.PaymentEditDialog"
              x:DataType="vm:PaymentEditDialogViewModel"
              MinWidth="500">
     <Grid ColumnDefinitions="170,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto">
         <TextBlock Grid.Row="0" Grid.Column="0" Text="Loại thanh toán" VerticalAlignment="Center" Margin="0,6"/>
-        <ComboBox Grid.Row="0" Grid.Column="1" ItemsSource="{Binding AvailableTypes}" SelectedItem="{Binding PaymentType}" Margin="0,6"/>
+        <ComboBox Grid.Row="0" Grid.Column="1" ItemsSource="{Binding AvailableTypes}" SelectedItem="{Binding PaymentType}" Margin="0,6">
+            <ComboBox.ItemTemplate>
+                <DataTemplate DataType="enums:PaymentType">
+                    <TextBlock Text="{Binding ., Converter={x:Static common:EnumToVietnameseConverter.Instance}}"/>
+                </DataTemplate>
+            </ComboBox.ItemTemplate>
+        </ComboBox>
 
         <TextBlock Grid.Row="1" Grid.Column="0" Text="Ngày thanh toán" VerticalAlignment="Center" Margin="0,6"/>
         <DatePicker Grid.Row="1" Grid.Column="1"
