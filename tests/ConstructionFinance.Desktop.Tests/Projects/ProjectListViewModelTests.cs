@@ -34,6 +34,9 @@ public class ProjectListViewModelTests
         var units = new Mock<ICostUnitTypeService>(MockBehavior.Loose);
         units.Setup(s => s.GetAllAsync(It.IsAny<CancellationToken>())).ReturnsAsync(new List<CostUnitTypeDto>());
         sc.AddSingleton(units.Object);
+        var vendors = new Mock<IVendorService>(MockBehavior.Loose);
+        vendors.Setup(s => s.GetAllAsync(It.IsAny<CancellationToken>())).ReturnsAsync(new List<VendorDto>());
+        sc.AddSingleton(vendors.Object);
         sc.AddSingleton<ConstructionFinance.Desktop.Services.IDialogService>(dlg);
         sc.AddTransient<ConstructionFinance.Desktop.ViewModels.CostItems.CostTreeViewModel>();
         var sp = sc.BuildServiceProvider();

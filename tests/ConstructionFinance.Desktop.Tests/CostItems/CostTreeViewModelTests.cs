@@ -24,8 +24,10 @@ public class CostTreeViewModelTests
         var pay = new Mock<IPaymentService>(MockBehavior.Loose);
         var units = new Mock<ICostUnitTypeService>(MockBehavior.Loose);
         units.Setup(s => s.GetAllAsync(It.IsAny<CancellationToken>())).ReturnsAsync(new List<CostUnitTypeDto>());
+        var vendors = new Mock<IVendorService>(MockBehavior.Loose);
+        vendors.Setup(s => s.GetAllAsync(It.IsAny<CancellationToken>())).ReturnsAsync(new List<VendorDto>());
         var dlg = new FakeDialogService();
-        var vm = new CostTreeViewModel(cost.Object, pay.Object, units.Object, dlg);
+        var vm = new CostTreeViewModel(cost.Object, pay.Object, units.Object, vendors.Object, dlg);
         vm.SetProject(projectId: 7, status: ProjectStatus.InProgress);
         return (vm, cost, pay, units, dlg);
     }

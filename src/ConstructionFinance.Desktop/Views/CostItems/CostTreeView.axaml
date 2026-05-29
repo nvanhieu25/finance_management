@@ -16,6 +16,7 @@
                 <Separator/>
                 <Button Content="Xóa" Command="{Binding DeleteCommand}"/>
                 <Separator/>
+                <Button Content="✏️ Sửa..." Command="{Binding OpenEditDialogCommand}" ToolTip.Tip="Sửa tên, đơn vị, NCC, gói thầu, ghi chú"/>
                 <Button Content="💰 Thanh toán" Command="{Binding OpenPaymentsCommand}"/>
                 <ProgressBar IsIndeterminate="True" IsVisible="{Binding IsBusy}" Width="80" VerticalAlignment="Center"/>
                 <TextBlock Text="{Binding ErrorMessage}" Foreground="Red" VerticalAlignment="Center"/>
@@ -44,9 +45,15 @@
                     <Grid ColumnDefinitions="*,80,100,140,160,140" Margin="0,2">
                         <TextBlock Grid.Column="0" Text="{Binding ItemName}" VerticalAlignment="Center"/>
                         <TextBlock Grid.Column="1" Text="" VerticalAlignment="Center" HorizontalAlignment="Center"/>
-                        <TextBlock Grid.Column="2" Text="{Binding Quantity, StringFormat=#\,##0.####}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
-                        <TextBlock Grid.Column="3" Text="{Binding UnitPrice, StringFormat=#\,##0}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
-                        <TextBlock Grid.Column="4" Text="{Binding EstimatedAmount, StringFormat=#\,##0}" FontWeight="SemiBold" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                        <TextBox Grid.Column="2" Text="{Binding Quantity}"
+                                 TextAlignment="Right" VerticalContentAlignment="Center"
+                                 LostFocus="OnCellLostFocus" BorderThickness="0" Background="Transparent" Padding="2,0"/>
+                        <TextBox Grid.Column="3" Text="{Binding UnitPrice}"
+                                 TextAlignment="Right" VerticalContentAlignment="Center"
+                                 LostFocus="OnCellLostFocus" BorderThickness="0" Background="Transparent" Padding="2,0"/>
+                        <TextBox Grid.Column="4" Text="{Binding EstimatedAmount}"
+                                 TextAlignment="Right" VerticalContentAlignment="Center" FontWeight="SemiBold"
+                                 LostFocus="OnCellLostFocus" BorderThickness="0" Background="Transparent" Padding="2,0"/>
                         <TextBlock Grid.Column="5" Text="{Binding BidPackage}" VerticalAlignment="Center"/>
                     </Grid>
                 </TreeDataTemplate>

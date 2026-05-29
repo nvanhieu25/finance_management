@@ -15,13 +15,15 @@ public partial class CostTreeViewModel : ViewModelBase
     private readonly ICostService _cost;
     private readonly IPaymentService _payment;
     private readonly ICostUnitTypeService _units;
+    private readonly IVendorService _vendors;
     private readonly IDialogService _dialog;
 
-    public CostTreeViewModel(ICostService cost, IPaymentService payment, ICostUnitTypeService units, IDialogService dialog)
+    public CostTreeViewModel(ICostService cost, IPaymentService payment, ICostUnitTypeService units, IVendorService vendors, IDialogService dialog)
     {
         _cost = cost;
         _payment = payment;
         _units = units;
+        _vendors = vendors;
         _dialog = dialog;
     }
 
@@ -31,6 +33,7 @@ public partial class CostTreeViewModel : ViewModelBase
 
     public ObservableCollection<CostTreeNode> RootNodes { get; } = new();
     public ObservableCollection<CostUnitTypeDto> Units { get; } = new();
+    public ObservableCollection<VendorDto> Vendors { get; } = new();
 
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(AddChildCommand))]
@@ -39,6 +42,7 @@ public partial class CostTreeViewModel : ViewModelBase
     [NotifyCanExecuteChangedFor(nameof(IndentCommand))]
     [NotifyCanExecuteChangedFor(nameof(OutdentCommand))]
     [NotifyCanExecuteChangedFor(nameof(OpenPaymentsCommand))]
+    [NotifyCanExecuteChangedFor(nameof(OpenEditDialogCommand))]
     private CostTreeNode? _selectedNode;
 
     [ObservableProperty] private bool _isBusy;
@@ -73,6 +77,12 @@ public partial class CostTreeViewModel : ViewModelBase
             {
                 var units = await _units.GetAllAsync();
                 foreach (var u in units) Units.Add(u);
+            }
+
+            if (Vendors.Count == 0)
+            {
+                var vendors = await _vendors.GetAllAsync();
+                foreach (var v in vendors) Vendors.Add(v);
             }
 
             GrandTotal = RootNodes.Sum(n => n.EstimatedAmount);
@@ -172,6 +182,17 @@ public partial class CostTreeViewModel : ViewModelBase
             await LoadAsync();
         }
         catch (Exception ex) { await _dialog.ShowMessageAsync("Lỗi", ex.Message); }
+    }
+
+    [RelayCommand(CanExecute = nameof(CanWriteAndHasSelection))]
+    private async Task OpenEditDialogAsync()
+    {
+        if (SelectedNode is null) return;
+        var dialogVm = new CostItemEditDialogViewModel(SelectedNode, Units, Vendors);
+        var ok = await _dialog.ShowDialogAsync(dialogVm);
+        if (ok != true) return;
+        dialogVm.ApplyTo(SelectedNode);
+        await ApplyEditAsync(SelectedNode);
     }
 
     [RelayCommand(CanExecute = nameof(CanOpenPayments))]
