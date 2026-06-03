@@ -19,11 +19,16 @@
                            IsBackButtonVisible="False"
                            OpenPaneLength="240">
             <ui:NavigationView.MenuItems>
+                <ui:NavigationViewItemHeader Content="Tổng hợp"/>
                 <ui:NavigationViewItem Content="Bảng tổng hợp" Tag="TongHop" IconSource="Library"/>
                 <ui:NavigationViewItem Content="Thông tri" Tag="ThongTri" IconSource="Document"/>
+
+                <ui:NavigationViewItemHeader Content="Dữ liệu nguồn"/>
                 <ui:NavigationViewItem Content="Quyết định" Tag="Decisions" IconSource="Document"/>
-                <ui:NavigationViewItem Content="Cây Dự án" Tag="Projects" IconSource="GridView"/>
+                <ui:NavigationViewItem Content="Dự án" Tag="Projects" IconSource="GridView"/>
                 <ui:NavigationViewItem Content="Nhà cung cấp" Tag="Vendors" IconSource="People"/>
+
+                <ui:NavigationViewItemHeader Content="Hệ thống"/>
                 <ui:NavigationViewItem Content="Cài đặt" Tag="Settings" IconSource="Settings"/>
             </ui:NavigationView.MenuItems>
             <ui:NavigationView.PaneFooter>

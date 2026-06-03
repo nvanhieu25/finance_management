@@ -20,6 +20,9 @@ public partial class MainWindowViewModel : ViewModelBase
         _services = services;
         _nav = nav;
         _nav.CurrentContentChanged += (_, content) => CurrentContent = content;
+
+        // Open on Tổng hợp by default (Plan 07 D9).
+        _ = NavigateToAsync("TongHop");
     }
 
     [ObservableProperty] private string _title = "Quản lý Tài chính Công trình";

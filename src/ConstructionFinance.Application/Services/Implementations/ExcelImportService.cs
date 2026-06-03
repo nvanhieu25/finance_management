@@ -16,6 +16,8 @@ public class ExcelImportService : IExcelImportService
     private static readonly Regex YearPattern =
         new(@"quyết\s*toán\s*(đến\s*)?năm\s*(\d{4})", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 
+    private enum DaTemplate { H_xlsx, Hieu_xlsx }
+
     public async Task<ImportResultDto> ParseAsync(string filePath, CancellationToken ct = default)
     {
         if (!File.Exists(filePath))
@@ -44,6 +46,12 @@ public class ExcelImportService : IExcelImportService
                 }
             }
 
+            var tongHopSheet = wb.Worksheets.FirstOrDefault(w =>
+                w.Name.Trim().Equals("Tổng hợp", StringComparison.OrdinalIgnoreCase) ||
+                w.Name.Trim().Equals("TH", StringComparison.OrdinalIgnoreCase));
+            if (tongHopSheet is not null)
+                summaries = RefineFundingFromTongHop(tongHopSheet, summaries, warnings);
+
             return new ImportResultDto(
                 SourceFileName: fileName,
                 SourceFileHash: hash,
@@ -65,22 +73,39 @@ public class ExcelImportService : IExcelImportService
             return null;
         }
 
+        var template = DetectDaTemplate(sheet, totalRowIdx.Value);
         var row = sheet.Row(totalRowIdx.Value);
         var sheetName = sheet.Name;
 
         decimal ReadCol(string col) => GetDecimal(row.Cell(col), warnings, sheetName);
 
-        var contractValue = ReadCol("D");
-        var advance = ReadCol("F");
-        var paymentKLHT = ReadCol("G");
-        var recoveredAdvance = ReadCol("H");
-        var paymentToContractor = ReadCol("I");
-        var unrecoveredAdvance = ReadCol("J");
-        var totalDisbursed = ReadCol("K");
-        var disbursedNSNN = totalDisbursed;
-        var disbursedDTNH = 0m;
+        var (contractValue, advance, paymentKLHT, recoveredAdvance, paymentToContractor,
+             unrecoveredAdvance, totalDisbursed, disbursedNSNN, disbursedDTNH) = template switch
+        {
+            DaTemplate.Hieu_xlsx => (
+                ContractValue: ReadCol("C") + ReadCol("D"),
+                Advance: ReadCol("E"),
+                PaymentKLHT: ReadCol("F"),
+                RecoveredAdvance: ReadCol("G"),
+                PaymentToContractor: 0m,
+                UnrecoveredAdvance: ReadCol("J"),
+                TotalDisbursed: ReadCol("K"),
+                DisbursedNSNN: ReadCol("H"),
+                DisbursedDTNH: ReadCol("I")),
+            _ => (
+                ContractValue: ReadCol("D"),
+                Advance: ReadCol("F"),
+                PaymentKLHT: ReadCol("G"),
+                RecoveredAdvance: ReadCol("H"),
+                PaymentToContractor: ReadCol("I"),
+                UnrecoveredAdvance: ReadCol("J"),
+                TotalDisbursed: ReadCol("K"),
+                DisbursedNSNN: ReadCol("K"),
+                DisbursedDTNH: 0m)
+        };
 
-        var yearCols = DetectYearColumns(sheet, warnings);
+        var (headerRow, subRow) = template == DaTemplate.Hieu_xlsx ? (2, 3) : (4, 5);
+        var yearCols = DetectYearColumns(sheet, headerRow, subRow, warnings);
         var yearlySettlements = new List<SettlementByYearDto>();
         foreach (var (year, cols) in yearCols)
         {
@@ -111,43 +136,56 @@ public class ExcelImportService : IExcelImportService
             YearlySettlements: yearlySettlements);
     }
 
+    private static DaTemplate DetectDaTemplate(IXLWorksheet sheet, int totalRowIdx)
+    {
+        var a2 = sheet.Cell(2, 1).GetString().Trim();
+        if (a2.Contains("Ngày tháng", StringComparison.OrdinalIgnoreCase))
+            return DaTemplate.Hieu_xlsx;
+        return DaTemplate.H_xlsx;
+    }
+
     private static int? FindTotalRow(IXLWorksheet sheet)
     {
-        for (var r = 4; r <= 12; r++)
+        static bool IsTotal(string s)
         {
-            var a = sheet.Cell(r, 1).GetString().Trim();
-            var b = sheet.Cell(r, 2).GetString().Trim();
-            if (a.Equals("TỔNG CỘNG", StringComparison.OrdinalIgnoreCase) ||
-                b.Equals("Tổng cộng", StringComparison.OrdinalIgnoreCase) ||
-                a.Equals("Tổng cộng", StringComparison.OrdinalIgnoreCase))
+            var t = s.Trim().TrimEnd(':').Trim();
+            return t.Equals("TỔNG CỘNG", StringComparison.OrdinalIgnoreCase) ||
+                   t.Equals("Tổng cộng", StringComparison.OrdinalIgnoreCase);
+        }
+
+        for (var r = 3; r <= 12; r++)
+        {
+            if (IsTotal(sheet.Cell(r, 1).GetString()) ||
+                IsTotal(sheet.Cell(r, 2).GetString()))
                 return r;
         }
         return null;
     }
 
-    private static Dictionary<int, Dictionary<string, string>> DetectYearColumns(IXLWorksheet sheet, List<string> warnings)
+    private static Dictionary<int, Dictionary<string, string>> DetectYearColumns(
+        IXLWorksheet sheet, int headerRow, int subHeaderRow, List<string> warnings)
     {
         var result = new Dictionary<int, Dictionary<string, string>>();
-        var row4 = sheet.Row(4);
-        var row5 = sheet.Row(5);
+        var rowHeader = sheet.Row(headerRow);
+        var rowSub = sheet.Row(subHeaderRow);
         var lastCol = Math.Min(sheet.LastColumnUsed()?.ColumnNumber() ?? 0, 40);
 
         for (var c = 1; c <= lastCol; c++)
         {
-            var header4 = row4.Cell(c).GetString().Trim();
-            var match = YearPattern.Match(header4);
+            var headerText = rowHeader.Cell(c).GetString().Trim();
+            var match = YearPattern.Match(headerText);
             if (!match.Success) continue;
 
             var year = int.Parse(match.Groups[2].Value, CultureInfo.InvariantCulture);
             var spanStart = c;
             var spanEnd = c;
-            var merged = row4.Cell(c).MergedRange();
+            var merged = rowHeader.Cell(c).MergedRange();
             if (merged is not null) spanEnd = merged.LastColumn().ColumnNumber();
 
             var subCols = new Dictionary<string, string>();
             for (var cc = spanStart; cc <= spanEnd; cc++)
             {
-                var label = row5.Cell(cc).GetString().Trim().ToLowerInvariant();
+                var label = rowSub.Cell(cc).GetString().Trim().ToLowerInvariant();
                 if (string.IsNullOrEmpty(label)) continue;
                 string? key = label switch
                 {
@@ -167,6 +205,38 @@ public class ExcelImportService : IExcelImportService
         }
 
         return result;
+    }
+
+    private static List<ProjectSummaryDto> RefineFundingFromTongHop(
+        IXLWorksheet tongHopSheet, List<ProjectSummaryDto> summaries, List<string> warnings)
+    {
+        var lookup = new Dictionary<string, (decimal nsnn, decimal dtnh)>(StringComparer.OrdinalIgnoreCase);
+        for (var r = 9; r <= 27; r++)
+        {
+            var name = tongHopSheet.Cell(r, 2).GetString().Trim();
+            if (string.IsNullOrEmpty(name)) continue;
+            if (name.Equals("Tổng cộng", StringComparison.OrdinalIgnoreCase)) break;
+
+            decimal SafeRead(int col)
+            {
+                var cell = tongHopSheet.Cell(r, col);
+                if (cell.IsEmpty()) return 0m;
+                if (cell.HasFormula && cell.Value.IsError) return 0m;
+                try { return (decimal)cell.GetDouble(); } catch { return 0m; }
+            }
+
+            lookup[name] = (SafeRead(10), SafeRead(11));
+        }
+
+        return summaries.Select(s =>
+        {
+            if (lookup.TryGetValue(s.ProjectName, out var split) && (split.nsnn + split.dtnh) > 0)
+                return s with { DisbursedNSNN = split.nsnn, DisbursedDTNH = split.dtnh };
+
+            if (s.TotalDisbursed > 0)
+                warnings.Add($"Dự án '{s.ProjectName}': không tìm thấy phân tách NSNN/DTNH trong sheet Tổng hợp.");
+            return s;
+        }).ToList();
     }
 
     private static decimal GetDecimal(IXLCell cell, List<string> warnings, string sheetName)

@@ -34,7 +34,6 @@ public partial class App : Avalonia.Application
         {
             var vm = Host.Services.GetRequiredService<ViewModels.MainWindowViewModel>();
             desktop.MainWindow = new Views.MainWindow { DataContext = vm };
-            _ = vm.NavigateToAsync("TongHop");
             desktop.ShutdownRequested += async (_, _) =>
             {
                 if (Host is not null)
