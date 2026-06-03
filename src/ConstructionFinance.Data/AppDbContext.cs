@@ -19,6 +19,9 @@ public class AppDbContext : DbContext
     public DbSet<CostTemplate> CostTemplates => Set<CostTemplate>();
     public DbSet<CostTemplateItem> CostTemplateItems => Set<CostTemplateItem>();
     public DbSet<AppSetting> AppSettings => Set<AppSetting>();
+    public DbSet<ImportBatch> ImportBatches => Set<ImportBatch>();
+    public DbSet<ProjectSummary> ProjectSummaries => Set<ProjectSummary>();
+    public DbSet<SettlementByYear> SettlementByYears => Set<SettlementByYear>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

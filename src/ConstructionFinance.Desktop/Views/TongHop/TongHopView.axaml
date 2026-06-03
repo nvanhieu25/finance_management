@@ -1,0 +1,49 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:ConstructionFinance.Desktop.ViewModels.TongHop"
+             x:Class="ConstructionFinance.Desktop.Views.TongHop.TongHopView"
+             x:DataType="vm:TongHopViewModel">
+    <DockPanel>
+        <Border DockPanel.Dock="Top" Padding="0,0,0,12">
+            <StackPanel Spacing="8">
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <TextBlock Text="Lô import:" VerticalAlignment="Center"/>
+                    <ComboBox ItemsSource="{Binding Batches}"
+                              SelectedItem="{Binding SelectedBatch}"
+                              MinWidth="320"
+                              DisplayMemberBinding="{Binding SourceFileName}"/>
+                    <Button Content="📥 Import Excel" Command="{Binding ImportCommand}"/>
+                    <Button Content="💾 Xuất Excel" Command="{Binding ExportCommand}"/>
+                    <ProgressBar IsIndeterminate="True" IsVisible="{Binding IsBusy}" Width="80" VerticalAlignment="Center"/>
+                </StackPanel>
+                <TextBox Watermark="Lọc theo tên dự án / nhà thầu..." Text="{Binding FilterText}"/>
+                <TextBlock Text="{Binding ErrorMessage}" Foreground="Red"/>
+            </StackPanel>
+        </Border>
+
+        <Border DockPanel.Dock="Bottom" Background="#F9F9F9" Padding="8" Margin="0,8,0,0">
+            <TextBlock Text="{Binding SummaryFooter}" FontWeight="SemiBold"/>
+        </Border>
+
+        <DataGrid ItemsSource="{Binding Rows}"
+                  IsReadOnly="True"
+                  GridLinesVisibility="Horizontal"
+                  HeadersVisibility="Column"
+                  AutoGenerateColumns="False">
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="STT" Binding="{Binding Stt}" Width="50"/>
+                <DataGridTextColumn Header="Sheet" Binding="{Binding SheetName}" Width="70"/>
+                <DataGridTextColumn Header="Tên dự án" Binding="{Binding ProjectName}" Width="200"/>
+                <DataGridTextColumn Header="Nhà thầu" Binding="{Binding ContractorName}" Width="160"/>
+                <DataGridTextColumn Header="Giá trị HĐ" Binding="{Binding ContractValue, StringFormat=#\,##0}" Width="120"/>
+                <DataGridTextColumn Header="Tạm ứng" Binding="{Binding Advance, StringFormat=#\,##0}" Width="110"/>
+                <DataGridTextColumn Header="TT KLHT" Binding="{Binding PaymentKLHT, StringFormat=#\,##0}" Width="110"/>
+                <DataGridTextColumn Header="Thu hồi TU" Binding="{Binding RecoveredAdvance, StringFormat=#\,##0}" Width="110"/>
+                <DataGridTextColumn Header="TT NSNN" Binding="{Binding PaymentToContractor, StringFormat=#\,##0}" Width="110"/>
+                <DataGridTextColumn Header="TU chưa TH" Binding="{Binding UnrecoveredAdvance, StringFormat=#\,##0}" Width="110"/>
+                <DataGridTextColumn Header="Tổng GN" Binding="{Binding TotalDisbursed, StringFormat=#\,##0}" Width="120"/>
+                <DataGridTextColumn Header="Quyết toán theo năm" Binding="{Binding YearlySettlementsText}" Width="*"/>
+            </DataGrid.Columns>
+        </DataGrid>
+    </DockPanel>
+</UserControl>

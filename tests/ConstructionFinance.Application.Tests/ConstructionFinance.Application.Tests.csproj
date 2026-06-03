@@ -21,6 +21,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Include="..\..\reference\H.xlsx" Link="TestData\H.xlsx" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\..\src\ConstructionFinance.Application\ConstructionFinance.Application.csproj" />
     <ProjectReference Include="..\..\src\ConstructionFinance.Data\ConstructionFinance.Data.csproj" />
     <ProjectReference Include="..\..\src\ConstructionFinance.Domain\ConstructionFinance.Domain.csproj" />

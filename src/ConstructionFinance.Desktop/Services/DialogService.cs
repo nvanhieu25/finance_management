@@ -1,4 +1,6 @@
 using Avalonia.Controls;
+using Avalonia.Controls.ApplicationLifetimes;
+using Avalonia.Platform.Storage;
 using ConstructionFinance.Desktop.Common;
 using ConstructionFinance.Desktop.ViewModels.Common;
 using FluentAvalonia.UI.Controls;
@@ -49,6 +51,52 @@ public class DialogService : IDialogService
             CloseButtonText = "Đóng"
         };
         await dialog.ShowAsync();
+    }
+
+    public async Task<string?> PickOpenFileAsync(string title, IReadOnlyList<string> extensions)
+    {
+        var storage = GetStorageProvider();
+        if (storage is null) return null;
+
+        var types = extensions.Select(ext => new FilePickerFileType(title)
+        {
+            Patterns = new[] { ext.StartsWith('.') ? $"*{ext}" : $"*.{ext}" }
+        }).ToList();
+
+        var files = await storage.OpenFilePickerAsync(new FilePickerOpenOptions
+        {
+            Title = title,
+            AllowMultiple = false,
+            FileTypeFilter = types
+        });
+        var file = files.FirstOrDefault();
+        return file?.Path.LocalPath;
+    }
+
+    public async Task<string?> PickSaveFileAsync(string title, string defaultFileName, IReadOnlyList<string> extensions)
+    {
+        var storage = GetStorageProvider();
+        if (storage is null) return null;
+
+        var types = extensions.Select(ext => new FilePickerFileType(title)
+        {
+            Patterns = new[] { ext.StartsWith('.') ? $"*{ext}" : $"*.{ext}" }
+        }).ToList();
+
+        var file = await storage.SaveFilePickerAsync(new FilePickerSaveOptions
+        {
+            Title = title,
+            SuggestedFileName = defaultFileName,
+            FileTypeChoices = types
+        });
+        return file?.Path.LocalPath;
+    }
+
+    private static IStorageProvider? GetStorageProvider()
+    {
+        if (Avalonia.Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
+            return desktop.MainWindow?.StorageProvider;
+        return null;
     }
 }
 

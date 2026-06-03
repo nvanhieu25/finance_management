@@ -11,4 +11,10 @@ public interface IDialogService
 
     /// Show a message dialog (info/error).
     Task ShowMessageAsync(string title, string message);
+
+    /// Open file picker. Returns full path or null if cancelled.
+    Task<string?> PickOpenFileAsync(string title, IReadOnlyList<string> extensions);
+
+    /// Save file picker. Returns full path or null if cancelled.
+    Task<string?> PickSaveFileAsync(string title, string defaultFileName, IReadOnlyList<string> extensions);
 }

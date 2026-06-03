@@ -17,16 +17,21 @@
                            IsPaneToggleButtonVisible="True"
                            IsSettingsVisible="False"
                            IsBackButtonVisible="False"
-                           OpenPaneLength="220">
+                           OpenPaneLength="240">
             <ui:NavigationView.MenuItems>
-                <ui:NavigationViewItem Content="Trang chủ" Tag="Home" IconSource="Home"/>
+                <ui:NavigationViewItem Content="Bảng tổng hợp" Tag="TongHop" IconSource="Library"/>
+                <ui:NavigationViewItem Content="Thông tri" Tag="ThongTri" IconSource="Document"/>
                 <ui:NavigationViewItem Content="Quyết định" Tag="Decisions" IconSource="Document"/>
                 <ui:NavigationViewItem Content="Cây Dự án" Tag="Projects" IconSource="GridView"/>
                 <ui:NavigationViewItem Content="Nhà cung cấp" Tag="Vendors" IconSource="People"/>
-                <ui:NavigationViewItem Content="Báo cáo" Tag="Reports" IconSource="OpenFile"/>
-                <ui:NavigationViewItem Content="Lịch sử" Tag="Audit" IconSource="History"/>
                 <ui:NavigationViewItem Content="Cài đặt" Tag="Settings" IconSource="Settings"/>
             </ui:NavigationView.MenuItems>
+            <ui:NavigationView.PaneFooter>
+                <Button Content="📥 Import Excel"
+                        Command="{Binding OpenImportWizardCommand}"
+                        HorizontalAlignment="Stretch"
+                        Margin="8,4"/>
+            </ui:NavigationView.PaneFooter>
             <ContentControl Content="{Binding CurrentContent}" Margin="16"/>
         </ui:NavigationView>
     </DockPanel>

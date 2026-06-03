@@ -26,4 +26,13 @@ public class FakeDialogService : IDialogService
         ShownMessages.Add($"MSG: {title} — {message}");
         return Task.CompletedTask;
     }
+
+    public string? PickOpenFileResult { get; set; }
+    public string? PickSaveFileResult { get; set; }
+
+    public Task<string?> PickOpenFileAsync(string title, IReadOnlyList<string> extensions) =>
+        Task.FromResult(PickOpenFileResult);
+
+    public Task<string?> PickSaveFileAsync(string title, string defaultFileName, IReadOnlyList<string> extensions) =>
+        Task.FromResult(PickSaveFileResult);
 }

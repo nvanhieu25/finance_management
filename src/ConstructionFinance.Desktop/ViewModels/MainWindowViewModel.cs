@@ -1,7 +1,10 @@
 using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 using ConstructionFinance.Desktop.Common;
 using ConstructionFinance.Desktop.Services;
 using ConstructionFinance.Desktop.ViewModels.Decisions;
+using ConstructionFinance.Desktop.ViewModels.ThongTri;
+using ConstructionFinance.Desktop.ViewModels.TongHop;
 using ConstructionFinance.Desktop.ViewModels.Vendors;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -27,6 +30,18 @@ public partial class MainWindowViewModel : ViewModelBase
     {
         switch (tag)
         {
+            case "TongHop":
+                var tvm = _services.GetRequiredService<TongHopViewModel>();
+                _nav.Reset();
+                _nav.NavigateTo(tvm);
+                await tvm.LoadAsync();
+                break;
+            case "ThongTri":
+                var ttvm = _services.GetRequiredService<ThongTriViewModel>();
+                _nav.Reset();
+                _nav.NavigateTo(ttvm);
+                await ttvm.LoadAsync();
+                break;
             case "Decisions":
                 var dvm = _services.GetRequiredService<DecisionListViewModel>();
                 _nav.Reset();
@@ -56,6 +71,25 @@ public partial class MainWindowViewModel : ViewModelBase
                 _nav.Reset();
                 _nav.NavigateTo(new PlaceholderViewModel { Tag = tag });
                 break;
+        }
+    }
+
+    [RelayCommand]
+    private async Task OpenImportWizardAsync()
+    {
+        var wizard = _services.GetRequiredService<ImportWizardViewModel>();
+        var dialog = _services.GetRequiredService<IDialogService>();
+        var ok = await dialog.ShowDialogAsync(wizard);
+        if (ok != true) return;
+
+        var batchId = await wizard.SaveAndGetBatchIdAsync();
+        if (batchId is null) return;
+
+        await NavigateToAsync("TongHop");
+        if (_nav.CurrentContent is TongHopViewModel tvm)
+        {
+            await tvm.LoadAsync();
+            tvm.SelectedBatch = tvm.Batches.FirstOrDefault(b => b.Id == batchId.Value) ?? tvm.SelectedBatch;
         }
     }
 }

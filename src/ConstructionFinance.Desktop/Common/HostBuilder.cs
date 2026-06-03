@@ -45,6 +45,9 @@ public static class HostBuilder
                 services.AddTransient<ViewModels.Settings.BackupManagementViewModel>();
                 services.AddTransient<ViewModels.Settings.PreferencesViewModel>();
                 services.AddTransient<ViewModels.Settings.SettingsViewModel>();
+                services.AddTransient<ViewModels.TongHop.TongHopViewModel>();
+                services.AddTransient<ViewModels.TongHop.ImportWizardViewModel>();
+                services.AddTransient<ViewModels.ThongTri.ThongTriViewModel>();
                 services.AddSingleton<IServiceProvider>(sp => sp);
                 // ViewModels + IDialogService/INavigationService registered in later tasks.
             })
