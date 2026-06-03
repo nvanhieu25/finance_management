@@ -28,7 +28,9 @@ public class ExcelImportService : IExcelImportService
 
         return await Task.Run(() =>
         {
-            using var wb = new XLWorkbook(filePath);
+            // FileShare.ReadWrite so user can keep the .xlsx open in Excel/LibreOffice during import.
+            using var fs = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+            using var wb = new XLWorkbook(fs);
             var warnings = new List<string>();
             var summaries = new List<ProjectSummaryDto>();
             var daSheets = wb.Worksheets.Where(w => DaSheetPattern.IsMatch(NormalizeSheetName(w.Name))).ToList();
@@ -83,7 +85,9 @@ public class ExcelImportService : IExcelImportService
              unrecoveredAdvance, totalDisbursed, disbursedNSNN, disbursedDTNH) = template switch
         {
             DaTemplate.Hieu_xlsx => (
-                ContractValue: ReadCol("C") + ReadCol("D"),
+                // Cột C = Giá trị HĐ gốc, D = Phụ lục HĐ (giá trị sau điều chỉnh).
+                // Phụ lục thay thế chứ không cộng dồn → ưu tiên D, fallback C nếu D trống.
+                ContractValue: ReadCol("D") != 0m ? ReadCol("D") : ReadCol("C"),
                 Advance: ReadCol("E"),
                 PaymentKLHT: ReadCol("F"),
                 RecoveredAdvance: ReadCol("G"),
@@ -207,36 +211,81 @@ public class ExcelImportService : IExcelImportService
         return result;
     }
 
+    private static readonly Regex SheetRefPattern =
+        new(@"'?([^'!]+?)'?!", RegexOptions.CultureInvariant);
+
     private static List<ProjectSummaryDto> RefineFundingFromTongHop(
         IXLWorksheet tongHopSheet, List<ProjectSummaryDto> summaries, List<string> warnings)
     {
-        var lookup = new Dictionary<string, (decimal nsnn, decimal dtnh)>(StringComparer.OrdinalIgnoreCase);
-        for (var r = 9; r <= 27; r++)
+        // Detect TH layout: H.xlsx has data rows 9+ with NSNN at col J(10), DTNH at K(11).
+        // Hiệu.xlsx has data rows 5+ with NSNN at col G(7), DTNH at H(8). Probe row 2 header.
+        var (firstDataRow, nsnnCol, dtnhCol) = DetectTongHopLayout(tongHopSheet);
+
+        var bySheetRef = new Dictionary<string, (decimal nsnn, decimal dtnh)>(StringComparer.OrdinalIgnoreCase);
+        var byName = new Dictionary<string, (decimal nsnn, decimal dtnh)>(StringComparer.OrdinalIgnoreCase);
+
+        decimal SafeRead(IXLCell cell)
+        {
+            if (cell.IsEmpty()) return 0m;
+            if (cell.HasFormula && cell.Value.IsError) return 0m;
+            try { return (decimal)cell.GetDouble(); } catch { return 0m; }
+        }
+
+        var lastRow = Math.Min(tongHopSheet.LastRowUsed()?.RowNumber() ?? 0, firstDataRow + 50);
+        for (var r = firstDataRow; r <= lastRow; r++)
         {
             var name = tongHopSheet.Cell(r, 2).GetString().Trim();
             if (string.IsNullOrEmpty(name)) continue;
-            if (name.Equals("Tổng cộng", StringComparison.OrdinalIgnoreCase)) break;
+            if (name.Equals("Tổng cộng", StringComparison.OrdinalIgnoreCase) ||
+                name.Equals("Tổng cộng:", StringComparison.OrdinalIgnoreCase)) break;
 
-            decimal SafeRead(int col)
+            var nsnn = SafeRead(tongHopSheet.Cell(r, nsnnCol));
+            var dtnh = SafeRead(tongHopSheet.Cell(r, dtnhCol));
+            byName[name] = (nsnn, dtnh);
+
+            // Also index by referenced sheet name extracted from any formula in the row.
+            for (var c = 4; c <= 15; c++)
             {
-                var cell = tongHopSheet.Cell(r, col);
-                if (cell.IsEmpty()) return 0m;
-                if (cell.HasFormula && cell.Value.IsError) return 0m;
-                try { return (decimal)cell.GetDouble(); } catch { return 0m; }
+                var cell = tongHopSheet.Cell(r, c);
+                if (!cell.HasFormula) continue;
+                var match = SheetRefPattern.Match(cell.FormulaA1);
+                if (match.Success)
+                {
+                    bySheetRef[match.Groups[1].Value.Trim()] = (nsnn, dtnh);
+                    break;
+                }
             }
-
-            lookup[name] = (SafeRead(10), SafeRead(11));
         }
 
         return summaries.Select(s =>
         {
-            if (lookup.TryGetValue(s.ProjectName, out var split) && (split.nsnn + split.dtnh) > 0)
-                return s with { DisbursedNSNN = split.nsnn, DisbursedDTNH = split.dtnh };
+            // Skip refinement if DA already split (e.g. Hiệu.xlsx). Heuristic:
+            // H.xlsx DA path sets DisbursedNSNN = TotalDisbursed and DisbursedDTNH = 0 (single-source default).
+            // Any deviation means DA had a real split and we trust it.
+            var daAlreadySplit = s.DisbursedDTNH != 0m || s.DisbursedNSNN != s.TotalDisbursed;
+            if (daAlreadySplit) return s;
+
+            if (bySheetRef.TryGetValue(s.SheetName, out var bySheet) && (bySheet.nsnn + bySheet.dtnh) > 0)
+                return s with { DisbursedNSNN = bySheet.nsnn, DisbursedDTNH = bySheet.dtnh };
+
+            if (byName.TryGetValue(s.ProjectName, out var byNm) && (byNm.nsnn + byNm.dtnh) > 0)
+                return s with { DisbursedNSNN = byNm.nsnn, DisbursedDTNH = byNm.dtnh };
 
             if (s.TotalDisbursed > 0)
-                warnings.Add($"Dự án '{s.ProjectName}': không tìm thấy phân tách NSNN/DTNH trong sheet Tổng hợp.");
+                warnings.Add($"Dự án '{s.ProjectName}' (sheet '{s.SheetName}'): không tìm thấy phân tách NSNN/DTNH trong Tổng hợp.");
             return s;
         }).ToList();
+    }
+
+    private static (int firstDataRow, int nsnnCol, int dtnhCol) DetectTongHopLayout(IXLWorksheet sheet)
+    {
+        // Hiệu.xlsx TH: row 2 = headers, NSNN at col G(7), Ngoại hối at H(8), data from row 5.
+        // H.xlsx Tổng hợp: row 7-8 = headers, NSNN at col J(10), DTNH at K(11), data from row 9.
+        var r2a = sheet.Cell(2, 1).GetString().Trim();
+        if (r2a.Equals("STT", StringComparison.OrdinalIgnoreCase) ||
+            sheet.Cell(2, 2).GetString().Trim().Equals("Dự án", StringComparison.OrdinalIgnoreCase))
+            return (firstDataRow: 5, nsnnCol: 7, dtnhCol: 8);
+        return (firstDataRow: 9, nsnnCol: 10, dtnhCol: 11);
     }
 
     private static decimal GetDecimal(IXLCell cell, List<string> warnings, string sheetName)

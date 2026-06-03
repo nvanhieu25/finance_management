@@ -113,6 +113,44 @@ public class ExcelImportServiceTests
     }
 
     [Fact]
+    public async Task ParseAsync_matches_funding_split_via_formula_sheet_reference()
+    {
+        // DA sheet has no "Tên dự án:" cell → ProjectName falls back to sheet name "DA1".
+        // Tổng hợp row uses different display name "Bệnh viện ABC" but col J formula references 'DA1'!K6.
+        // The C1 fix must match via formula sheet ref, not by name.
+        var path = Path.Combine(Path.GetTempPath(), $"sheetref-{Guid.NewGuid():N}.xlsx");
+        using (var wb = new ClosedXML.Excel.XLWorkbook())
+        {
+            var da = wb.AddWorksheet("DA1");
+            da.Cell("A6").Value = "TỔNG CỘNG";
+            da.Cell("D6").Value = 1000m;
+            da.Cell("K6").Value = 150m;
+
+            var th = wb.AddWorksheet("Tổng hợp");
+            th.Cell(9, 2).Value = "Bệnh viện ABC";  // display name differs from sheet name
+            th.Cell(9, 10).FormulaA1 = "'DA1'!K6";  // formula reference — links via sheet name
+            th.Cell(9, 11).Value = 25m;             // DTNH manual
+
+            wb.SaveAs(path);
+        }
+        try
+        {
+            var svc = new ExcelImportService();
+            var result = await svc.ParseAsync(path);
+
+            var p = result.Summaries.ShouldHaveSingleItem();
+            p.SheetName.ShouldBe("DA1");
+            p.ProjectName.ShouldBe("DA1"); // fell back to sheet name
+            p.DisbursedNSNN.ShouldBe(150m); // matched via formula sheet ref
+            p.DisbursedDTNH.ShouldBe(25m);
+        }
+        finally
+        {
+            if (File.Exists(path)) File.Delete(path);
+        }
+    }
+
+    [Fact]
     public async Task ParseAsync_throws_when_file_missing()
     {
         var svc = new ExcelImportService();
