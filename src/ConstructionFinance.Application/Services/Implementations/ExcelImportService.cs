@@ -10,11 +10,13 @@ namespace ConstructionFinance.Application.Services.Implementations;
 
 public class ExcelImportService : IExcelImportService
 {
+    private const int MaxScannedColumns = 100;
+
     private static readonly Regex DaSheetPattern =
         new(@"^(da|dự\s*án|project)\s*\d+$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 
-    private static readonly Regex YearPattern =
-        new(@"quyết\s*toán\s*(đến\s*)?năm\s*(\d{4})", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+    internal static readonly Regex YearPattern =
+        new(@"quyết\s*toán\s*(?:đến\s*)?năm\s+(\d{4})\b", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 
     private enum DaTemplate { H_xlsx, Hieu_xlsx }
 
@@ -39,9 +41,11 @@ public class ExcelImportService : IExcelImportService
             {
                 try
                 {
+                    ct.ThrowIfCancellationRequested();
                     var summary = ParseDaSheet(sheet, warnings);
                     if (summary is not null) summaries.Add(summary);
                 }
+                catch (OperationCanceledException) { throw; }
                 catch (Exception ex)
                 {
                     warnings.Add($"Sheet '{sheet.Name}': {ex.Message}");
@@ -142,10 +146,24 @@ public class ExcelImportService : IExcelImportService
 
     private static DaTemplate DetectDaTemplate(IXLWorksheet sheet, int totalRowIdx)
     {
+        var hieuScore = 0;
+        var hScore = 0;
         var a2 = sheet.Cell(2, 1).GetString().Trim();
-        if (a2.Contains("Ngày tháng", StringComparison.OrdinalIgnoreCase))
-            return DaTemplate.Hieu_xlsx;
-        return DaTemplate.H_xlsx;
+        var b2 = sheet.Cell(2, 2).GetString().Trim();
+        var c2 = sheet.Cell(2, 3).GetString().Trim();
+
+        if (a2.Contains("Ngày tháng", StringComparison.OrdinalIgnoreCase)) hieuScore++;
+        if (b2.Contains("Tên gói thầu", StringComparison.OrdinalIgnoreCase)) hieuScore++;
+        if (c2.Contains("Hợp đồng", StringComparison.OrdinalIgnoreCase)) hieuScore++;
+        if (totalRowIdx == 4) hieuScore++;
+
+        var a4 = sheet.Cell(4, 1).GetString().Trim();
+        var b4 = sheet.Cell(4, 2).GetString().Trim();
+        if (a4.Equals("TT", StringComparison.OrdinalIgnoreCase)) hScore++;
+        if (b4.Contains("Nội dung", StringComparison.OrdinalIgnoreCase)) hScore++;
+        if (totalRowIdx == 6) hScore++;
+
+        return hieuScore > hScore ? DaTemplate.Hieu_xlsx : DaTemplate.H_xlsx;
     }
 
     private static int? FindTotalRow(IXLWorksheet sheet)
@@ -172,7 +190,7 @@ public class ExcelImportService : IExcelImportService
         var result = new Dictionary<int, Dictionary<string, string>>();
         var rowHeader = sheet.Row(headerRow);
         var rowSub = sheet.Row(subHeaderRow);
-        var lastCol = Math.Min(sheet.LastColumnUsed()?.ColumnNumber() ?? 0, 40);
+        var lastCol = Math.Min(sheet.LastColumnUsed()?.ColumnNumber() ?? 0, MaxScannedColumns);
 
         for (var c = 1; c <= lastCol; c++)
         {
@@ -180,7 +198,7 @@ public class ExcelImportService : IExcelImportService
             var match = YearPattern.Match(headerText);
             if (!match.Success) continue;
 
-            var year = int.Parse(match.Groups[2].Value, CultureInfo.InvariantCulture);
+            var year = int.Parse(match.Groups[1].Value, CultureInfo.InvariantCulture);
             var spanStart = c;
             var spanEnd = c;
             var merged = rowHeader.Cell(c).MergedRange();
@@ -257,24 +275,28 @@ public class ExcelImportService : IExcelImportService
             }
         }
 
-        return summaries.Select(s =>
+        var refined = new List<ProjectSummaryDto>(summaries.Count);
+        foreach (var s in summaries)
         {
-            // Skip refinement if DA already split (e.g. Hiệu.xlsx). Heuristic:
-            // H.xlsx DA path sets DisbursedNSNN = TotalDisbursed and DisbursedDTNH = 0 (single-source default).
-            // Any deviation means DA had a real split and we trust it.
-            var daAlreadySplit = s.DisbursedDTNH != 0m || s.DisbursedNSNN != s.TotalDisbursed;
-            if (daAlreadySplit) return s;
+            var updated = TryRefine(s, bySheetRef, byName);
+            if (updated is null && s.TotalDisbursed > 0)
+                warnings.Add($"Dự án '{s.ProjectName}' (sheet '{s.SheetName}'): không tìm thấy phân tách NSNN/DTNH.");
+            refined.Add(updated ?? s);
+        }
+        return refined;
+    }
 
-            if (bySheetRef.TryGetValue(s.SheetName, out var bySheet) && (bySheet.nsnn + bySheet.dtnh) > 0)
-                return s with { DisbursedNSNN = bySheet.nsnn, DisbursedDTNH = bySheet.dtnh };
-
-            if (byName.TryGetValue(s.ProjectName, out var byNm) && (byNm.nsnn + byNm.dtnh) > 0)
-                return s with { DisbursedNSNN = byNm.nsnn, DisbursedDTNH = byNm.dtnh };
-
-            if (s.TotalDisbursed > 0)
-                warnings.Add($"Dự án '{s.ProjectName}' (sheet '{s.SheetName}'): không tìm thấy phân tách NSNN/DTNH trong Tổng hợp.");
-            return s;
-        }).ToList();
+    private static ProjectSummaryDto? TryRefine(
+        ProjectSummaryDto s,
+        Dictionary<string, (decimal nsnn, decimal dtnh)> bySheetRef,
+        Dictionary<string, (decimal nsnn, decimal dtnh)> byName)
+    {
+        if (s.DisbursedDTNH != 0m || s.DisbursedNSNN != s.TotalDisbursed) return null;
+        if (bySheetRef.TryGetValue(s.SheetName, out var a) && a.nsnn + a.dtnh > 0)
+            return s with { DisbursedNSNN = a.nsnn, DisbursedDTNH = a.dtnh };
+        if (byName.TryGetValue(s.ProjectName, out var b) && b.nsnn + b.dtnh > 0)
+            return s with { DisbursedNSNN = b.nsnn, DisbursedDTNH = b.dtnh };
+        return null;
     }
 
     private static (int firstDataRow, int nsnnCol, int dtnhCol) DetectTongHopLayout(IXLWorksheet sheet)

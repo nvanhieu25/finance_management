@@ -14,6 +14,8 @@ public class ImportBatchConfiguration : IEntityTypeConfiguration<ImportBatch>
         b.Property(x => x.SourceFileHash).HasMaxLength(64);
         b.Property(x => x.ImportedAtUtc).IsRequired();
         b.Property(x => x.Description).HasMaxLength(500);
+        b.HasIndex(x => x.SourceFileHash);
+        b.HasIndex(x => x.ImportedAtUtc);
         b.HasMany(x => x.Summaries)
             .WithOne(s => s.Batch!)
             .HasForeignKey(s => s.ImportBatchId)

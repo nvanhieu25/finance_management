@@ -7,6 +7,7 @@ using ConstructionFinance.Desktop.ViewModels.ThongTri;
 using ConstructionFinance.Desktop.ViewModels.TongHop;
 using ConstructionFinance.Desktop.ViewModels.Vendors;
 using Microsoft.Extensions.DependencyInjection;
+using Serilog;
 
 namespace ConstructionFinance.Desktop.ViewModels;
 
@@ -20,9 +21,12 @@ public partial class MainWindowViewModel : ViewModelBase
         _services = services;
         _nav = nav;
         _nav.CurrentContentChanged += (_, content) => CurrentContent = content;
+    }
 
-        // Open on Tổng hợp by default (Plan 07 D9).
-        _ = NavigateToAsync("TongHop");
+    public async Task InitializeAsync()
+    {
+        try { await NavigateToAsync("TongHop"); }
+        catch (Exception ex) { Log.Warning(ex, "Initial navigation to TongHop failed"); }
     }
 
     [ObservableProperty] private string _title = "Quản lý Tài chính Công trình";

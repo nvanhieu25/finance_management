@@ -455,6 +455,10 @@ namespace ConstructionFinance.Data.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("ImportedAtUtc");
+
+                    b.HasIndex("SourceFileHash");
+
                     b.ToTable("import_batches", (string)null);
                 });
 

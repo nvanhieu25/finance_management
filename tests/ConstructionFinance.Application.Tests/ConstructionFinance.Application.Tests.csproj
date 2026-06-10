@@ -22,7 +22,7 @@
 
   <ItemGroup>
     <None Include="..\..\reference\H.xlsx" Link="TestData\H.xlsx" CopyToOutputDirectory="PreserveNewest" />
-    <None Include="..\..\reference\Hiệu.xlsx" Link="TestData\Hieu.xlsx" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\reference\Hieu_sample.xlsx" Link="TestData\Hieu.xlsx" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <ItemGroup>

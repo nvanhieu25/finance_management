@@ -151,6 +151,73 @@ public class ExcelImportServiceTests
     }
 
     [Fact]
+    public void YearPattern_does_not_match_5_digit_years()
+    {
+        ExcelImportService.YearPattern.Match("Quyết toán năm 12025").Success.ShouldBeFalse();
+        ExcelImportService.YearPattern.Match("Quyết toán năm 2026").Success.ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task ParseAsync_detects_H_template_when_H_signals_outscore_Hieu_ambiguity()
+    {
+        var path = Path.Combine(Path.GetTempPath(), $"tpl-h-{Guid.NewGuid():N}.xlsx");
+        using (var wb = new XLWorkbook())
+        {
+            var da = wb.AddWorksheet("DA1");
+            da.Cell(2, 1).Value = "Ngày tháng"; // Hieu signal
+            da.Cell(4, 1).Value = "TT";
+            da.Cell(4, 2).Value = "Nội dung";
+            da.Cell(6, 1).Value = "TỔNG CỘNG";
+            da.Cell(6, 4).Value = 500m;
+            da.Cell(6, 11).Value = 100m;
+            wb.SaveAs(path);
+        }
+        try
+        {
+            var result = await new ExcelImportService().ParseAsync(path);
+            var p = result.Summaries.ShouldHaveSingleItem();
+            p.ContractValue.ShouldBe(500m);
+            p.PaymentToContractor.ShouldBeGreaterThanOrEqualTo(0m);
+        }
+        finally
+        {
+            if (File.Exists(path)) File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public async Task ParseAsync_detects_Hieu_template_when_Hieu_signals_outscore_H()
+    {
+        var path = Path.Combine(Path.GetTempPath(), $"tpl-hieu-{Guid.NewGuid():N}.xlsx");
+        using (var wb = new XLWorkbook())
+        {
+            var da = wb.AddWorksheet("DA1");
+            da.Cell(2, 1).Value = "Ngày tháng";
+            da.Cell(2, 2).Value = "Tên gói thầu";
+            da.Cell(2, 3).Value = "Hợp đồng";
+            da.Cell(4, 1).Value = "TỔNG CỘNG";
+            da.Cell(4, 5).Value = 10m;
+            da.Cell(4, 6).Value = 20m;
+            da.Cell(4, 7).Value = 5m;
+            da.Cell(4, 8).Value = 30m;
+            da.Cell(4, 9).Value = 15m;
+            da.Cell(4, 11).Value = 45m;
+            wb.SaveAs(path);
+        }
+        try
+        {
+            var result = await new ExcelImportService().ParseAsync(path);
+            var p = result.Summaries.ShouldHaveSingleItem();
+            p.DisbursedNSNN.ShouldBe(30m);
+            p.DisbursedDTNH.ShouldBe(15m);
+        }
+        finally
+        {
+            if (File.Exists(path)) File.Delete(path);
+        }
+    }
+
+    [Fact]
     public async Task ParseAsync_throws_when_file_missing()
     {
         var svc = new ExcelImportService();

@@ -20,6 +20,15 @@ public class ProjectSummaryService : IProjectSummaryService
 
     public async Task<int> SaveBatchAsync(ImportResultDto parsed, CancellationToken ct = default)
     {
+        var warnings = parsed.Warnings.ToList();
+        var existing = await _repo.FindByHashAsync(parsed.SourceFileHash, ct);
+        if (existing.Count > 0)
+        {
+            var dupWarning =
+                $"File này đã được import {existing.Count} lần trước (gần nhất: {existing[0].ImportedAtUtc:dd/MM/yyyy HH:mm}).";
+            warnings.Add(dupWarning);
+        }
+
         var batch = new ImportBatch
         {
             SourceFileName = parsed.SourceFileName,
@@ -27,7 +36,7 @@ public class ProjectSummaryService : IProjectSummaryService
             ImportedAtUtc = DateTime.UtcNow,
             SheetsFound = parsed.SheetsFound,
             ProjectsImported = parsed.Summaries.Count,
-            WarningsJson = parsed.Warnings.Count > 0 ? JsonSerializer.Serialize(parsed.Warnings) : null
+            WarningsJson = warnings.Count > 0 ? JsonSerializer.Serialize(warnings) : null
         };
 
         foreach (var dto in parsed.Summaries)
@@ -47,6 +56,12 @@ public class ProjectSummaryService : IProjectSummaryService
     public async Task<ImportBatchDto?> GetLatestBatchAsync(CancellationToken ct = default)
     {
         var batch = await _repo.GetLatestBatchAsync(ct);
+        return batch?.ToDto();
+    }
+
+    public async Task<ImportBatchDto?> GetBatchByIdAsync(int batchId, CancellationToken ct = default)
+    {
+        var batch = await _repo.GetBatchByIdAsync(batchId, ct);
         return batch?.ToDto();
     }
 

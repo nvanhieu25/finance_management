@@ -24,6 +24,12 @@ public class ProjectSummaryRepository : IProjectSummaryRepository
             .OrderByDescending(b => b.ImportedAtUtc)
             .FirstOrDefaultAsync(ct);
 
+    public async Task<IReadOnlyList<ImportBatch>> FindByHashAsync(string sourceFileHash, CancellationToken ct = default) =>
+        await _ctx.ImportBatches
+            .Where(b => b.SourceFileHash == sourceFileHash)
+            .OrderByDescending(b => b.ImportedAtUtc)
+            .ToListAsync(ct);
+
     public Task AddBatchAsync(ImportBatch batch, CancellationToken ct = default) =>
         _ctx.ImportBatches.AddAsync(batch, ct).AsTask();
 

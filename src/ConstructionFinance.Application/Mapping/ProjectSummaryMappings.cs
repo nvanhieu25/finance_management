@@ -26,9 +26,16 @@ public static class ProjectSummaryMappings
 
     public static ImportBatchDto ToDto(this ImportBatch b)
     {
-        IReadOnlyList<string> warnings = string.IsNullOrEmpty(b.WarningsJson)
-            ? Array.Empty<string>()
-            : JsonSerializer.Deserialize<List<string>>(b.WarningsJson) ?? new List<string>();
+        IReadOnlyList<string> warnings = Array.Empty<string>();
+        if (!string.IsNullOrEmpty(b.WarningsJson))
+        {
+            try
+            {
+                warnings = JsonSerializer.Deserialize<List<string>>(b.WarningsJson)
+                    ?? (IReadOnlyList<string>)Array.Empty<string>();
+            }
+            catch (JsonException) { warnings = new[] { "(Cảnh báo bị hỏng JSON.)" }; }
+        }
         return new ImportBatchDto(
             b.Id,
             b.SourceFileName,

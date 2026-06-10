@@ -57,6 +57,20 @@ public class ProjectSummaryServiceTests
     }
 
     [Fact]
+    public async Task SaveBatchAsync_warns_on_duplicate_file_hash()
+    {
+        using var h = new ServiceTestHarness();
+        var svc = CreateService(h);
+        var imp = SampleImport();
+        await svc.SaveBatchAsync(imp);
+
+        var id2 = await svc.SaveBatchAsync(imp);
+        var batch2 = await svc.GetBatchByIdAsync(id2);
+        batch2.ShouldNotBeNull();
+        batch2!.Warnings.ShouldContain(w => w.Contains("đã được import"));
+    }
+
+    [Fact]
     public async Task AggregateAsync_sums_columns_across_summaries()
     {
         using var h = new ServiceTestHarness();
