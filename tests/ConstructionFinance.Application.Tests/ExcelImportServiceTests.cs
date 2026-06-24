@@ -66,6 +66,45 @@ public class ExcelImportServiceTests
     }
 
     [Fact]
+    public async Task ParseAsync_no_false_warning_for_project_with_existing_DTNH_split()
+    {
+        // A project that already has DisbursedDTNH set from its DA sheet must NOT produce
+        // "không tìm thấy phân tách" even if it is absent from the Tổng hợp sheet.
+        var path = Path.Combine(Path.GetTempPath(), $"split-warn-{Guid.NewGuid():N}.xlsx");
+        using (var wb = new XLWorkbook())
+        {
+            var da = wb.AddWorksheet("DA1");
+            // Hiệu template signals: A2/B2/C2 headers + total row at 4
+            da.Cell(2, 1).Value = "Ngày tháng";
+            da.Cell(2, 2).Value = "Tên gói thầu";
+            da.Cell(2, 3).Value = "Hợp đồng";
+            da.Cell(4, 1).Value = "TỔNG CỘNG";
+            da.Cell(4, 4).Value = 1000m;  // ContractValue (col D)
+            da.Cell(4, 8).Value = 80m;    // DisbursedNSNN (col H)
+            da.Cell(4, 9).Value = 20m;    // DisbursedDTNH (col I) — already split!
+            da.Cell(4, 11).Value = 100m;  // TotalDisbursed (col K)
+            // No Tổng hợp sheet — refinement can't match, but should not warn
+            wb.SaveAs(path);
+        }
+        try
+        {
+            var result = await new ExcelImportService().ParseAsync(path);
+            var p = result.Summaries.ShouldHaveSingleItem();
+            p.DisbursedDTNH.ShouldBe(20m);
+
+            var spurious = result.Warnings.Where(w =>
+                w.Contains("không tìm thấy phân tách") &&
+                w.Contains("NSNN/DTNH")).ToList();
+            spurious.ShouldBeEmpty(
+                $"False-positive warning for already-split project: {string.Join("; ", spurious)}");
+        }
+        finally
+        {
+            if (File.Exists(path)) File.Delete(path);
+        }
+    }
+
+    [Fact]
     public async Task ParseAsync_H_xlsx_splits_NSNN_and_DTNH_from_TongHop_sheet()
     {
         var path = CreateHStyleWorkbookWithTongHopSplit();

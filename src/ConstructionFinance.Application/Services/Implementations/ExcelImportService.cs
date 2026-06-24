@@ -291,7 +291,8 @@ public class ExcelImportService : IExcelImportService
         Dictionary<string, (decimal nsnn, decimal dtnh)> bySheetRef,
         Dictionary<string, (decimal nsnn, decimal dtnh)> byName)
     {
-        if (s.DisbursedDTNH != 0m || s.DisbursedNSNN != s.TotalDisbursed) return null;
+        // Project already has both funding sources — leave it as-is, no warning.
+        if (s.DisbursedDTNH != 0m || s.DisbursedNSNN != s.TotalDisbursed) return s;
         if (bySheetRef.TryGetValue(s.SheetName, out var a) && a.nsnn + a.dtnh > 0)
             return s with { DisbursedNSNN = a.nsnn, DisbursedDTNH = a.dtnh };
         if (byName.TryGetValue(s.ProjectName, out var b) && b.nsnn + b.dtnh > 0)
