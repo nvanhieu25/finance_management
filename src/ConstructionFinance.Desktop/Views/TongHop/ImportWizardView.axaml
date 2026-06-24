@@ -5,10 +5,16 @@
              x:DataType="vm:ImportWizardViewModel"
              MinWidth="800" MinHeight="500">
     <DockPanel>
-        <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Spacing="8" Margin="0,0,0,12">
-            <Button Content="Chọn file..." Command="{Binding BrowseCommand}"/>
-            <TextBlock Text="{Binding SelectedFilePath}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
-            <ProgressBar IsIndeterminate="True" IsVisible="{Binding IsBusy}" Width="80"/>
+        <StackPanel DockPanel.Dock="Top" Spacing="4" Margin="0,0,0,12">
+            <StackPanel Orientation="Horizontal" Spacing="8">
+                <Button Content="Chọn file..." Command="{Binding BrowseCommand}"/>
+                <TextBlock Text="{Binding SelectedFilePath}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+                <ProgressBar IsIndeterminate="True" IsVisible="{Binding IsBusy}" Width="80"/>
+            </StackPanel>
+            <TextBlock Text="{Binding ErrorMessage}"
+                       Foreground="Red"
+                       TextWrapping="Wrap"
+                       IsVisible="{Binding ErrorMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
         </StackPanel>
 
         <Border DockPanel.Dock="Bottom" MaxHeight="120" Margin="0,8,0,0">
