@@ -1,0 +1,34 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:ConstructionFinance.Desktop.ViewModels.TongHop"
+             x:Class="ConstructionFinance.Desktop.Views.TongHop.ImportWizardView"
+             x:DataType="vm:ImportWizardViewModel"
+             MinWidth="800" MinHeight="500">
+    <DockPanel>
+        <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Spacing="8" Margin="0,0,0,12">
+            <Button Content="Chọn file..." Command="{Binding BrowseCommand}"/>
+            <TextBlock Text="{Binding SelectedFilePath}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+            <ProgressBar IsIndeterminate="True" IsVisible="{Binding IsBusy}" Width="80"/>
+        </StackPanel>
+
+        <Border DockPanel.Dock="Bottom" MaxHeight="120" Margin="0,8,0,0">
+            <DockPanel>
+                <TextBlock DockPanel.Dock="Top" Text="Cảnh báo:" FontWeight="SemiBold" Margin="0,0,0,4"/>
+                <ListBox ItemsSource="{Binding Warnings}" MaxHeight="90"/>
+            </DockPanel>
+        </Border>
+
+        <DataGrid ItemsSource="{Binding Preview}"
+                  IsReadOnly="True"
+                  GridLinesVisibility="Horizontal"
+                  HeadersVisibility="Column"
+                  AutoGenerateColumns="False">
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="Sheet" Binding="{Binding SheetName}" Width="80"/>
+                <DataGridTextColumn Header="Dự án" Binding="{Binding ProjectName}" Width="*"/>
+                <DataGridTextColumn Header="Giá trị HĐ" Binding="{Binding ContractValue, StringFormat=#\,##0}" Width="120"/>
+                <DataGridTextColumn Header="Tổng GN" Binding="{Binding TotalDisbursed, StringFormat=#\,##0}" Width="120"/>
+            </DataGrid.Columns>
+        </DataGrid>
+    </DockPanel>
+</UserControl>
