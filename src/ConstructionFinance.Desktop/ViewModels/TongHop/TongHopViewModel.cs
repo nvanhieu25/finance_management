@@ -45,8 +45,6 @@ public partial class TongHopViewModel : ViewModelBase
         ? ""
         : $"Tổng {Aggregate.ProjectCount} dự án — Tổng giải ngân: {Aggregate.TotalDisbursed:#,##0}đ";
 
-    partial void OnSelectedBatchChanged(ImportBatchDto? value) => _ = ReloadSummariesAsync();
-
     partial void OnFilterTextChanged(string? value) => ApplyFilter();
 
     public async Task LoadAsync()
@@ -135,5 +133,48 @@ public partial class TongHopViewModel : ViewModelBase
             await _dialog.ShowMessageAsync("Xuất Excel", $"Đã lưu: {target}");
         }
         catch (Exception ex) { await _dialog.ShowMessageAsync("Lỗi", ex.Message); }
+    }
+
+    [RelayCommand(CanExecute = nameof(HasSelectedBatch))]
+    private async Task DeleteBatchAsync()
+    {
+        if (SelectedBatch is null) return;
+        var confirmed = await _dialog.ConfirmAsync(
+            "Xóa lô import",
+            $"Xóa lô '{SelectedBatch.SourceFileName}' (nhập {SelectedBatch.ImportedAtUtc:dd/MM/yyyy})?\nDữ liệu quyết toán sẽ bị xóa hoàn toàn.");
+        if (!confirmed) return;
+
+        IsBusy = true;
+        try
+        {
+            await _summaries.DeleteBatchAsync(SelectedBatch.Id);
+            await LoadAsync();
+        }
+        catch (Exception ex) { await _dialog.ShowMessageAsync("Lỗi", ex.Message); }
+        finally { IsBusy = false; }
+    }
+
+    [RelayCommand(CanExecute = nameof(HasSelectedBatch))]
+    private async Task ShowWarningsAsync()
+    {
+        if (SelectedBatch is null) return;
+        if (SelectedBatch.Warnings.Count == 0)
+        {
+            await _dialog.ShowMessageAsync("Cảnh báo import", "Không có cảnh báo nào.");
+            return;
+        }
+        var text = string.Join("\n", SelectedBatch.Warnings.Select((w, i) => $"{i + 1}. {w}"));
+        await _dialog.ShowMessageAsync(
+            $"Cảnh báo import — {SelectedBatch.SourceFileName}",
+            text);
+    }
+
+    private bool HasSelectedBatch() => SelectedBatch is not null;
+
+    partial void OnSelectedBatchChanged(ImportBatchDto? value)
+    {
+        _ = ReloadSummariesAsync();
+        DeleteBatchCommand.NotifyCanExecuteChanged();
+        ShowWarningsCommand.NotifyCanExecuteChanged();
     }
 }

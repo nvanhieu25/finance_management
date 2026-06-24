@@ -14,6 +14,13 @@
                               DisplayMemberBinding="{Binding SourceFileName}"/>
                     <Button Content="📥 Import Excel" Command="{Binding ImportCommand}"/>
                     <Button Content="💾 Xuất Excel" Command="{Binding ExportCommand}"/>
+                    <Button Content="⚠ Cảnh báo"
+                            Command="{Binding ShowWarningsCommand}"
+                            ToolTip.Tip="Xem cảnh báo của lô import đang chọn"/>
+                    <Button Content="🗑 Xóa lô"
+                            Command="{Binding DeleteBatchCommand}"
+                            Foreground="Red"
+                            ToolTip.Tip="Xóa lô import đang chọn"/>
                     <ProgressBar IsIndeterminate="True" IsVisible="{Binding IsBusy}" Width="80" VerticalAlignment="Center"/>
                 </StackPanel>
                 <TextBox Watermark="Lọc theo tên dự án / nhà thầu..." Text="{Binding FilterText}"/>
