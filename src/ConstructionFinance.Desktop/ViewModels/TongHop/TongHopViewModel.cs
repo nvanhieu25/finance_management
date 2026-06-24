@@ -58,11 +58,7 @@ public partial class TongHopViewModel : ViewModelBase
             Batches.Clear();
             var list = await _summaries.ListBatchesAsync();
             foreach (var b in list) Batches.Add(b);
-
-            var latest = await _summaries.GetLatestBatchAsync();
-            if (latest is not null && Batches.All(b => b.Id != latest.Id))
-                Batches.Insert(0, latest);
-            SelectedBatch = Batches.FirstOrDefault() ?? latest;
+            SelectedBatch = Batches.FirstOrDefault();
         }
         catch (Exception ex) { ErrorMessage = ex.Message; }
         finally { IsBusy = false; }
