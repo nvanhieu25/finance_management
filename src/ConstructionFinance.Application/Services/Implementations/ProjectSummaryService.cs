@@ -47,6 +47,37 @@ public class ProjectSummaryService : IProjectSummaryService
         return batch.Id;
     }
 
+    public async Task<ImportBatchDto?> FindBatchByFileNameAsync(string sourceFileName, CancellationToken ct = default)
+    {
+        var batch = await _repo.FindLatestByFileNameAsync(sourceFileName, ct);
+        return batch?.ToDto();
+    }
+
+    /// Refreshes an existing batch in place (same Id) with re-parsed data, instead of
+    /// creating a duplicate batch. Used when re-importing an edited copy of the same file.
+    public async Task<int> ReplaceBatchAsync(int batchId, ImportResultDto parsed, CancellationToken ct = default)
+    {
+        var batch = await _repo.GetBatchByIdAsync(batchId, ct);
+        if (batch is null)
+            return await SaveBatchAsync(parsed, ct);
+
+        batch.Summaries.Clear(); // cascade-deletes old summaries + their yearly settlements
+        batch.SourceFileName = parsed.SourceFileName;
+        batch.SourceFileHash = parsed.SourceFileHash;
+        batch.ImportedAtUtc = DateTime.UtcNow;
+        batch.SheetsFound = parsed.SheetsFound;
+        batch.ProjectsImported = parsed.Summaries.Count;
+        batch.WarningsJson = parsed.Warnings.Count > 0
+            ? JsonSerializer.Serialize(parsed.Warnings.ToList())
+            : null;
+
+        foreach (var dto in parsed.Summaries)
+            batch.Summaries.Add(dto.ToEntity());
+
+        await _uow.SaveChangesAsync(ct);
+        return batch.Id;
+    }
+
     public async Task<IReadOnlyList<ImportBatchDto>> ListBatchesAsync(CancellationToken ct = default)
     {
         var list = await _repo.ListBatchesAsync(ct);

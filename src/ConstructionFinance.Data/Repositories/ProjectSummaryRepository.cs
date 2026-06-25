@@ -30,6 +30,13 @@ public class ProjectSummaryRepository : IProjectSummaryRepository
             .OrderByDescending(b => b.ImportedAtUtc)
             .ToListAsync(ct);
 
+    public async Task<ImportBatch?> FindLatestByFileNameAsync(string sourceFileName, CancellationToken ct = default) =>
+        await _ctx.ImportBatches
+            .Include(b => b.Summaries).ThenInclude(s => s.YearlySettlements)
+            .Where(b => b.SourceFileName == sourceFileName)
+            .OrderByDescending(b => b.ImportedAtUtc)
+            .FirstOrDefaultAsync(ct);
+
     public Task AddBatchAsync(ImportBatch batch, CancellationToken ct = default) =>
         _ctx.ImportBatches.AddAsync(batch, ct).AsTask();
 

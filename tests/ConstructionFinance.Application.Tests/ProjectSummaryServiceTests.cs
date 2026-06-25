@@ -71,6 +71,44 @@ public class ProjectSummaryServiceTests
     }
 
     [Fact]
+    public async Task FindBatchByFileNameAsync_returns_existing_batch_for_same_name()
+    {
+        using var h = new ServiceTestHarness();
+        var svc = CreateService(h);
+        await svc.SaveBatchAsync(SampleImport()); // "H.xlsx"
+
+        (await svc.FindBatchByFileNameAsync("H.xlsx")).ShouldNotBeNull();
+        (await svc.FindBatchByFileNameAsync("Other.xlsx")).ShouldBeNull();
+    }
+
+    [Fact]
+    public async Task ReplaceBatchAsync_updates_existing_batch_in_place_without_creating_duplicate()
+    {
+        using var h = new ServiceTestHarness();
+        var svc = CreateService(h);
+        var firstId = await svc.SaveBatchAsync(SampleImport());
+
+        // Same file name, edited data (different hash + values) — mimics re-uploading a corrected file.
+        var edited = SampleImport() with
+        {
+            SourceFileHash = "edited999",
+            Summaries = new[]
+            {
+                SampleImport().Summaries[0] with { ContractValue = 2_000m, TotalDisbursed = 1_500m }
+            }
+        };
+
+        var secondId = await svc.ReplaceBatchAsync(firstId, edited);
+
+        secondId.ShouldBe(firstId);                  // same lô, not a new one
+        (await svc.ListBatchesAsync()).Count.ShouldBe(1);
+
+        var rows = await svc.ListByBatchAsync(firstId);
+        rows.Count.ShouldBe(1);
+        rows[0].ContractValue.ShouldBe(2_000m);      // data refreshed
+    }
+
+    [Fact]
     public async Task AggregateAsync_sums_columns_across_summaries()
     {
         using var h = new ServiceTestHarness();

@@ -3,6 +3,7 @@ using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Platform.Storage;
 using ConstructionFinance.Desktop.Common;
 using ConstructionFinance.Desktop.ViewModels.Common;
+using Serilog;
 using FluentAvalonia.UI.Controls;
 
 namespace ConstructionFinance.Desktop.Services;
@@ -15,6 +16,7 @@ public class DialogService : IDialogService
         var content = locator.Build(viewModel) ?? new TextBlock { Text = "(no view)" };
         content.DataContext = viewModel;
 
+        var window = GetMainWindow();
         var dialog = new ContentDialog
         {
             Title = (viewModel as IHasDialogTitle)?.DialogTitle ?? "",
@@ -22,7 +24,21 @@ public class DialogService : IDialogService
             PrimaryButtonText = "Lưu",
             CloseButtonText = "Hủy"
         };
-        var result = await dialog.ShowAsync();
+        // FluentAvalonia caps content at ContentDialogMaxWidth (~548). Content wider than
+        // that (e.g. the import preview grid) gets centered and clipped off both edges.
+        // Raise the cap so wide views render fully instead of overflowing off-screen.
+        dialog.Resources["ContentDialogMaxWidth"] = 1200.0;
+        dialog.Resources["ContentDialogMaxHeight"] = 900.0;
+        ContentDialogResult result;
+        if (window is not null)
+        {
+            result = await dialog.ShowAsync(window);
+        }
+        else
+        {
+            Log.Warning("ShowDialogAsync: MainWindow is null, calling ShowAsync() without window");
+            result = await dialog.ShowAsync();
+        }
         return result == ContentDialogResult.Primary;
     }
 
@@ -56,21 +72,42 @@ public class DialogService : IDialogService
     public async Task<string?> PickOpenFileAsync(string title, IReadOnlyList<string> extensions)
     {
         var storage = GetStorageProvider();
-        if (storage is null) return null;
-
-        var types = extensions.Select(ext => new FilePickerFileType(title)
+        if (storage is null)
         {
-            Patterns = new[] { ext.StartsWith('.') ? $"*{ext}" : $"*.{ext}" }
+            Log.Warning("PickOpenFileAsync: StorageProvider is null — cannot open file picker");
+            return null;
+        }
+
+        Log.Information("PickOpenFileAsync: opening picker, extensions={Ext}", string.Join(",", extensions));
+
+        var types = extensions.Select(ext => new FilePickerFileType(ext)
+        {
+            Patterns = new[] { ext.StartsWith('.') ? $"*{ext}" : $"*.{ext}" },
+            MimeTypes = ext.ToLowerInvariant() switch
+            {
+                ".xlsx" => new[] { "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" },
+                ".xlsm" => new[] { "application/vnd.ms-excel.sheet.macroEnabled.12" },
+                _ => null
+            }
         }).ToList();
 
-        var files = await storage.OpenFilePickerAsync(new FilePickerOpenOptions
+        try
         {
-            Title = title,
-            AllowMultiple = false,
-            FileTypeFilter = types
-        });
-        var file = files.FirstOrDefault();
-        return file?.Path.LocalPath;
+            var files = await storage.OpenFilePickerAsync(new FilePickerOpenOptions
+            {
+                Title = title,
+                AllowMultiple = false,
+                FileTypeFilter = types
+            });
+            var file = files.FirstOrDefault();
+            Log.Information("PickOpenFileAsync: picked={Path}", file?.Path.LocalPath ?? "(none)");
+            return file?.Path.LocalPath;
+        }
+        catch (Exception ex)
+        {
+            Log.Warning(ex, "PickOpenFileAsync: file picker threw");
+            return null;
+        }
     }
 
     public async Task<string?> PickSaveFileAsync(string title, string defaultFileName, IReadOnlyList<string> extensions)
@@ -90,6 +127,13 @@ public class DialogService : IDialogService
             FileTypeChoices = types
         });
         return file?.Path.LocalPath;
+    }
+
+    private static Avalonia.Controls.Window? GetMainWindow()
+    {
+        if (Avalonia.Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
+            return desktop.MainWindow;
+        return null;
     }
 
     private static IStorageProvider? GetStorageProvider()

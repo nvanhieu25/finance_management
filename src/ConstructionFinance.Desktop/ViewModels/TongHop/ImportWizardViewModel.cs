@@ -65,11 +65,26 @@ public partial class ImportWizardViewModel : ViewModelBase, IHasDialogTitle
     }
 
     /// Called by parent after dialog returns Primary — persists the parsed batch.
+    /// If a batch with the same file name already exists, offers to overwrite it in place
+    /// (refresh) instead of creating a duplicate lô.
     public async Task<int?> SaveAndGetBatchIdAsync()
     {
         if (_parsed is null || Preview.Count == 0) return null;
         try
         {
+            var existing = await _summaries.FindBatchByFileNameAsync(_parsed.SourceFileName);
+            if (existing is not null)
+            {
+                var overwrite = await _dialog.ConfirmAsync(
+                    "Cập nhật lô import",
+                    $"Đã có lô '{existing.SourceFileName}' (nhập {existing.ImportedAtUtc:dd/MM/yyyy HH:mm}).\n" +
+                    "Cập nhật (ghi đè) dữ liệu lô này bằng file vừa chọn?");
+                if (!overwrite) return null;
+
+                SavedBatchId = await _summaries.ReplaceBatchAsync(existing.Id, _parsed);
+                return SavedBatchId;
+            }
+
             SavedBatchId = await _summaries.SaveBatchAsync(_parsed);
             return SavedBatchId;
         }
