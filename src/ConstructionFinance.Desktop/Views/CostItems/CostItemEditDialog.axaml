@@ -5,18 +5,18 @@
              x:Class="ConstructionFinance.Desktop.Views.CostItems.CostItemEditDialog"
              x:DataType="vm:CostItemEditDialogViewModel"
              MinWidth="520">
-    <Grid ColumnDefinitions="160,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto">
-        <TextBlock Grid.Row="0" Grid.Column="0" Text="Tên đầu mục *" VerticalAlignment="Center" Margin="0,6"/>
-        <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding ItemName}" Margin="0,6"/>
+    <Grid ColumnDefinitions="160,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto"
+          Classes="formGrid">
+        <TextBlock Grid.Row="0" Grid.Column="0" Classes="formLabel" Text="Tên đầu mục *"/>
+        <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding ItemName}"/>
 
-        <TextBlock Grid.Row="1" Grid.Column="0" Text="Loại đầu mục" VerticalAlignment="Center" Margin="0,6"/>
-        <CheckBox Grid.Row="1" Grid.Column="1" IsChecked="{Binding IsLeaf}" Content="Là mục lá (chứa chi phí, không có con)" Margin="0,6"/>
+        <TextBlock Grid.Row="1" Grid.Column="0" Classes="formLabel" Text="Loại đầu mục"/>
+        <CheckBox Grid.Row="1" Grid.Column="1" IsChecked="{Binding IsLeaf}" Content="Là mục lá (chứa chi phí, không có con)"/>
 
-        <TextBlock Grid.Row="2" Grid.Column="0" Text="Đơn vị tính" VerticalAlignment="Center" Margin="0,6"/>
+        <TextBlock Grid.Row="2" Grid.Column="0" Classes="formLabel" Text="Đơn vị tính"/>
         <ComboBox Grid.Row="2" Grid.Column="1"
                   ItemsSource="{Binding Units}"
-                  SelectedItem="{Binding SelectedUnit}"
-                  Margin="0,6">
+                  SelectedItem="{Binding SelectedUnit}">
             <ComboBox.ItemTemplate>
                 <DataTemplate DataType="dto:CostUnitTypeDto">
                     <TextBlock Text="{Binding Code}"/>
@@ -24,11 +24,10 @@
             </ComboBox.ItemTemplate>
         </ComboBox>
 
-        <TextBlock Grid.Row="3" Grid.Column="0" Text="Nhà cung cấp" VerticalAlignment="Center" Margin="0,6"/>
+        <TextBlock Grid.Row="3" Grid.Column="0" Classes="formLabel" Text="Nhà cung cấp"/>
         <ComboBox Grid.Row="3" Grid.Column="1"
                   ItemsSource="{Binding Vendors}"
-                  SelectedItem="{Binding SelectedVendor}"
-                  Margin="0,6">
+                  SelectedItem="{Binding SelectedVendor}">
             <ComboBox.ItemTemplate>
                 <DataTemplate DataType="dto:VendorDto">
                     <TextBlock Text="{Binding VendorName}"/>
@@ -36,10 +35,10 @@
             </ComboBox.ItemTemplate>
         </ComboBox>
 
-        <TextBlock Grid.Row="4" Grid.Column="0" Text="Gói thầu" VerticalAlignment="Center" Margin="0,6"/>
-        <TextBox Grid.Row="4" Grid.Column="1" Text="{Binding BidPackage}" Margin="0,6"/>
+        <TextBlock Grid.Row="4" Grid.Column="0" Classes="formLabel" Text="Gói thầu"/>
+        <TextBox Grid.Row="4" Grid.Column="1" Text="{Binding BidPackage}"/>
 
-        <TextBlock Grid.Row="5" Grid.Column="0" Text="Ghi chú" VerticalAlignment="Top" Margin="0,6"/>
-        <TextBox Grid.Row="5" Grid.Column="1" Text="{Binding Notes}" AcceptsReturn="True" Height="80" TextWrapping="Wrap" Margin="0,6"/>
+        <TextBlock Grid.Row="5" Grid.Column="0" Classes="formLabel" Text="Ghi chú" VerticalAlignment="Top"/>
+        <TextBox Grid.Row="5" Grid.Column="1" Text="{Binding Notes}" AcceptsReturn="True" Height="80" TextWrapping="Wrap"/>
     </Grid>
 </UserControl>

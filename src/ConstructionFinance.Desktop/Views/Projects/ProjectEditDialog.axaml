@@ -5,36 +5,37 @@
              x:Class="ConstructionFinance.Desktop.Views.Projects.ProjectEditDialog"
              x:DataType="vm:ProjectEditDialogViewModel"
              MinWidth="540">
-    <Grid ColumnDefinitions="170,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto">
-        <TextBlock Grid.Row="0" Grid.Column="0" Text="Mã Dự án *" VerticalAlignment="Center"/>
+    <Grid ColumnDefinitions="170,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto"
+          Classes="formGrid">
+        <TextBlock Grid.Row="0" Grid.Column="0" Classes="formLabel" Text="Mã Dự án *"/>
         <StackPanel Grid.Row="0" Grid.Column="1">
             <TextBox Text="{Binding ProjectCode}"/>
-            <TextBlock Text="{Binding ProjectCodeError}" Foreground="Red" FontSize="11"
+            <TextBlock Classes="fieldError" Text="{Binding ProjectCodeError}"
                        IsVisible="{Binding ProjectCodeError, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
         </StackPanel>
 
-        <TextBlock Grid.Row="1" Grid.Column="0" Text="Tên Dự án *" VerticalAlignment="Center"/>
+        <TextBlock Grid.Row="1" Grid.Column="0" Classes="formLabel" Text="Tên Dự án *"/>
         <StackPanel Grid.Row="1" Grid.Column="1">
             <TextBox Text="{Binding ProjectName}"/>
-            <TextBlock Text="{Binding ProjectNameError}" Foreground="Red" FontSize="11"
+            <TextBlock Classes="fieldError" Text="{Binding ProjectNameError}"
                        IsVisible="{Binding ProjectNameError, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
         </StackPanel>
 
-        <TextBlock Grid.Row="2" Grid.Column="0" Text="Loại CT" VerticalAlignment="Center"/>
+        <TextBlock Grid.Row="2" Grid.Column="0" Classes="formLabel" Text="Loại CT"/>
         <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding ProjectType}"/>
 
-        <TextBlock Grid.Row="3" Grid.Column="0" Text="Địa điểm" VerticalAlignment="Center"/>
+        <TextBlock Grid.Row="3" Grid.Column="0" Classes="formLabel" Text="Địa điểm"/>
         <TextBox Grid.Row="3" Grid.Column="1" Text="{Binding Location}"/>
 
-        <TextBlock Grid.Row="4" Grid.Column="0" Text="Ngày bắt đầu" VerticalAlignment="Center"/>
+        <TextBlock Grid.Row="4" Grid.Column="0" Classes="formLabel" Text="Ngày bắt đầu"/>
         <DatePicker Grid.Row="4" Grid.Column="1"
                     SelectedDate="{Binding StartDate, Mode=TwoWay, Converter={x:Static common:NullableDateOnlyConverter.Instance}}"/>
 
-        <TextBlock Grid.Row="5" Grid.Column="0" Text="Ngày kết thúc" VerticalAlignment="Center"/>
+        <TextBlock Grid.Row="5" Grid.Column="0" Classes="formLabel" Text="Ngày kết thúc"/>
         <DatePicker Grid.Row="5" Grid.Column="1"
                     SelectedDate="{Binding EndDate, Mode=TwoWay, Converter={x:Static common:NullableDateOnlyConverter.Instance}}"/>
 
-        <TextBlock Grid.Row="6" Grid.Column="0" Text="Dự toán (VND)" VerticalAlignment="Center"/>
+        <TextBlock Grid.Row="6" Grid.Column="0" Classes="formLabel" Text="Dự toán (VND)"/>
         <NumericUpDown Grid.Row="6" Grid.Column="1" Value="{Binding TotalBudget}" Minimum="0" FormatString="#,##0"/>
     </Grid>
 </UserControl>

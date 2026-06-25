@@ -9,8 +9,13 @@
         MinWidth="900" MinHeight="600"
         WindowStartupLocation="CenterScreen">
     <DockPanel>
-        <Border DockPanel.Dock="Bottom" Background="#F3F3F3" Padding="10,4">
-            <TextBlock Text="{Binding StatusText}" FontSize="12"/>
+        <Border DockPanel.Dock="Bottom"
+                Background="{DynamicResource CardBackgroundBrush}"
+                BorderBrush="{DynamicResource CardBorderBrush}"
+                BorderThickness="0,1,0,0"
+                Padding="14,6">
+            <TextBlock Text="{Binding StatusText}" FontSize="12"
+                       Foreground="{DynamicResource TextMutedBrush}"/>
         </Border>
         <ui:NavigationView x:Name="Nav"
                            PaneDisplayMode="Left"
@@ -32,12 +37,20 @@
                 <ui:NavigationViewItem Content="Cài đặt" Tag="Settings" IconSource="Settings"/>
             </ui:NavigationView.MenuItems>
             <ui:NavigationView.PaneFooter>
-                <Button Content="📥 Import Excel"
-                        Command="{Binding OpenImportWizardCommand}"
+                <Button Command="{Binding OpenImportWizardCommand}"
+                        Classes="accent"
                         HorizontalAlignment="Stretch"
-                        Margin="8,4"/>
+                        HorizontalContentAlignment="Center"
+                        Margin="8,4">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <ui:SymbolIcon Symbol="{x:Static ui:Symbol.Import}"/>
+                        <TextBlock Text="Import Excel"/>
+                    </StackPanel>
+                </Button>
             </ui:NavigationView.PaneFooter>
-            <ContentControl Content="{Binding CurrentContent}" Margin="16"/>
+            <Border Background="{DynamicResource AppBackgroundBrush}">
+                <ContentControl Content="{Binding CurrentContent}" Margin="20"/>
+            </Border>
         </ui:NavigationView>
     </DockPanel>
 </Window>

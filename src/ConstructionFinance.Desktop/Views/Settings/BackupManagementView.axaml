@@ -1,27 +1,47 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:ui="using:FluentAvalonia.UI.Controls"
              xmlns:vm="using:ConstructionFinance.Desktop.ViewModels.Settings"
              xmlns:common="using:ConstructionFinance.Desktop.Common"
              x:Class="ConstructionFinance.Desktop.Views.Settings.BackupManagementView"
              x:DataType="vm:BackupManagementViewModel">
     <DockPanel Margin="16">
-        <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Spacing="8" Margin="0,0,0,12">
-            <Button Content="Backup ngay" Command="{Binding BackupNowCommand}"/>
-            <Button Content="Restore từ bản đã chọn" Command="{Binding RestoreSelectedCommand}"/>
-            <ProgressBar IsIndeterminate="True" IsVisible="{Binding IsBusy}" Width="80" VerticalAlignment="Center"/>
-            <TextBlock Text="{Binding StatusMessage}" VerticalAlignment="Center"/>
-        </StackPanel>
-        <DataGrid ItemsSource="{Binding Backups}"
-                  SelectedItem="{Binding SelectedBackup}"
-                  IsReadOnly="True"
-                  GridLinesVisibility="Horizontal"
-                  HeadersVisibility="Column">
-            <DataGrid.Columns>
-                <DataGridTextColumn Header="Tên file" Binding="{Binding FileName}" Width="*"/>
-                <DataGridTextColumn Header="Loại" Binding="{Binding BackupType, Converter={x:Static common:BackupTypeToVietnameseConverter.Instance}}" Width="200"/>
-                <DataGridTextColumn Header="Tạo lúc (UTC)" Binding="{Binding CreatedAtUtc}" Width="180"/>
-                <DataGridTextColumn Header="Kích thước (bytes)" Binding="{Binding SizeBytes, StringFormat=\{0:#\,##0\}}" Width="160"/>
-            </DataGrid.Columns>
-        </DataGrid>
+        <Border Classes="tableCard">
+            <DockPanel>
+                <Border DockPanel.Dock="Top" Classes="toolbarStrip">
+                    <Grid ColumnDefinitions="Auto,*,Auto">
+                        <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8">
+                            <Button Classes="accent toolbar" Command="{Binding BackupNowCommand}">
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <ui:SymbolIcon Symbol="{x:Static ui:Symbol.Save}"/>
+                                    <TextBlock Text="Backup ngay"/>
+                                </StackPanel>
+                            </Button>
+                            <Button Classes="toolbar" Command="{Binding RestoreSelectedCommand}">
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <ui:SymbolIcon Symbol="{x:Static ui:Symbol.Refresh}"/>
+                                    <TextBlock Text="Restore bản đã chọn"/>
+                                </StackPanel>
+                            </Button>
+                        </StackPanel>
+                        <TextBlock Grid.Column="1" Text="{Binding StatusMessage}" Classes="muted"
+                                   VerticalAlignment="Center" HorizontalAlignment="Right" Margin="12,0"/>
+                        <ProgressBar Grid.Column="2" IsIndeterminate="True" IsVisible="{Binding IsBusy}"
+                                     Width="80" VerticalAlignment="Center"/>
+                    </Grid>
+                </Border>
+                <DataGrid ItemsSource="{Binding Backups}"
+                          SelectedItem="{Binding SelectedBackup}"
+                          IsReadOnly="True"
+                          HeadersVisibility="Column">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Tên file" Binding="{Binding FileName}" Width="*"/>
+                        <DataGridTextColumn Header="Loại" Binding="{Binding BackupType, Converter={x:Static common:BackupTypeToVietnameseConverter.Instance}}" Width="200"/>
+                        <DataGridTextColumn Header="Tạo lúc (UTC)" Binding="{Binding CreatedAtUtc}" Width="180"/>
+                        <DataGridTextColumn Header="Kích thước (bytes)" Binding="{Binding SizeBytes, StringFormat=\{0:#\,##0\}}" Width="160"/>
+                    </DataGrid.Columns>
+                </DataGrid>
+            </DockPanel>
+        </Border>
     </DockPanel>
 </UserControl>

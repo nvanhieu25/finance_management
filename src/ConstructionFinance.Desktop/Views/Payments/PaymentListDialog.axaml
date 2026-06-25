@@ -1,55 +1,79 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:ui="using:FluentAvalonia.UI.Controls"
              xmlns:vm="using:ConstructionFinance.Desktop.ViewModels.Payments"
              xmlns:common="using:ConstructionFinance.Desktop.Common"
              x:Class="ConstructionFinance.Desktop.Views.Payments.PaymentListDialog"
              x:DataType="vm:PaymentListDialogViewModel"
-             MinWidth="700" MinHeight="450">
+             MinWidth="720" MinHeight="460">
     <DockPanel>
-        <!-- Summary panel -->
-        <Border DockPanel.Dock="Top" Background="#F9F9F9" Padding="12" Margin="0,0,0,8" CornerRadius="4">
+        <Border DockPanel.Dock="Top" Classes="card" Padding="16,12" Margin="0,0,0,12">
             <Grid ColumnDefinitions="*,*,*,*">
-                <StackPanel Grid.Column="0">
-                    <TextBlock Text="Dự toán" Foreground="Gray" FontSize="11"/>
-                    <TextBlock Text="{Binding Summary.EstimatedAmount, StringFormat=#\,##0}" FontSize="16" FontWeight="SemiBold"/>
+                <StackPanel Grid.Column="0" Spacing="2">
+                    <TextBlock Text="Dự toán" Classes="muted" FontSize="11"/>
+                    <TextBlock Text="{Binding Summary.EstimatedAmount, StringFormat=#\,##0}" FontSize="17" FontWeight="SemiBold"/>
                 </StackPanel>
-                <StackPanel Grid.Column="1">
-                    <TextBlock Text="Đã thanh toán" Foreground="Gray" FontSize="11"/>
-                    <TextBlock Text="{Binding Summary.TotalPaid, StringFormat=#\,##0}" FontSize="16" FontWeight="SemiBold" Foreground="DarkGreen"/>
+                <StackPanel Grid.Column="1" Spacing="2">
+                    <TextBlock Text="Đã thanh toán" Classes="muted" FontSize="11"/>
+                    <TextBlock Text="{Binding Summary.TotalPaid, StringFormat=#\,##0}" FontSize="17" FontWeight="SemiBold" Foreground="#2E7D32"/>
                 </StackPanel>
-                <StackPanel Grid.Column="2">
-                    <TextBlock Text="Còn lại" Foreground="Gray" FontSize="11"/>
-                    <TextBlock Text="{Binding Summary.Remaining, StringFormat=#\,##0}" FontSize="16" FontWeight="SemiBold"/>
+                <StackPanel Grid.Column="2" Spacing="2">
+                    <TextBlock Text="Còn lại" Classes="muted" FontSize="11"/>
+                    <TextBlock Text="{Binding Summary.Remaining, StringFormat=#\,##0}" FontSize="17" FontWeight="SemiBold"/>
                 </StackPanel>
-                <StackPanel Grid.Column="3">
-                    <TextBlock Text="% Hoàn thành" Foreground="Gray" FontSize="11"/>
-                    <TextBlock Text="{Binding Summary.CompletionPct, StringFormat={}{0:0.00}%}" FontSize="16" FontWeight="SemiBold" Foreground="#0078D4"/>
+                <StackPanel Grid.Column="3" Spacing="2">
+                    <TextBlock Text="% Hoàn thành" Classes="muted" FontSize="11"/>
+                    <TextBlock Text="{Binding Summary.CompletionPct, StringFormat={}{0:0.00}%}" FontSize="17" FontWeight="SemiBold"
+                               Foreground="{DynamicResource BrandPrimaryBrush}"/>
                 </StackPanel>
             </Grid>
         </Border>
 
-        <!-- Toolbar -->
-        <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Spacing="8" Margin="0,0,0,8">
-            <Button Content="+ Thêm đợt" Command="{Binding AddCommand}"/>
-            <Button Content="Sửa" Command="{Binding EditCommand}"/>
-            <Button Content="Xóa" Command="{Binding DeleteCommand}"/>
-            <ProgressBar IsIndeterminate="True" IsVisible="{Binding IsBusy}" Width="80" VerticalAlignment="Center"/>
-            <TextBlock Text="{Binding ErrorMessage}" Foreground="Red" VerticalAlignment="Center"/>
-        </StackPanel>
-
-        <DataGrid ItemsSource="{Binding Payments}"
-                  SelectedItem="{Binding SelectedPayment}"
-                  IsReadOnly="True"
-                  GridLinesVisibility="Horizontal"
-                  HeadersVisibility="Column">
-            <DataGrid.Columns>
-                <DataGridTextColumn Header="Đợt" Binding="{Binding PaymentNo}" Width="60"/>
-                <DataGridTextColumn Header="Loại" Binding="{Binding PaymentType, Converter={x:Static common:EnumToVietnameseConverter.Instance}}" Width="160"/>
-                <DataGridTextColumn Header="Ngày" Binding="{Binding PaymentDate}" Width="120"/>
-                <DataGridTextColumn Header="Số tiền" Binding="{Binding Amount, StringFormat=#\,##0}" Width="160"/>
-                <DataGridTextColumn Header="%" Binding="{Binding Percentage, StringFormat=0.00}" Width="80"/>
-                <DataGridTextColumn Header="Hóa đơn" Binding="{Binding InvoiceNo}" Width="*"/>
-            </DataGrid.Columns>
-        </DataGrid>
+        <Border Classes="tableCard">
+            <DockPanel>
+                <Border DockPanel.Dock="Top" Classes="toolbarStrip">
+                    <Grid ColumnDefinitions="Auto,*,Auto">
+                        <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8">
+                            <Button Classes="accent toolbar" Command="{Binding AddCommand}">
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <ui:SymbolIcon Symbol="{x:Static ui:Symbol.Add}"/>
+                                    <TextBlock Text="Thêm đợt"/>
+                                </StackPanel>
+                            </Button>
+                            <Button Classes="toolbar" Command="{Binding EditCommand}">
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <ui:SymbolIcon Symbol="{x:Static ui:Symbol.Edit}"/>
+                                    <TextBlock Text="Sửa"/>
+                                </StackPanel>
+                            </Button>
+                            <Button Classes="toolbar danger" Command="{Binding DeleteCommand}">
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <ui:SymbolIcon Symbol="{x:Static ui:Symbol.Delete}"/>
+                                    <TextBlock Text="Xóa"/>
+                                </StackPanel>
+                            </Button>
+                        </StackPanel>
+                        <TextBlock Grid.Column="1" Text="{Binding ErrorMessage}"
+                                   Foreground="{DynamicResource DangerBrush}"
+                                   VerticalAlignment="Center" HorizontalAlignment="Right" Margin="12,0"/>
+                        <ProgressBar Grid.Column="2" IsIndeterminate="True" IsVisible="{Binding IsBusy}"
+                                     Width="80" VerticalAlignment="Center"/>
+                    </Grid>
+                </Border>
+                <DataGrid ItemsSource="{Binding Payments}"
+                          SelectedItem="{Binding SelectedPayment}"
+                          IsReadOnly="True"
+                          HeadersVisibility="Column">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Đợt" Binding="{Binding PaymentNo}" Width="60"/>
+                        <DataGridTextColumn Header="Loại" Binding="{Binding PaymentType, Converter={x:Static common:EnumToVietnameseConverter.Instance}}" Width="160"/>
+                        <DataGridTextColumn Header="Ngày" Binding="{Binding PaymentDate}" Width="120"/>
+                        <DataGridTextColumn Header="Số tiền" Binding="{Binding Amount, StringFormat=#\,##0}" Width="160"/>
+                        <DataGridTextColumn Header="%" Binding="{Binding Percentage, StringFormat=0.00}" Width="80"/>
+                        <DataGridTextColumn Header="Hóa đơn" Binding="{Binding InvoiceNo}" Width="*"/>
+                    </DataGrid.Columns>
+                </DataGrid>
+            </DockPanel>
+        </Border>
     </DockPanel>
 </UserControl>

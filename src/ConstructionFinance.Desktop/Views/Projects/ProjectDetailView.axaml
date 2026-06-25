@@ -1,59 +1,67 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:ui="using:FluentAvalonia.UI.Controls"
              xmlns:vm="using:ConstructionFinance.Desktop.ViewModels.Projects"
              xmlns:common="using:ConstructionFinance.Desktop.Common"
              xmlns:enums="using:ConstructionFinance.Domain.Enums"
              x:Class="ConstructionFinance.Desktop.Views.Projects.ProjectDetailView"
              x:DataType="vm:ProjectDetailViewModel">
     <DockPanel>
-        <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Spacing="12" Margin="0,0,0,12">
-            <Button Content="← Quay lại" Command="{Binding GoBackCommand}"/>
-            <TextBlock FontSize="18" FontWeight="SemiBold" VerticalAlignment="Center"
+        <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Spacing="12" Margin="0,0,0,16">
+            <Button Classes="toolbar" Command="{Binding GoBackCommand}" VerticalAlignment="Center">
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                    <ui:SymbolIcon Symbol="{x:Static ui:Symbol.ChevronLeft}"/>
+                    <TextBlock Text="Quay lại"/>
+                </StackPanel>
+            </Button>
+            <TextBlock Classes="pageTitle" VerticalAlignment="Center"
                        Text="{Binding Project.ProjectCode, StringFormat='Dự án {0}'}"/>
         </StackPanel>
         <TabControl>
             <TabItem Header="Thông tin">
-                <Grid ColumnDefinitions="200,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto" Margin="16">
-                    <TextBlock Grid.Row="0" Grid.Column="0" Text="Tên Dự án:" FontWeight="SemiBold"/>
-                    <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding Project.ProjectName}" TextWrapping="Wrap"/>
+                <Border Classes="card" Margin="0,16,0,0" HorizontalAlignment="Left" MaxWidth="780">
+                    <Grid ColumnDefinitions="200,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto">
+                        <TextBlock Grid.Row="0" Grid.Column="0" Classes="fieldLabel" Text="Tên Dự án"/>
+                        <TextBlock Grid.Row="0" Grid.Column="1" Classes="fieldValueStrong" Text="{Binding Project.ProjectName}" TextWrapping="Wrap"/>
 
-                    <TextBlock Grid.Row="1" Grid.Column="0" Text="Loại CT:" FontWeight="SemiBold"/>
-                    <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding Project.ProjectType}"/>
+                        <TextBlock Grid.Row="1" Grid.Column="0" Classes="fieldLabel" Text="Loại CT"/>
+                        <TextBlock Grid.Row="1" Grid.Column="1" Classes="fieldValue" Text="{Binding Project.ProjectType}"/>
 
-                    <TextBlock Grid.Row="2" Grid.Column="0" Text="Địa điểm:" FontWeight="SemiBold"/>
-                    <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding Project.Location}"/>
+                        <TextBlock Grid.Row="2" Grid.Column="0" Classes="fieldLabel" Text="Địa điểm"/>
+                        <TextBlock Grid.Row="2" Grid.Column="1" Classes="fieldValue" Text="{Binding Project.Location}"/>
 
-                    <TextBlock Grid.Row="3" Grid.Column="0" Text="Thời gian:" FontWeight="SemiBold"/>
-                    <StackPanel Grid.Row="3" Grid.Column="1" Orientation="Horizontal" Spacing="8">
-                        <TextBlock Text="{Binding Project.StartDate}"/>
-                        <TextBlock Text="→"/>
-                        <TextBlock Text="{Binding Project.EndDate}"/>
-                    </StackPanel>
+                        <TextBlock Grid.Row="3" Grid.Column="0" Classes="fieldLabel" Text="Thời gian"/>
+                        <StackPanel Grid.Row="3" Grid.Column="1" Orientation="Horizontal" Spacing="8" Margin="0,0,0,6">
+                            <TextBlock Classes="fieldValue" Margin="0" Text="{Binding Project.StartDate}"/>
+                            <TextBlock Classes="fieldValue" Margin="0" Text="→"/>
+                            <TextBlock Classes="fieldValue" Margin="0" Text="{Binding Project.EndDate}"/>
+                        </StackPanel>
 
-                    <TextBlock Grid.Row="4" Grid.Column="0" Text="Trạng thái:" FontWeight="SemiBold"/>
-                    <ComboBox Grid.Row="4" Grid.Column="1" ItemsSource="{Binding AvailableStatuses}"
-                              SelectedItem="{Binding Project.Status, Mode=OneWay}"
-                              SelectionChanged="OnStatusChanged" Width="200">
-                        <ComboBox.ItemTemplate>
-                            <DataTemplate DataType="enums:ProjectStatus">
-                                <TextBlock Text="{Binding ., Converter={x:Static common:EnumToVietnameseConverter.Instance}}"/>
-                            </DataTemplate>
-                        </ComboBox.ItemTemplate>
-                    </ComboBox>
+                        <TextBlock Grid.Row="4" Grid.Column="0" Classes="fieldLabel" Text="Trạng thái"/>
+                        <ComboBox Grid.Row="4" Grid.Column="1" ItemsSource="{Binding AvailableStatuses}"
+                                  SelectedItem="{Binding Project.Status, Mode=OneWay}"
+                                  SelectionChanged="OnStatusChanged" Width="200" Margin="0,0,0,6">
+                            <ComboBox.ItemTemplate>
+                                <DataTemplate DataType="enums:ProjectStatus">
+                                    <TextBlock Text="{Binding ., Converter={x:Static common:EnumToVietnameseConverter.Instance}}"/>
+                                </DataTemplate>
+                            </ComboBox.ItemTemplate>
+                        </ComboBox>
 
-                    <TextBlock Grid.Row="5" Grid.Column="0" Text="Tổng dự toán:" FontWeight="SemiBold"/>
-                    <TextBlock Grid.Row="5" Grid.Column="1" Text="{Binding Project.TotalBudget, StringFormat=#\,##0}"/>
-                </Grid>
+                        <TextBlock Grid.Row="5" Grid.Column="0" Classes="fieldLabel" Text="Tổng dự toán"/>
+                        <TextBlock Grid.Row="5" Grid.Column="1" Classes="fieldValue" Text="{Binding Project.TotalBudget, StringFormat=#\,##0}"/>
+                    </Grid>
+                </Border>
             </TabItem>
             <TabItem Header="Chi phí">
-                <ContentControl Content="{Binding CostTree}" Margin="8"/>
+                <ContentControl Content="{Binding CostTree}" Margin="0,8,0,0"/>
             </TabItem>
             <TabItem Header="Báo cáo">
-                <TextBlock Margin="16" Foreground="Gray"
+                <TextBlock Margin="4,16" Classes="muted"
                            Text="Báo cáo dự án — sẽ được triển khai ở plan sau."/>
             </TabItem>
             <TabItem Header="Tài liệu">
-                <TextBlock Margin="16" Foreground="Gray"
+                <TextBlock Margin="4,16" Classes="muted"
                            Text="Tài liệu đính kèm — sẽ được triển khai ở plan sau."/>
             </TabItem>
         </TabControl>

@@ -1,38 +1,78 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:ConstructionFinance.Desktop.ViewModels.TongHop"
+             xmlns:ui="using:FluentAvalonia.UI.Controls"
              x:Class="ConstructionFinance.Desktop.Views.TongHop.TongHopView"
              x:DataType="vm:TongHopViewModel">
     <DockPanel>
-        <Border DockPanel.Dock="Top" Padding="0,0,0,12">
-            <StackPanel Spacing="8">
-                <StackPanel Orientation="Horizontal" Spacing="8">
-                    <TextBlock Text="Lô import:" VerticalAlignment="Center"/>
-                    <ComboBox ItemsSource="{Binding Batches}"
-                              SelectedItem="{Binding SelectedBatch}"
-                              MinWidth="320"
-                              DisplayMemberBinding="{Binding SourceFileName}"/>
-                    <Button Content="📥 Import Excel" Command="{Binding ImportCommand}"/>
-                    <Button Content="💾 Xuất Excel" Command="{Binding ExportCommand}"/>
-                    <Button Content="⚠ Cảnh báo"
-                            Command="{Binding ShowWarningsCommand}"
-                            ToolTip.Tip="Xem cảnh báo của lô import đang chọn"/>
-                    <Button Content="🗑 Xóa lô"
-                            Command="{Binding DeleteBatchCommand}"
-                            Foreground="Red"
-                            ToolTip.Tip="Xóa lô import đang chọn"/>
-                    <ProgressBar IsIndeterminate="True" IsVisible="{Binding IsBusy}" Width="80" VerticalAlignment="Center"/>
-                </StackPanel>
+        <StackPanel DockPanel.Dock="Top" Spacing="2" Margin="0,0,0,16">
+            <TextBlock Text="Bảng tổng hợp" Classes="pageTitle"/>
+            <TextBlock Text="Tổng hợp tài chính dự án theo từng lô import" Classes="pageSubtitle"/>
+        </StackPanel>
+
+        <Border DockPanel.Dock="Top" Classes="card" Margin="0,0,0,16">
+            <StackPanel Spacing="12">
+                <Grid ColumnDefinitions="Auto,*,Auto">
+                    <StackPanel Grid.Column="0" Spacing="3">
+                        <TextBlock Text="LÔ IMPORT" Classes="muted" FontSize="11" FontWeight="SemiBold"/>
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <ComboBox ItemsSource="{Binding Batches}"
+                                      SelectedItem="{Binding SelectedBatch}"
+                                      MinWidth="320"
+                                      DisplayMemberBinding="{Binding SourceFileName}"/>
+                            <ProgressBar IsIndeterminate="True" IsVisible="{Binding IsBusy}"
+                                         Width="80" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </StackPanel>
+
+                    <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8"
+                                VerticalAlignment="Bottom">
+                        <Button Classes="accent toolbar" Command="{Binding ImportCommand}"
+                                ToolTip.Tip="Nhập dữ liệu từ file Excel">
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <ui:SymbolIcon Symbol="{x:Static ui:Symbol.Import}"/>
+                                <TextBlock Text="Import Excel"/>
+                            </StackPanel>
+                        </Button>
+                        <Button Classes="toolbar" Command="{Binding ExportCommand}"
+                                ToolTip.Tip="Xuất bảng tổng hợp ra Excel">
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <ui:SymbolIcon Symbol="{x:Static ui:Symbol.SaveAs}"/>
+                                <TextBlock Text="Xuất Excel"/>
+                            </StackPanel>
+                        </Button>
+                        <Button Classes="toolbar" Command="{Binding ShowWarningsCommand}"
+                                ToolTip.Tip="Xem cảnh báo của lô import đang chọn">
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <ui:SymbolIcon Symbol="{x:Static ui:Symbol.Important}"/>
+                                <TextBlock Text="Cảnh báo"/>
+                            </StackPanel>
+                        </Button>
+                        <Button Classes="toolbar" Command="{Binding DeleteBatchCommand}"
+                                Foreground="{DynamicResource DangerBrush}"
+                                ToolTip.Tip="Xóa lô import đang chọn">
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <ui:SymbolIcon Symbol="{x:Static ui:Symbol.Delete}"/>
+                                <TextBlock Text="Xóa lô"/>
+                            </StackPanel>
+                        </Button>
+                    </StackPanel>
+                </Grid>
+
                 <TextBox Watermark="Lọc theo tên dự án / nhà thầu..." Text="{Binding FilterText}"/>
-                <TextBlock Text="{Binding ErrorMessage}" Foreground="Red"/>
+                <TextBlock Text="{Binding ErrorMessage}"
+                           Foreground="{DynamicResource DangerBrush}"
+                           IsVisible="{Binding ErrorMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
             </StackPanel>
         </Border>
 
-        <Border DockPanel.Dock="Bottom" Background="#F9F9F9" Padding="8" Margin="0,8,0,0">
-            <TextBlock Text="{Binding SummaryFooter}" FontWeight="SemiBold"/>
+        <Border DockPanel.Dock="Bottom" Classes="card" Padding="16,12" Margin="0,16,0,0">
+            <TextBlock Text="{Binding SummaryFooter}" FontWeight="SemiBold"
+                       Foreground="{DynamicResource BrandPrimaryBrush}"/>
         </Border>
 
-        <DataGrid ItemsSource="{Binding Rows}"
+        <Border Classes="card" Padding="0" ClipToBounds="True">
+            <DataGrid ItemsSource="{Binding Rows}"
                   IsReadOnly="True"
                   GridLinesVisibility="Horizontal"
                   HeadersVisibility="Column"
@@ -52,5 +92,6 @@
                 <DataGridTextColumn Header="Quyết toán theo năm" Binding="{Binding YearlySettlementsText}" Width="*"/>
             </DataGrid.Columns>
         </DataGrid>
+        </Border>
     </DockPanel>
 </UserControl>

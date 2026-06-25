@@ -8,6 +8,7 @@
         <local:ViewLocator/>
     </Application.DataTemplates>
     <Application.Styles>
-        <sty:FluentAvaloniaTheme />
+        <sty:FluentAvaloniaTheme CustomAccentColor="#1C4E80" />
+        <StyleInclude Source="avares://ConstructionFinance/Styles/Theme.axaml"/>
     </Application.Styles>
 </Application>

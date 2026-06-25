@@ -1,0 +1,149 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <Styles.Resources>
+        <!-- ===== Brand / color tokens ===== -->
+        <Color x:Key="BrandPrimaryColor">#1C4E80</Color>
+        <SolidColorBrush x:Key="BrandPrimaryBrush" Color="#1C4E80"/>
+        <SolidColorBrush x:Key="BrandPrimaryDarkBrush" Color="#163E66"/>
+
+        <SolidColorBrush x:Key="AppBackgroundBrush" Color="#F4F6F9"/>
+        <SolidColorBrush x:Key="CardBackgroundBrush" Color="#FFFFFF"/>
+        <SolidColorBrush x:Key="CardBorderBrush" Color="#E3E8EF"/>
+
+        <SolidColorBrush x:Key="TextPrimaryBrush" Color="#1A1F2B"/>
+        <SolidColorBrush x:Key="TextMutedBrush" Color="#6B7480"/>
+
+        <SolidColorBrush x:Key="GridHeaderBrush" Color="#EEF2F7"/>
+        <SolidColorBrush x:Key="GridLineBrush" Color="#EDF1F5"/>
+
+        <SolidColorBrush x:Key="DangerBrush" Color="#C0392B"/>
+        <SolidColorBrush x:Key="WarningBrush" Color="#B7791F"/>
+
+        <SolidColorBrush x:Key="InfoBarBackgroundBrush" Color="#FFF8E1"/>
+        <SolidColorBrush x:Key="InfoBarBorderBrush" Color="#F0D27A"/>
+        <SolidColorBrush x:Key="InfoBarTextBrush" Color="#7A5B17"/>
+    </Styles.Resources>
+
+    <!-- ===== Card surface ===== -->
+    <Style Selector="Border.card">
+        <Setter Property="Background" Value="{StaticResource CardBackgroundBrush}"/>
+        <Setter Property="BorderBrush" Value="{StaticResource CardBorderBrush}"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="CornerRadius" Value="10"/>
+        <Setter Property="Padding" Value="16"/>
+        <Setter Property="BoxShadow" Value="0 2 10 0 #14000000"/>
+    </Style>
+
+    <!-- ===== Typography ===== -->
+    <Style Selector="TextBlock.pageTitle">
+        <Setter Property="FontSize" Value="22"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/>
+    </Style>
+    <Style Selector="TextBlock.pageSubtitle">
+        <Setter Property="FontSize" Value="13"/>
+        <Setter Property="Foreground" Value="{StaticResource TextMutedBrush}"/>
+    </Style>
+    <Style Selector="TextBlock.sectionTitle">
+        <Setter Property="FontSize" Value="14"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/>
+    </Style>
+    <Style Selector="TextBlock.muted">
+        <Setter Property="Foreground" Value="{StaticResource TextMutedBrush}"/>
+    </Style>
+
+    <!-- ===== Table card: a card holding a toolbar strip + DataGrid (no inner padding) ===== -->
+    <Style Selector="Border.tableCard">
+        <Setter Property="Background" Value="{StaticResource CardBackgroundBrush}"/>
+        <Setter Property="BorderBrush" Value="{StaticResource CardBorderBrush}"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="CornerRadius" Value="10"/>
+        <Setter Property="ClipToBounds" Value="True"/>
+        <Setter Property="BoxShadow" Value="0 2 10 0 #14000000"/>
+    </Style>
+
+    <!-- ===== Toolbar strip attached to the top of a table card ===== -->
+    <Style Selector="Border.toolbarStrip">
+        <Setter Property="BorderBrush" Value="{StaticResource CardBorderBrush}"/>
+        <Setter Property="BorderThickness" Value="0,0,0,1"/>
+        <Setter Property="Padding" Value="12,10"/>
+    </Style>
+
+    <!-- ===== Info / read-only banner ===== -->
+    <Style Selector="Border.infoBar">
+        <Setter Property="Background" Value="{StaticResource InfoBarBackgroundBrush}"/>
+        <Setter Property="BorderBrush" Value="{StaticResource InfoBarBorderBrush}"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="CornerRadius" Value="8"/>
+        <Setter Property="Padding" Value="12,8"/>
+    </Style>
+    <Style Selector="Border.infoBar TextBlock">
+        <Setter Property="Foreground" Value="{StaticResource InfoBarTextBrush}"/>
+    </Style>
+
+    <!-- ===== Toolbar buttons: a touch more breathing room ===== -->
+    <Style Selector="Button.toolbar">
+        <Setter Property="CornerRadius" Value="6"/>
+        <Setter Property="Padding" Value="12,7"/>
+    </Style>
+    <Style Selector="Button.danger">
+        <Setter Property="Foreground" Value="{StaticResource DangerBrush}"/>
+    </Style>
+
+    <!-- ===== Detail field label / value pairs ===== -->
+    <Style Selector="TextBlock.fieldLabel">
+        <Setter Property="Foreground" Value="{StaticResource TextMutedBrush}"/>
+        <Setter Property="FontSize" Value="13"/>
+        <Setter Property="VerticalAlignment" Value="Center"/>
+        <Setter Property="Margin" Value="0,0,0,6"/>
+    </Style>
+    <Style Selector="TextBlock.fieldValue">
+        <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/>
+        <Setter Property="FontSize" Value="13"/>
+        <Setter Property="VerticalAlignment" Value="Center"/>
+        <Setter Property="Margin" Value="0,0,0,6"/>
+    </Style>
+    <Style Selector="TextBlock.fieldValueStrong">
+        <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/>
+        <Setter Property="FontSize" Value="13"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="VerticalAlignment" Value="Center"/>
+        <Setter Property="Margin" Value="0,0,0,6"/>
+    </Style>
+
+    <!-- ===== Dialog forms: consistent label + input ===== -->
+    <Style Selector="TextBlock.formLabel">
+        <Setter Property="Foreground" Value="{StaticResource TextMutedBrush}"/>
+        <Setter Property="FontSize" Value="13"/>
+        <Setter Property="VerticalAlignment" Value="Center"/>
+    </Style>
+    <Style Selector="TextBlock.fieldError">
+        <Setter Property="Foreground" Value="{StaticResource DangerBrush}"/>
+        <Setter Property="FontSize" Value="11"/>
+        <Setter Property="Margin" Value="0,2,0,0"/>
+    </Style>
+
+    <!-- Vertical + horizontal rhythm for dialog form grids (Grid.RowSpacing needs Avalonia 11.3+). -->
+    <Style Selector="Grid.formGrid &gt; :is(Control)">
+        <Setter Property="Margin" Value="0,6,12,6"/>
+    </Style>
+
+    <!-- ===== DataGrid polish ===== -->
+    <Style Selector="DataGrid">
+        <Setter Property="RowHeight" Value="38"/>
+        <Setter Property="FontSize" Value="13"/>
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="GridLinesVisibility" Value="Horizontal"/>
+        <Setter Property="HorizontalGridLinesBrush" Value="{StaticResource GridLineBrush}"/>
+    </Style>
+    <Style Selector="DataGridColumnHeader">
+        <Setter Property="Background" Value="{StaticResource GridHeaderBrush}"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/>
+        <Setter Property="MinHeight" Value="40"/>
+        <Setter Property="Padding" Value="10,0"/>
+    </Style>
+
+</Styles>

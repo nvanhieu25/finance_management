@@ -1,62 +1,83 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:ui="using:FluentAvalonia.UI.Controls"
              xmlns:vm="using:ConstructionFinance.Desktop.ViewModels.ThongTri"
              x:Class="ConstructionFinance.Desktop.Views.ThongTri.ThongTriView"
              x:DataType="vm:ThongTriViewModel">
-    <Grid ColumnDefinitions="280,*">
-        <DockPanel Grid.Column="0" Margin="0,0,12,0">
-            <TextBlock DockPanel.Dock="Top" Text="{Binding StatusMessage}" TextWrapping="Wrap" Margin="0,0,0,8"/>
-            <ListBox ItemsSource="{Binding Projects}"
-                     SelectedItem="{Binding SelectedProject}">
-                <ListBox.ItemTemplate>
-                    <DataTemplate>
-                        <StackPanel>
-                            <TextBlock Text="{Binding ProjectName}" FontWeight="SemiBold"/>
-                            <TextBlock Text="{Binding SheetName}" FontSize="11" Foreground="Gray"/>
+    <DockPanel>
+        <StackPanel DockPanel.Dock="Top" Spacing="2" Margin="0,0,0,16">
+            <TextBlock Classes="pageTitle" Text="Thông tri"/>
+            <TextBlock Classes="pageSubtitle" Text="Bản thông tri tài chính theo từng dự án"/>
+        </StackPanel>
+
+        <Grid ColumnDefinitions="300,*">
+            <Border Grid.Column="0" Classes="tableCard" Margin="0,0,16,0">
+                <DockPanel>
+                    <Border DockPanel.Dock="Top" Classes="toolbarStrip">
+                        <TextBlock Text="{Binding StatusMessage}" Classes="muted" FontSize="12" TextWrapping="Wrap"/>
+                    </Border>
+                    <ListBox ItemsSource="{Binding Projects}"
+                             SelectedItem="{Binding SelectedProject}"
+                             Background="Transparent">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <StackPanel Spacing="2">
+                                    <TextBlock Text="{Binding ProjectName}" FontWeight="SemiBold"/>
+                                    <TextBlock Text="{Binding SheetName}" FontSize="11"
+                                               Foreground="{DynamicResource TextMutedBrush}"/>
+                                </StackPanel>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </DockPanel>
+            </Border>
+
+            <ScrollViewer Grid.Column="1">
+                <Border Classes="card"
+                        IsVisible="{Binding SelectedProject, Converter={x:Static ObjectConverters.IsNotNull}}">
+                    <StackPanel Spacing="16">
+                        <StackPanel Spacing="2">
+                            <TextBlock Text="{Binding SelectedProject.ProjectName}" Classes="pageTitle" FontSize="18"/>
+                            <TextBlock Text="Thông tin Thông tri (snapshot)" Classes="pageSubtitle"/>
                         </StackPanel>
-                    </DataTemplate>
-                </ListBox.ItemTemplate>
-            </ListBox>
-        </DockPanel>
 
-        <ScrollViewer Grid.Column="1">
-            <StackPanel Spacing="12" IsVisible="{Binding SelectedProject, Converter={x:Static ObjectConverters.IsNotNull}}">
-                <TextBlock Text="Thông tin Thông tri (snapshot)" FontSize="16" FontWeight="SemiBold"/>
-                <Grid ColumnDefinitions="200,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto">
-                    <TextBlock Grid.Row="0" Grid.Column="0" Text="Tên dự án"/>
-                    <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding SelectedProject.ProjectName}" FontWeight="SemiBold"/>
+                        <Grid ColumnDefinitions="220,*"
+                              RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto">
+                            <TextBlock Grid.Row="0" Grid.Column="0" Classes="fieldLabel" Text="Nhà thầu"/>
+                            <TextBlock Grid.Row="0" Grid.Column="1" Classes="fieldValue" Text="{Binding SelectedProject.ContractorName}"/>
 
-                    <TextBlock Grid.Row="1" Grid.Column="0" Text="Nhà thầu"/>
-                    <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding SelectedProject.ContractorName}"/>
+                            <TextBlock Grid.Row="1" Grid.Column="0" Classes="fieldLabel" Text="Giá trị hợp đồng"/>
+                            <TextBlock Grid.Row="1" Grid.Column="1" Classes="fieldValue" Text="{Binding SelectedProject.ContractValue, StringFormat=#\,##0}"/>
 
-                    <TextBlock Grid.Row="2" Grid.Column="0" Text="Giá trị hợp đồng"/>
-                    <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding SelectedProject.ContractValue, StringFormat=#\,##0}"/>
+                            <TextBlock Grid.Row="2" Grid.Column="0" Classes="fieldLabel" Text="Tạm ứng"/>
+                            <TextBlock Grid.Row="2" Grid.Column="1" Classes="fieldValue" Text="{Binding SelectedProject.Advance, StringFormat=#\,##0}"/>
 
-                    <TextBlock Grid.Row="3" Grid.Column="0" Text="Tạm ứng"/>
-                    <TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding SelectedProject.Advance, StringFormat=#\,##0}"/>
+                            <TextBlock Grid.Row="3" Grid.Column="0" Classes="fieldLabel" Text="Thanh toán KLHT"/>
+                            <TextBlock Grid.Row="3" Grid.Column="1" Classes="fieldValue" Text="{Binding SelectedProject.PaymentKLHT, StringFormat=#\,##0}"/>
 
-                    <TextBlock Grid.Row="4" Grid.Column="0" Text="Thanh toán KLHT"/>
-                    <TextBlock Grid.Row="4" Grid.Column="1" Text="{Binding SelectedProject.PaymentKLHT, StringFormat=#\,##0}"/>
+                            <TextBlock Grid.Row="4" Grid.Column="0" Classes="fieldLabel" Text="Thu hồi tạm ứng"/>
+                            <TextBlock Grid.Row="4" Grid.Column="1" Classes="fieldValue" Text="{Binding SelectedProject.RecoveredAdvance, StringFormat=#\,##0}"/>
 
-                    <TextBlock Grid.Row="5" Grid.Column="0" Text="Thu hồi tạm ứng"/>
-                    <TextBlock Grid.Row="5" Grid.Column="1" Text="{Binding SelectedProject.RecoveredAdvance, StringFormat=#\,##0}"/>
+                            <TextBlock Grid.Row="5" Grid.Column="0" Classes="fieldLabel" Text="TT từ DP NSNN"/>
+                            <TextBlock Grid.Row="5" Grid.Column="1" Classes="fieldValue" Text="{Binding SelectedProject.PaymentToContractor, StringFormat=#\,##0}"/>
 
-                    <TextBlock Grid.Row="6" Grid.Column="0" Text="TT từ DP NSNN"/>
-                    <TextBlock Grid.Row="6" Grid.Column="1" Text="{Binding SelectedProject.PaymentToContractor, StringFormat=#\,##0}"/>
+                            <TextBlock Grid.Row="6" Grid.Column="0" Classes="fieldLabel" Text="Tạm ứng chưa TH"/>
+                            <TextBlock Grid.Row="6" Grid.Column="1" Classes="fieldValue" Text="{Binding SelectedProject.UnrecoveredAdvance, StringFormat=#\,##0}"/>
 
-                    <TextBlock Grid.Row="7" Grid.Column="0" Text="Tạm ứng chưa TH"/>
-                    <TextBlock Grid.Row="7" Grid.Column="1" Text="{Binding SelectedProject.UnrecoveredAdvance, StringFormat=#\,##0}"/>
+                            <TextBlock Grid.Row="7" Grid.Column="0" Classes="fieldLabel" Text="Tổng giải ngân"/>
+                            <TextBlock Grid.Row="7" Grid.Column="1" Classes="fieldValueStrong" Text="{Binding SelectedProject.TotalDisbursed, StringFormat=#\,##0}"/>
 
-                    <TextBlock Grid.Row="8" Grid.Column="0" Text="Tổng giải ngân"/>
-                    <TextBlock Grid.Row="8" Grid.Column="1" Text="{Binding SelectedProject.TotalDisbursed, StringFormat=#\,##0}" FontWeight="SemiBold"/>
+                            <TextBlock Grid.Row="8" Grid.Column="0" Classes="fieldLabel" Text="Giải ngân NSNN"/>
+                            <TextBlock Grid.Row="8" Grid.Column="1" Classes="fieldValue" Text="{Binding SelectedProject.DisbursedNSNN, StringFormat=#\,##0}"/>
 
-                    <TextBlock Grid.Row="9" Grid.Column="0" Text="Giải ngân NSNN"/>
-                    <TextBlock Grid.Row="9" Grid.Column="1" Text="{Binding SelectedProject.DisbursedNSNN, StringFormat=#\,##0}"/>
-                    <TextBlock Grid.Row="10" Grid.Column="0" Text="Giải ngân DTNH"/>
-                    <TextBlock Grid.Row="10" Grid.Column="1" Text="{Binding SelectedProject.DisbursedDTNH, StringFormat=#\,##0}"/>
-                </Grid>
-                <Button Content="📄 In Thông tri (sắp có)" IsEnabled="False" HorizontalAlignment="Left"/>
-            </StackPanel>
-        </ScrollViewer>
-    </Grid>
+                            <TextBlock Grid.Row="9" Grid.Column="0" Classes="fieldLabel" Text="Giải ngân DTNH"/>
+                            <TextBlock Grid.Row="9" Grid.Column="1" Classes="fieldValue" Text="{Binding SelectedProject.DisbursedDTNH, StringFormat=#\,##0}"/>
+                        </Grid>
+
+                        <Button Classes="toolbar" Content="In Thông tri (sắp có)" IsEnabled="False" HorizontalAlignment="Left"/>
+                    </StackPanel>
+                </Border>
+            </ScrollViewer>
+        </Grid>
+    </DockPanel>
 </UserControl>

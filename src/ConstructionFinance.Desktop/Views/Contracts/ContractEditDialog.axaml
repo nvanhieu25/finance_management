@@ -5,37 +5,38 @@
              x:Class="ConstructionFinance.Desktop.Views.Contracts.ContractEditDialog"
              x:DataType="vm:ContractEditDialogViewModel"
              MinWidth="520">
-    <Grid ColumnDefinitions="170,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto">
-        <TextBlock Grid.Row="0" Grid.Column="0" Text="Mã Hợp đồng *" VerticalAlignment="Center"/>
+    <Grid ColumnDefinitions="170,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto"
+          Classes="formGrid">
+        <TextBlock Grid.Row="0" Grid.Column="0" Classes="formLabel" Text="Mã Hợp đồng *"/>
         <StackPanel Grid.Row="0" Grid.Column="1">
             <TextBox Text="{Binding ContractCode}"/>
-            <TextBlock Text="{Binding ContractCodeError}" Foreground="Red" FontSize="11"
+            <TextBlock Classes="fieldError" Text="{Binding ContractCodeError}"
                        IsVisible="{Binding ContractCodeError, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
         </StackPanel>
 
-        <TextBlock Grid.Row="1" Grid.Column="0" Text="Tên Hợp đồng *" VerticalAlignment="Center"/>
+        <TextBlock Grid.Row="1" Grid.Column="0" Classes="formLabel" Text="Tên Hợp đồng *" VerticalAlignment="Top"/>
         <StackPanel Grid.Row="1" Grid.Column="1">
             <TextBox Text="{Binding ContractName}" AcceptsReturn="True" Height="50" TextWrapping="Wrap"/>
-            <TextBlock Text="{Binding ContractNameError}" Foreground="Red" FontSize="11"
+            <TextBlock Classes="fieldError" Text="{Binding ContractNameError}"
                        IsVisible="{Binding ContractNameError, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
         </StackPanel>
 
-        <TextBlock Grid.Row="2" Grid.Column="0" Text="Ngày HĐ" VerticalAlignment="Center"/>
+        <TextBlock Grid.Row="2" Grid.Column="0" Classes="formLabel" Text="Ngày HĐ"/>
         <DatePicker Grid.Row="2" Grid.Column="1"
                     SelectedDate="{Binding ContractDate, Mode=TwoWay, Converter={x:Static common:DateOnlyConverter.Instance}}"/>
 
-        <TextBlock Grid.Row="3" Grid.Column="0" Text="Ngày ký" VerticalAlignment="Center"/>
+        <TextBlock Grid.Row="3" Grid.Column="0" Classes="formLabel" Text="Ngày ký"/>
         <DatePicker Grid.Row="3" Grid.Column="1"
                     SelectedDate="{Binding SigningDate, Mode=TwoWay, Converter={x:Static common:NullableDateOnlyConverter.Instance}}"/>
 
-        <TextBlock Grid.Row="4" Grid.Column="0" Text="Giá trị HĐ *" VerticalAlignment="Center"/>
+        <TextBlock Grid.Row="4" Grid.Column="0" Classes="formLabel" Text="Giá trị HĐ *"/>
         <StackPanel Grid.Row="4" Grid.Column="1">
             <NumericUpDown Value="{Binding ContractValue}" Minimum="0" FormatString="#,##0"/>
-            <TextBlock Text="{Binding ContractValueError}" Foreground="Red" FontSize="11"
+            <TextBlock Classes="fieldError" Text="{Binding ContractValueError}"
                        IsVisible="{Binding ContractValueError, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
         </StackPanel>
 
-        <TextBlock Grid.Row="5" Grid.Column="0" Text="Ghi chú" VerticalAlignment="Top"/>
+        <TextBlock Grid.Row="5" Grid.Column="0" Classes="formLabel" Text="Ghi chú" VerticalAlignment="Top"/>
         <TextBox Grid.Row="5" Grid.Column="1" Text="{Binding Notes}" AcceptsReturn="True" Height="80" TextWrapping="Wrap"/>
     </Grid>
 </UserControl>

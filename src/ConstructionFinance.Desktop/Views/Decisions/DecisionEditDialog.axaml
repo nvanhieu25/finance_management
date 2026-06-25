@@ -5,39 +5,40 @@
              x:Class="ConstructionFinance.Desktop.Views.Decisions.DecisionEditDialog"
              x:DataType="vm:DecisionEditDialogViewModel"
              MinWidth="520">
-    <Grid ColumnDefinitions="170,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto">
-        <TextBlock Grid.Row="0" Grid.Column="0" Text="Mã Quyết định *" VerticalAlignment="Center"/>
+    <Grid ColumnDefinitions="170,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto"
+          Classes="formGrid">
+        <TextBlock Grid.Row="0" Grid.Column="0" Classes="formLabel" Text="Mã Quyết định *"/>
         <StackPanel Grid.Row="0" Grid.Column="1">
             <TextBox Text="{Binding DecisionCode}"/>
-            <TextBlock Text="{Binding DecisionCodeError}" Foreground="Red" FontSize="11"
+            <TextBlock Classes="fieldError" Text="{Binding DecisionCodeError}"
                        IsVisible="{Binding DecisionCodeError, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
         </StackPanel>
 
-        <TextBlock Grid.Row="1" Grid.Column="0" Text="Trích yếu *" VerticalAlignment="Center"/>
+        <TextBlock Grid.Row="1" Grid.Column="0" Classes="formLabel" Text="Trích yếu *" VerticalAlignment="Top"/>
         <StackPanel Grid.Row="1" Grid.Column="1">
             <TextBox Text="{Binding DecisionTitle}" AcceptsReturn="True" Height="60" TextWrapping="Wrap"/>
-            <TextBlock Text="{Binding DecisionTitleError}" Foreground="Red" FontSize="11"
+            <TextBlock Classes="fieldError" Text="{Binding DecisionTitleError}"
                        IsVisible="{Binding DecisionTitleError, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
         </StackPanel>
 
-        <TextBlock Grid.Row="2" Grid.Column="0" Text="Ngày ban hành" VerticalAlignment="Center"/>
+        <TextBlock Grid.Row="2" Grid.Column="0" Classes="formLabel" Text="Ngày ban hành"/>
         <DatePicker Grid.Row="2" Grid.Column="1" SelectedDate="{Binding DecisionDate, Mode=TwoWay, Converter={x:Static common:DateOnlyConverter.Instance}}"/>
 
-        <TextBlock Grid.Row="3" Grid.Column="0" Text="Cơ quan ban hành *" VerticalAlignment="Center"/>
+        <TextBlock Grid.Row="3" Grid.Column="0" Classes="formLabel" Text="Cơ quan ban hành *"/>
         <StackPanel Grid.Row="3" Grid.Column="1">
             <TextBox Text="{Binding IssuingAuthority}"/>
-            <TextBlock Text="{Binding IssuingAuthorityError}" Foreground="Red" FontSize="11"
+            <TextBlock Classes="fieldError" Text="{Binding IssuingAuthorityError}"
                        IsVisible="{Binding IssuingAuthorityError, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
         </StackPanel>
 
-        <TextBlock Grid.Row="4" Grid.Column="0" Text="Tổng giá trị (VND) *" VerticalAlignment="Center"/>
+        <TextBlock Grid.Row="4" Grid.Column="0" Classes="formLabel" Text="Tổng giá trị (VND) *"/>
         <StackPanel Grid.Row="4" Grid.Column="1">
             <NumericUpDown Value="{Binding TotalApprovedAmount}" Minimum="0" FormatString="#,##0"/>
-            <TextBlock Text="{Binding TotalApprovedAmountError}" Foreground="Red" FontSize="11"
+            <TextBlock Classes="fieldError" Text="{Binding TotalApprovedAmountError}"
                        IsVisible="{Binding TotalApprovedAmountError, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
         </StackPanel>
 
-        <TextBlock Grid.Row="5" Grid.Column="0" Text="Ghi chú" VerticalAlignment="Top"/>
+        <TextBlock Grid.Row="5" Grid.Column="0" Classes="formLabel" Text="Ghi chú" VerticalAlignment="Top"/>
         <TextBox Grid.Row="5" Grid.Column="1" Text="{Binding Notes}" AcceptsReturn="True" Height="80" TextWrapping="Wrap"/>
     </Grid>
 </UserControl>

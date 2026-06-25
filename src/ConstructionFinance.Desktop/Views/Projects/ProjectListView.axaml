@@ -1,33 +1,68 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:ui="using:FluentAvalonia.UI.Controls"
              xmlns:vm="using:ConstructionFinance.Desktop.ViewModels.Projects"
              xmlns:common="using:ConstructionFinance.Desktop.Common"
              x:Class="ConstructionFinance.Desktop.Views.Projects.ProjectListView"
              x:DataType="vm:ProjectListViewModel">
     <DockPanel>
-        <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Spacing="8" Margin="0,0,0,8">
-            <Button Content="+ Thêm" Command="{Binding AddCommand}"/>
-            <Button Content="Sửa" Command="{Binding EditCommand}"/>
-            <Button Content="Xóa" Command="{Binding DeleteCommand}"/>
-            <Button Content="Xem chi tiết →" Command="{Binding OpenDetailCommand}"/>
-            <TextBlock Text="{Binding ErrorMessage}" Foreground="Red" VerticalAlignment="Center"/>
+        <StackPanel DockPanel.Dock="Top" Spacing="2" Margin="0,0,0,16" IsVisible="{Binding IsGlobalView}">
+            <TextBlock Classes="pageTitle" Text="Dự án"/>
+            <TextBlock Classes="pageSubtitle" Text="Danh mục dự án đầu tư xây dựng"/>
         </StackPanel>
-        <Border DockPanel.Dock="Top" Background="#FFF8E1" BorderBrush="#F5C518" BorderThickness="1"
-                Padding="10,6" Margin="0,0,0,8" IsVisible="{Binding IsGlobalView}">
+
+        <Border DockPanel.Dock="Top" Classes="infoBar" Margin="0,0,0,16" IsVisible="{Binding IsGlobalView}">
             <TextBlock Text="Đang xem toàn bộ Dự án (chế độ chỉ đọc). Để thêm/sửa/xóa, vào qua menu Quyết định → Hợp đồng → Dự án."
-                       TextWrapping="Wrap" Foreground="#5D4037"/>
+                       TextWrapping="Wrap"/>
         </Border>
-        <DataGrid ItemsSource="{Binding Projects}"
-                  SelectedItem="{Binding SelectedProject}"
-                  IsReadOnly="True"
-                  GridLinesVisibility="Horizontal"
-                  HeadersVisibility="Column">
-            <DataGrid.Columns>
-                <DataGridTextColumn Header="Mã DA" Binding="{Binding ProjectCode}" Width="120"/>
-                <DataGridTextColumn Header="Tên Dự án" Binding="{Binding ProjectName}" Width="*"/>
-                <DataGridTextColumn Header="Trạng thái" Binding="{Binding Status, Converter={x:Static common:EnumToVietnameseConverter.Instance}}" Width="160"/>
-                <DataGridTextColumn Header="Dự toán" Binding="{Binding TotalBudget, StringFormat=#\,##0}" Width="160"/>
-            </DataGrid.Columns>
-        </DataGrid>
+
+        <Border Classes="tableCard">
+            <DockPanel>
+                <Border DockPanel.Dock="Top" Classes="toolbarStrip">
+                    <Grid ColumnDefinitions="Auto,*">
+                        <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8">
+                            <Button Classes="accent toolbar" Command="{Binding AddCommand}">
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <ui:SymbolIcon Symbol="{x:Static ui:Symbol.Add}"/>
+                                    <TextBlock Text="Thêm"/>
+                                </StackPanel>
+                            </Button>
+                            <Button Classes="toolbar" Command="{Binding EditCommand}">
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <ui:SymbolIcon Symbol="{x:Static ui:Symbol.Edit}"/>
+                                    <TextBlock Text="Sửa"/>
+                                </StackPanel>
+                            </Button>
+                            <Button Classes="toolbar danger" Command="{Binding DeleteCommand}">
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <ui:SymbolIcon Symbol="{x:Static ui:Symbol.Delete}"/>
+                                    <TextBlock Text="Xóa"/>
+                                </StackPanel>
+                            </Button>
+                            <Button Classes="toolbar" Command="{Binding OpenDetailCommand}">
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <ui:SymbolIcon Symbol="{x:Static ui:Symbol.ChevronRight}"/>
+                                    <TextBlock Text="Chi tiết"/>
+                                </StackPanel>
+                            </Button>
+                        </StackPanel>
+                        <TextBlock Grid.Column="1" Text="{Binding ErrorMessage}"
+                                   Foreground="{DynamicResource DangerBrush}"
+                                   VerticalAlignment="Center" HorizontalAlignment="Right" Margin="12,0"/>
+                    </Grid>
+                </Border>
+                <DataGrid ItemsSource="{Binding Projects}"
+                          SelectedItem="{Binding SelectedProject}"
+                          IsReadOnly="True"
+                          HeadersVisibility="Column">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Mã DA" Binding="{Binding ProjectCode}" Width="120"/>
+                        <DataGridTextColumn Header="Tên Dự án" Binding="{Binding ProjectName}" Width="*"/>
+                        <DataGridTextColumn Header="Trạng thái" Binding="{Binding Status, Converter={x:Static common:EnumToVietnameseConverter.Instance}}" Width="160"/>
+                        <DataGridTextColumn Header="Dự toán" Binding="{Binding TotalBudget, StringFormat=#\,##0}" Width="160"/>
+                    </DataGrid.Columns>
+                </DataGrid>
+            </DockPanel>
+        </Border>
     </DockPanel>
 </UserControl>

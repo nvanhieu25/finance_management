@@ -3,9 +3,15 @@
              xmlns:vm="using:ConstructionFinance.Desktop.ViewModels.Settings"
              x:Class="ConstructionFinance.Desktop.Views.Settings.PreferencesView"
              x:DataType="vm:PreferencesViewModel">
-    <StackPanel Margin="16" Spacing="12">
-        <CheckBox IsChecked="{Binding AutoBackupOnExit}" Content="Tự động backup khi đóng app (nếu có thay đổi trong phiên)"/>
-        <TextBlock TextWrapping="Wrap" Foreground="Gray" FontSize="11"
-                   Text="Lưu ý: backup tự động sẽ ghi vào thư mục Backups trong %LocalAppData%/ConstructionFinance/. Bạn có thể tắt nếu không cần."/>
-    </StackPanel>
+    <ScrollViewer Padding="16">
+        <Border Classes="card" MaxWidth="780" HorizontalAlignment="Left">
+            <StackPanel Spacing="10">
+                <TextBlock Classes="sectionTitle" Text="Tùy chọn chung"/>
+                <CheckBox IsChecked="{Binding AutoBackupOnExit}"
+                          Content="Tự động backup khi đóng app (nếu có thay đổi trong phiên)"/>
+                <TextBlock Classes="muted" TextWrapping="Wrap" FontSize="12"
+                           Text="Lưu ý: backup tự động sẽ ghi vào thư mục Backups trong %LocalAppData%/ConstructionFinance/. Bạn có thể tắt nếu không cần."/>
+            </StackPanel>
+        </Border>
+    </ScrollViewer>
 </UserControl>
