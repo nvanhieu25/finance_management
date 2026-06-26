@@ -23,5 +23,10 @@ public class PaymentConfiguration : IEntityTypeConfiguration<Payment>
 
         b.HasIndex(x => new { x.CostItemId, x.PaymentNo }).IsUnique();
         b.HasIndex(x => new { x.CostItemId, x.PaymentDate });
+
+        // Match the CostItem soft-delete filter: a payment is only visible while its
+        // (required) cost item is not soft-deleted. Keeps the two filters consistent
+        // and resolves the EF "required end has no matching query filter" warning.
+        b.HasQueryFilter(x => x.CostItem.DeletedAt == null);
     }
 }

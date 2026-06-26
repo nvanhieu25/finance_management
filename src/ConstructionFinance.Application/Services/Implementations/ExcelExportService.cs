@@ -135,19 +135,20 @@ public class ExcelExportService : IExcelExportService
             sheet.Cell(rowIdx, 11).Value = s.DisbursedDTNH;
             sheet.Cell(rowIdx, 12).Value = s.TotalDisbursed;
 
-            var years = s.YearlySettlements.OrderBy(y => y.Year).ToList();
-            if (years.Count >= 1)
+            // Map each settlement to its FIXED physical year column, not by list index —
+            // a project missing one year must not shift the other year's data over.
+            var y2025 = s.YearlySettlements.FirstOrDefault(y => y.Year == 2025);
+            if (y2025 is not null)
             {
-                var y1 = years[0];
-                if (y1.KLHT.HasValue) sheet.Cell(rowIdx, 13).Value = y1.KLHT.Value;
-                if (y1.Advance.HasValue) sheet.Cell(rowIdx, 14).Value = y1.Advance.Value;
-                if (y1.DTNH.HasValue) sheet.Cell(rowIdx, 15).Value = y1.DTNH.Value;
+                if (y2025.KLHT.HasValue) sheet.Cell(rowIdx, 13).Value = y2025.KLHT.Value;
+                if (y2025.Advance.HasValue) sheet.Cell(rowIdx, 14).Value = y2025.Advance.Value;
+                if (y2025.DTNH.HasValue) sheet.Cell(rowIdx, 15).Value = y2025.DTNH.Value;
             }
-            if (years.Count >= 2)
+            var y2026 = s.YearlySettlements.FirstOrDefault(y => y.Year == 2026);
+            if (y2026 is not null)
             {
-                var y2 = years[1];
-                if (y2.NSNN.HasValue) sheet.Cell(rowIdx, 16).Value = y2.NSNN.Value;
-                if (y2.DTNH.HasValue) sheet.Cell(rowIdx, 17).Value = y2.DTNH.Value;
+                if (y2026.NSNN.HasValue) sheet.Cell(rowIdx, 16).Value = y2026.NSNN.Value;
+                if (y2026.DTNH.HasValue) sheet.Cell(rowIdx, 17).Value = y2026.DTNH.Value;
             }
             rowIdx++;
         }

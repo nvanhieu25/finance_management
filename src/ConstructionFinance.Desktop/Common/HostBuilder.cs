@@ -28,8 +28,7 @@ public static class HostBuilder
             .UseSerilog()
             .ConfigureServices((_, services) =>
             {
-                services.AddDbContext<AppDbContext>(opt =>
-                    opt.UseSqlite(AppPaths.ConnectionString));
+                services.AddAppDbContext(AppPaths.ConnectionString);
                 services.AddDataServices();
                 services.AddApplicationServices();
                 services.AddInfrastructureServices();
