@@ -71,4 +71,26 @@ public class ProjectCalculatorTests
         a.TotalDisbursed.ShouldBe(0m);
         a.YearlySettlements.ShouldBeEmpty();
     }
+
+    [Fact]
+    public void Aggregate_groups_yearly_settlements_by_year_ordered()
+    {
+        var items = new[]
+        {
+            new LineItemInput(new DateOnly(2026, 3, 1), "p", 0m, 100m, 0m, 100m, 0m),
+            new LineItemInput(new DateOnly(2025, 6, 1), "p", 0m, 50m, 0m, 30m, 20m),
+            new LineItemInput(new DateOnly(2026, 9, 1), "p", 0m, 0m, 0m, 40m, 10m),
+        };
+
+        var years = ProjectCalculator.Aggregate(items).YearlySettlements;
+
+        years.Count.ShouldBe(2);
+        years[0].Year.ShouldBe(2025);            // ordered ascending
+        years[0].NSNN.ShouldBe(30m);
+        years[0].NgoaiHoi.ShouldBe(20m);
+        years[1].Year.ShouldBe(2026);
+        years[1].NSNN.ShouldBe(140m);            // 100 + 40
+        years[1].NgoaiHoi.ShouldBe(10m);
+        years[1].KLHT.ShouldBe(100m);
+    }
 }
