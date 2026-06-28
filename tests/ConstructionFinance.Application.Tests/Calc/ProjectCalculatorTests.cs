@@ -93,4 +93,28 @@ public class ProjectCalculatorTests
         years[1].NgoaiHoi.ShouldBe(10m);
         years[1].KLHT.ShouldBe(100m);
     }
+
+    [Fact]
+    public void WorkedExample_matches_excel_DA_sheet_totals()
+    {
+        // Mirrors spec §1 worked example + Hiêu_sample DA totals.
+        var items = new[]
+        {
+            // Đợt 1: ứng 500tr (giải ngân 500tr, toàn bộ NSNN)
+            new LineItemInput(new DateOnly(2026, 1, 5), "Ứng đợt 1", 500m, 0m, 0m, 500m, 0m),
+            // Đợt 2: KLHT 800tr, thu hồi 200tr → giải ngân 600tr (NSNN 420 + Ngoại hối 180)
+            new LineItemInput(new DateOnly(2026, 2, 20), "TT KLHT đợt 1", 0m, 800m, 200m, 420m, 180m),
+        };
+
+        // Per-line cross-check both balanced.
+        ProjectCalculator.ComputeLine(items[0]).IsBalanced.ShouldBeTrue();
+        ProjectCalculator.ComputeLine(items[1]).Disbursed.ShouldBe(600m);
+
+        var a = ProjectCalculator.Aggregate(items);
+        a.UnrecoveredAdvance.ShouldBe(300m);   // 500 − 200 (Tạm ứng chưa thu hồi)
+        a.TotalDisbursed.ShouldBe(1100m);      // 500 + 600
+        a.SumNSNN.ShouldBe(920m);
+        a.SumNgoaiHoi.ShouldBe(180m);
+        a.YearlySettlements.ShouldHaveSingleItem().Year.ShouldBe(2026);
+    }
 }
