@@ -332,6 +332,9 @@ public class ExcelImportService : IExcelImportService
 
     private static string? TryReadProjectName(IXLWorksheet sheet)
     {
+        // Only trust an explicit "Tên dự án: <name>" label. Otherwise return null so the
+        // caller falls back to the sheet name — never grab an arbitrary header/title cell
+        // (e.g. "Ngày tháng" in the Hiệu template or the report title in the H template).
         foreach (var addr in new[] { "A2", "B2", "A1", "B1" })
         {
             var text = sheet.Cell(addr).GetString().Trim();
@@ -342,8 +345,6 @@ public class ExcelImportService : IExcelImportService
                 if (idx >= 0 && idx < text.Length - 1)
                     return text[(idx + 1)..].Trim();
             }
-            if (!text.Contains("dự án", StringComparison.OrdinalIgnoreCase) && text.Length > 3)
-                return text;
         }
         return null;
     }

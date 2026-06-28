@@ -56,6 +56,18 @@ public class ExcelImportServiceTests
     }
 
     [Fact]
+    public async Task ParseAsync_Hieu_xlsx_does_not_use_header_row_as_project_name()
+    {
+        // The Hiệu DA sheets have no project-name cell (A2/B2/C2 are column headers
+        // like "Ngày tháng"). ProjectName must fall back to the sheet name, NOT grab a header.
+        var result = await new ExcelImportService().ParseAsync(HieuFixturePath);
+
+        result.Summaries.ShouldNotBeEmpty();
+        result.Summaries.ShouldAllBe(s => s.ProjectName != "Ngày tháng");
+        result.Summaries.ShouldAllBe(s => s.ProjectName == s.SheetName);
+    }
+
+    [Fact]
     public async Task ParseAsync_Hieu_xlsx_attributes_NSNN_and_DTNH_separately()
     {
         var svc = new ExcelImportService();
