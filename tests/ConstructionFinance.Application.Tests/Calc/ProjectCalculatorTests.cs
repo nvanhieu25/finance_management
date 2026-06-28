@@ -97,7 +97,7 @@ public class ProjectCalculatorTests
     [Fact]
     public void WorkedExample_matches_excel_DA_sheet_totals()
     {
-        // Mirrors spec §1 worked example + Hiêu_sample DA totals.
+        // Mirrors spec §4 worked example + Hiêu_sample DA totals.
         var items = new[]
         {
             // Đợt 1: ứng 500tr (giải ngân 500tr, toàn bộ NSNN)
@@ -116,5 +116,32 @@ public class ProjectCalculatorTests
         a.SumNSNN.ShouldBe(920m);
         a.SumNgoaiHoi.ShouldBe(180m);
         a.YearlySettlements.ShouldHaveSingleItem().Year.ShouldBe(2026);
+    }
+
+    [Fact]
+    public void ComputeLine_mixed_advance_and_payment_is_classified_as_payment()
+    {
+        // A line with BOTH Advance and PaymentKLHT is treated as a payment (default);
+        // Expected uses KLHT − Recovered; the Advance amount is ignored in the cross-check.
+        var input = new LineItemInput(new DateOnly(2026, 4, 1), "mixed", 100m, 800m, 200m, 600m, 0m);
+        var r = ProjectCalculator.ComputeLine(input);
+        r.Kind.ShouldBe(LineItemKind.Payment);
+        r.Expected.ShouldBe(600m);   // 800 − 200, Advance(100) ignored
+        r.Disbursed.ShouldBe(600m);
+        r.IsBalanced.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void Aggregate_yearly_settlement_includes_advance_amounts_per_year()
+    {
+        var items = new[]
+        {
+            new LineItemInput(new DateOnly(2025, 2, 1), "ứng", 300m, 0m, 0m, 300m, 0m),
+            new LineItemInput(new DateOnly(2026, 2, 1), "tt", 0m, 500m, 0m, 500m, 0m),
+        };
+        var years = ProjectCalculator.Aggregate(items).YearlySettlements;
+        years[0].Year.ShouldBe(2025);
+        years[0].Advance.ShouldBe(300m);   // Advance summed into the 2025 bucket
+        years[1].Advance.ShouldBe(0m);
     }
 }
