@@ -42,4 +42,33 @@ public class ProjectCalculatorTests
         r.Disbursed.ShouldBe(150m);
         r.IsBalanced.ShouldBeFalse();
     }
+
+    [Fact]
+    public void Aggregate_sums_columns_and_derives_unrecovered_and_total()
+    {
+        var items = new[]
+        {
+            Advance(amount: 500m, nsnn: 500m, ngoaiHoi: 0m),         // ứng 500
+            Payment(klht: 800m, recovered: 200m, nsnn: 420m, ngoaiHoi: 180m), // giải ngân 600
+        };
+
+        var a = ProjectCalculator.Aggregate(items);
+
+        a.SumAdvance.ShouldBe(500m);
+        a.SumRecovered.ShouldBe(200m);
+        a.SumKLHT.ShouldBe(800m);
+        a.SumNSNN.ShouldBe(920m);            // 500 + 420
+        a.SumNgoaiHoi.ShouldBe(180m);        // 0 + 180
+        a.UnrecoveredAdvance.ShouldBe(300m); // 500 − 200
+        a.TotalDisbursed.ShouldBe(1100m);    // 920 + 180
+    }
+
+    [Fact]
+    public void Aggregate_empty_returns_zeros()
+    {
+        var a = ProjectCalculator.Aggregate(System.Array.Empty<LineItemInput>());
+        a.SumAdvance.ShouldBe(0m);
+        a.TotalDisbursed.ShouldBe(0m);
+        a.YearlySettlements.ShouldBeEmpty();
+    }
 }
