@@ -88,6 +88,8 @@
                 <DataGridTextColumn Header="Thu hồi TU" Binding="{Binding RecoveredAdvance, StringFormat=#\,##0}" Width="110"/>
                 <DataGridTextColumn Header="TT cho NT" Binding="{Binding PaymentToContractor, StringFormat=#\,##0}" Width="110"/>
                 <DataGridTextColumn Header="TU chưa TH" Binding="{Binding UnrecoveredAdvance, StringFormat=#\,##0}" Width="110"/>
+                <DataGridTextColumn Header="GN NSNN" Binding="{Binding DisbursedNSNN, StringFormat=#\,##0}" Width="120"/>
+                <DataGridTextColumn Header="GN Ngoại hối (DTNH)" Binding="{Binding DisbursedDTNH, StringFormat=#\,##0}" Width="140"/>
                 <DataGridTextColumn Header="Tổng GN" Binding="{Binding TotalDisbursed, StringFormat=#\,##0}" Width="120"/>
                 <DataGridTextColumn Header="Quyết toán theo năm" Binding="{Binding YearlySettlementsText}" Width="*"/>
             </DataGrid.Columns>
