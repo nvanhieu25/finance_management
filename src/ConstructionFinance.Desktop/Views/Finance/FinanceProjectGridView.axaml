@@ -55,7 +55,7 @@
                     </StackPanel>
                     <StackPanel Grid.Column="2" Spacing="3" Margin="6,0,0,0">
                         <TextBlock Text="Giá trị HĐ" Classes="formLabel"/>
-                        <TextBox Text="{Binding ContractValue, StringFormat=#\,##0}" MinWidth="160"
+                        <TextBox Text="{Binding ContractValue}" MinWidth="160"
                                  TextAlignment="Right"/>
                     </StackPanel>
                 </Grid>
@@ -132,13 +132,13 @@
                             <DataTemplate x:DataType="vm:LineItemRowViewModel">
                                 <Grid ColumnDefinitions="110,*,130,130,120,130,130,130,44"
                                       Classes="gridRow">
-                                    <TextBox Grid.Column="0" Classes="gridCell" Text="{Binding Date, StringFormat=dd/MM/yyyy}"/>
+                                    <TextBox Grid.Column="0" Classes="gridCell" Text="{Binding DateText}"/>
                                     <TextBox Grid.Column="1" Classes="gridCell" Text="{Binding PackageName}"/>
-                                    <TextBox Grid.Column="2" Classes="gridCell num" Text="{Binding Advance, StringFormat=#\,##0}"/>
-                                    <TextBox Grid.Column="3" Classes="gridCell num" Text="{Binding PaymentKLHT, StringFormat=#\,##0}"/>
-                                    <TextBox Grid.Column="4" Classes="gridCell num" Text="{Binding RecoveredAdvance, StringFormat=#\,##0}"/>
-                                    <TextBox Grid.Column="5" Classes="gridCell num" Text="{Binding DisbursedNSNN, StringFormat=#\,##0}"/>
-                                    <TextBox Grid.Column="6" Classes="gridCell num" Text="{Binding DisbursedNgoaiHoi, StringFormat=#\,##0}"/>
+                                    <TextBox Grid.Column="2" Classes="gridCell num" Text="{Binding Advance}"/>
+                                    <TextBox Grid.Column="3" Classes="gridCell num" Text="{Binding PaymentKLHT}"/>
+                                    <TextBox Grid.Column="4" Classes="gridCell num" Text="{Binding RecoveredAdvance}"/>
+                                    <TextBox Grid.Column="5" Classes="gridCell num" Text="{Binding DisbursedNSNN}"/>
+                                    <TextBox Grid.Column="6" Classes="gridCell num" Text="{Binding DisbursedNgoaiHoi}"/>
                                     <TextBlock Grid.Column="7" Classes="gridCellRO num" Text="{Binding Disbursed, StringFormat=#\,##0}"/>
                                     <TextBlock Grid.Column="8" Classes="gridCellRO" TextAlignment="Center"
                                                Text="{Binding IsBalanced, Converter={x:Static vm:BalancedGlyphConverter.Instance}}"

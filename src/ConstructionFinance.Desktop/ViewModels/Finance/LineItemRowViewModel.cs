@@ -1,3 +1,4 @@
+using System.Globalization;
 using CommunityToolkit.Mvvm.ComponentModel;
 using ConstructionFinance.Application.Calc;
 using ConstructionFinance.Desktop.Common;
@@ -27,6 +28,21 @@ public partial class LineItemRowViewModel : ObservableObject
 
     public event EventHandler? InputChanged;
 
+    /// String facade for the Date cell. Editable TextBoxes must NOT combine a
+    /// TwoWay binding with StringFormat on a typed (DateOnly/decimal) source —
+    /// Avalonia writes the formatted string back, re-raising PropertyChanged in
+    /// an infinite loop (StackOverflow). The grid binds the date cell to this
+    /// plain string instead; money cells bind to the raw decimals (no StringFormat).
+    public string DateText
+    {
+        get => Date.ToString("dd/MM/yyyy", CultureInfo.InvariantCulture);
+        set
+        {
+            var parsed = FinanceCellParsing.ParseDate(value);
+            if (parsed is { } d) Date = d;   // leaves Date unchanged on partial/invalid input
+        }
+    }
+
     public LineItemRowViewModel() => Recompute();
 
     public LineItemRowViewModel(ProjectLineItem entity)
@@ -44,7 +60,11 @@ public partial class LineItemRowViewModel : ObservableObject
     }
 
     // Any raw input change → recompute derived cells + notify parent.
-    partial void OnDateChanged(DateOnly value) => OnInputChanged();
+    partial void OnDateChanged(DateOnly value)
+    {
+        OnPropertyChanged(nameof(DateText));
+        OnInputChanged();
+    }
     partial void OnPackageNameChanged(string? value) => OnInputChanged();
     partial void OnAdvanceChanged(decimal value) => OnInputChanged();
     partial void OnPaymentKLHTChanged(decimal value) => OnInputChanged();

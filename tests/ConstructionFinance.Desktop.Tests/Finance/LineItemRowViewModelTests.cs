@@ -9,6 +9,23 @@ namespace ConstructionFinance.Desktop.Tests.Finance;
 public class LineItemRowViewModelTests
 {
     [Fact]
+    public void DateText_formats_and_parses_round_trip()
+    {
+        var row = new LineItemRowViewModel { Date = new System.DateOnly(2026, 3, 5) };
+        row.DateText.ShouldBe("05/03/2026");
+
+        var changed = 0;
+        row.PropertyChanged += (_, e) => { if (e.PropertyName == nameof(LineItemRowViewModel.DateText)) changed++; };
+
+        row.DateText = "09/04/2026";
+        row.Date.ShouldBe(new System.DateOnly(2026, 4, 9));
+        changed.ShouldBeGreaterThanOrEqualTo(1);   // Date change notifies DateText
+
+        row.DateText = "rác";                       // invalid → Date unchanged
+        row.Date.ShouldBe(new System.DateOnly(2026, 4, 9));
+    }
+
+    [Fact]
     public void Editing_an_input_recomputes_derived_cells_and_raises_event()
     {
         var row = new LineItemRowViewModel();
