@@ -1,0 +1,70 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:ui="using:FluentAvalonia.UI.Controls"
+             xmlns:vm="using:ConstructionFinance.Desktop.ViewModels.Finance"
+             x:Class="ConstructionFinance.Desktop.Views.Finance.FinanceSummaryView"
+             x:DataType="vm:FinanceSummaryViewModel">
+    <DockPanel>
+        <StackPanel DockPanel.Dock="Top" Spacing="2" Margin="0,0,0,12">
+            <TextBlock Classes="pageTitle" Text="Tổng hợp dự án"/>
+            <TextBlock Classes="pageSubtitle" Text="Gõ tên dự án để lọc — số tổng hợp tính sống"/>
+        </StackPanel>
+
+        <Border Classes="tableCard">
+            <DockPanel>
+                <!-- Filter + actions -->
+                <Border DockPanel.Dock="Top" Classes="toolbarStrip">
+                    <Grid ColumnDefinitions="Auto,*,Auto,Auto">
+                        <TextBlock Grid.Column="0" Text="Gõ tên dự án…" Classes="muted"
+                                   VerticalAlignment="Center" Margin="0,0,8,0"/>
+                        <TextBox Grid.Column="1" Text="{Binding FilterText}" MaxWidth="360"
+                                 HorizontalAlignment="Left" Watermark="Tên dự án"/>
+                        <ProgressBar Grid.Column="2" IsIndeterminate="True" IsVisible="{Binding IsBusy}"
+                                     Width="100" VerticalAlignment="Center" Margin="8,0"/>
+                        <Button Grid.Column="3" Classes="toolbar" Command="{Binding OpenProjectCommand}">
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <ui:SymbolIcon Symbol="{x:Static ui:Symbol.OpenLocal}"/>
+                                <TextBlock Text="Mở dự án"/>
+                            </StackPanel>
+                        </Button>
+                    </Grid>
+                </Border>
+
+                <!-- Grand-total row pinned at the bottom -->
+                <Border DockPanel.Dock="Bottom" Background="{DynamicResource GridHeaderBrush}"
+                        BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="0,1,0,0"
+                        Padding="12,8">
+                    <Grid ColumnDefinitions="*,Auto,Auto,Auto,Auto,Auto,Auto">
+                        <TextBlock Grid.Column="0" Text="TỔNG CỘNG" FontWeight="Bold" VerticalAlignment="Center"/>
+                        <TextBlock Grid.Column="1" Text="{Binding GrandContractValue, StringFormat=HĐ #\,##0}" Margin="16,0" FontWeight="SemiBold"/>
+                        <TextBlock Grid.Column="2" Text="{Binding GrandSumAdvance, StringFormat=Ứng #\,##0}" Margin="16,0"/>
+                        <TextBlock Grid.Column="3" Text="{Binding GrandUnrecovered, StringFormat=TU chưa TH #\,##0}" Margin="16,0"/>
+                        <TextBlock Grid.Column="4" Text="{Binding GrandSumNSNN, StringFormat=NSNN #\,##0}" Margin="16,0"/>
+                        <TextBlock Grid.Column="5" Text="{Binding GrandSumNgoaiHoi, StringFormat=NgoaiHoi #\,##0}" Margin="16,0"/>
+                        <TextBlock Grid.Column="6" Text="{Binding GrandTotalDisbursed, StringFormat=Giải ngân #\,##0}" Margin="16,0" FontWeight="Bold"/>
+                    </Grid>
+                </Border>
+
+                <!-- The data grid (read-only) -->
+                <DataGrid ItemsSource="{Binding Rows}"
+                          SelectedItem="{Binding SelectedRow}"
+                          IsReadOnly="True"
+                          HeadersVisibility="Column"
+                          DoubleTapped="OnRowDoubleTapped">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Tên dự án" Binding="{Binding Name}" Width="220"/>
+                        <DataGridTextColumn Header="Nhà thầu" Binding="{Binding ContractorName}" Width="160"/>
+                        <DataGridTextColumn Header="Giá trị HĐ" Binding="{Binding ContractValue, StringFormat=#\,##0}" Width="130"/>
+                        <DataGridTextColumn Header="Σ Tạm ứng" Binding="{Binding SumAdvance, StringFormat=#\,##0}" Width="120"/>
+                        <DataGridTextColumn Header="Σ Thu hồi" Binding="{Binding SumRecovered, StringFormat=#\,##0}" Width="120"/>
+                        <DataGridTextColumn Header="TU chưa thu hồi" Binding="{Binding UnrecoveredAdvance, StringFormat=#\,##0}" Width="140"/>
+                        <DataGridTextColumn Header="GN NSNN" Binding="{Binding SumNSNN, StringFormat=#\,##0}" Width="120"/>
+                        <DataGridTextColumn Header="GN Ngoại hối" Binding="{Binding SumNgoaiHoi, StringFormat=#\,##0}" Width="120"/>
+                        <DataGridTextColumn Header="Tổng giải ngân" Binding="{Binding TotalDisbursed, StringFormat=#\,##0}" Width="140"/>
+                        <DataGridTextColumn Header="Quyết toán theo năm" Binding="{Binding YearlySettlementsText}" Width="*"/>
+                    </DataGrid.Columns>
+                </DataGrid>
+            </DockPanel>
+        </Border>
+    </DockPanel>
+</UserControl>
