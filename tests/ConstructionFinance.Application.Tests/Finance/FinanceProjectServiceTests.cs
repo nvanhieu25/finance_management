@@ -37,4 +37,31 @@ public class FinanceProjectServiceTests
         var svc = new FinanceProjectService(new FinanceProjectRepository(h.Context));
         (await svc.GetAggregateAsync(999)).ShouldBeNull();
     }
+
+    [Fact]
+    public async Task Update_then_GetWithLines_reflects_changes()
+    {
+        using var h = new ServiceTestHarness();
+        var svc = new FinanceProjectService(new FinanceProjectRepository(h.Context));
+
+        var p = new Project { Name = "DA1", ContractValue = 1_000m };
+        p.Lines.Add(new ProjectLineItem { SortOrder = 1, Date = new DateOnly(2026, 1, 5), Advance = 500m, DisbursedNSNN = 500m });
+        var id = await svc.CreateAsync(p);
+        h.Context.ChangeTracker.Clear();
+
+        var edited = new Project { Id = id, Name = "DA1b", ContractValue = 3_000m };
+        edited.Lines.Add(new ProjectLineItem { SortOrder = 1, Date = new DateOnly(2026, 2, 2), PaymentKLHT = 900m, DisbursedNSNN = 900m });
+        await svc.UpdateAsync(edited);
+        h.Context.ChangeTracker.Clear();
+
+        (await svc.ListAsync()).Count.ShouldBe(1);
+        var loaded = await svc.GetWithLinesAsync(id);
+        loaded.ShouldNotBeNull();
+        loaded!.ContractValue.ShouldBe(3_000m);
+        loaded.Lines.Single().PaymentKLHT.ShouldBe(900m);
+
+        await svc.DeleteAsync(id);
+        h.Context.ChangeTracker.Clear();
+        (await svc.ListAsync()).ShouldBeEmpty();
+    }
 }

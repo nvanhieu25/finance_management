@@ -25,4 +25,16 @@ public class FinanceProjectService : IFinanceProjectService
             .ToList();
         return ProjectCalculator.Aggregate(inputs);
     }
+
+    public Task<IReadOnlyList<Project>> ListAsync(CancellationToken ct = default) =>
+        _repo.ListAsync(ct);
+
+    public Task<Project?> GetWithLinesAsync(int id, CancellationToken ct = default) =>
+        _repo.GetWithLinesAsync(id, ct);
+
+    public Task UpdateAsync(Project project, CancellationToken ct = default) =>
+        _repo.UpdateAsync(project, ct);
+
+    public Task DeleteAsync(int id, CancellationToken ct = default) =>
+        _repo.DeleteAsync(id, ct);
 }
