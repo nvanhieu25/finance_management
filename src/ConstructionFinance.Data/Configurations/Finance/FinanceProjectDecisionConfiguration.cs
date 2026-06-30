@@ -14,5 +14,9 @@ public class FinanceProjectDecisionConfiguration : IEntityTypeConfiguration<Proj
             .WithMany()
             .HasForeignKey(x => x.ApprovalDecisionId)
             .OnDelete(DeleteBehavior.Cascade);
+
+        // Match ApprovalDecision's soft-delete filter: a link is only visible while its
+        // decision is not soft-deleted (keeps filters consistent, resolves the EF advisory).
+        b.HasQueryFilter(x => x.Decision.DeletedAt == null);
     }
 }
