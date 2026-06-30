@@ -32,3 +32,12 @@ public record ProjectAggregate(
     decimal UnrecoveredAdvance,
     decimal TotalDisbursed,
     IReadOnlyList<YearSettlement> YearlySettlements);
+
+/// One project's identity plus its live-computed aggregate (for the Tổng hợp screen).
+public record FinanceProjectSummary(
+    int ProjectId,
+    string? Code,
+    string Name,
+    string? ContractorName,
+    decimal ContractValue,
+    ProjectAggregate Aggregate);

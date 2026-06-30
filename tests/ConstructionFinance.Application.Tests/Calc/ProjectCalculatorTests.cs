@@ -144,4 +144,39 @@ public class ProjectCalculatorTests
         years[0].Advance.ShouldBe(300m);   // Advance summed into the 2025 bucket
         years[1].Advance.ShouldBe(0m);
     }
+
+    [Fact]
+    public void Combine_sums_fields_and_merges_yearly_by_year()
+    {
+        var a = ProjectCalculator.Aggregate(new List<LineItemInput>
+        {
+            new(new DateOnly(2025, 5, 1), null, 0m, 100m, 0m, 60m, 40m),  // KLHT 100, NSNN 60, DTNH 40
+        });
+        var b = ProjectCalculator.Aggregate(new List<LineItemInput>
+        {
+            new(new DateOnly(2025, 6, 1), null, 200m, 0m, 50m, 200m, 0m),  // Advance 200, recovered 50, NSNN 200
+            new(new DateOnly(2026, 1, 1), null, 0m, 300m, 0m, 0m, 300m),   // KLHT 300, DTNH 300
+        });
+
+        var total = ProjectCalculator.Combine(new[] { a, b });
+
+        total.SumAdvance.ShouldBe(200m);
+        total.SumRecovered.ShouldBe(50m);
+        total.SumKLHT.ShouldBe(400m);
+        total.SumNSNN.ShouldBe(260m);
+        total.SumNgoaiHoi.ShouldBe(340m);
+        total.UnrecoveredAdvance.ShouldBe(150m);   // 200 − 50
+        total.TotalDisbursed.ShouldBe(600m);       // 260 + 340
+        total.YearlySettlements.Count.ShouldBe(2); // 2025, 2026
+        total.YearlySettlements.Single(y => y.Year == 2025).NSNN.ShouldBe(260m); // 60 + 200
+    }
+
+    [Fact]
+    public void Combine_of_empty_is_all_zero()
+    {
+        var total = ProjectCalculator.Combine(System.Array.Empty<ProjectAggregate>());
+        total.SumAdvance.ShouldBe(0m);
+        total.TotalDisbursed.ShouldBe(0m);
+        total.YearlySettlements.ShouldBeEmpty();
+    }
 }

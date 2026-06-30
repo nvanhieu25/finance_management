@@ -47,4 +47,31 @@ public static class ProjectCalculator
                 KLHT: g.Sum(i => i.PaymentKLHT),
                 Advance: g.Sum(i => i.Advance)))
             .ToList();
+
+    /// Fold many project aggregates into a grand total (the "Tổng cộng" row).
+    /// Field-wise sum; yearly settlements merged by year.
+    public static ProjectAggregate Combine(IReadOnlyList<ProjectAggregate> aggregates)
+    {
+        var yearly = aggregates
+            .SelectMany(a => a.YearlySettlements)
+            .GroupBy(y => y.Year)
+            .OrderBy(g => g.Key)
+            .Select(g => new YearSettlement(
+                Year: g.Key,
+                NSNN: g.Sum(y => y.NSNN),
+                NgoaiHoi: g.Sum(y => y.NgoaiHoi),
+                KLHT: g.Sum(y => y.KLHT),
+                Advance: g.Sum(y => y.Advance)))
+            .ToList();
+
+        return new ProjectAggregate(
+            SumAdvance: aggregates.Sum(a => a.SumAdvance),
+            SumRecovered: aggregates.Sum(a => a.SumRecovered),
+            SumKLHT: aggregates.Sum(a => a.SumKLHT),
+            SumNSNN: aggregates.Sum(a => a.SumNSNN),
+            SumNgoaiHoi: aggregates.Sum(a => a.SumNgoaiHoi),
+            UnrecoveredAdvance: aggregates.Sum(a => a.UnrecoveredAdvance),
+            TotalDisbursed: aggregates.Sum(a => a.TotalDisbursed),
+            YearlySettlements: yearly);
+    }
 }
