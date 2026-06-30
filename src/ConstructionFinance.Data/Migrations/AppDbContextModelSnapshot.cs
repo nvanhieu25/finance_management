@@ -757,6 +757,114 @@ namespace ConstructionFinance.Data.Migrations
                     b.ToTable("vendors", (string)null);
                 });
 
+            modelBuilder.Entity("ConstructionFinance.Domain.Finance.Project", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Code")
+                        .HasMaxLength(50)
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal>("ContractValue")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ContractorName")
+                        .HasMaxLength(255)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Notes")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("finance_projects", (string)null);
+                });
+
+            modelBuilder.Entity("ConstructionFinance.Domain.Finance.ProjectDecision", b =>
+                {
+                    b.Property<int>("ProjectId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("ApprovalDecisionId")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("ProjectId", "ApprovalDecisionId");
+
+                    b.HasIndex("ApprovalDecisionId");
+
+                    b.ToTable("finance_project_decisions", (string)null);
+                });
+
+            modelBuilder.Entity("ConstructionFinance.Domain.Finance.ProjectLineItem", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<decimal>("Advance")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ContractRef")
+                        .HasMaxLength(255)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateOnly>("Date")
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal>("DisbursedNSNN")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal>("DisbursedNgoaiHoi")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("PackageName")
+                        .HasMaxLength(255)
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal>("PaymentKLHT")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("ProjectId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<decimal>("RecoveredAdvance")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProjectId", "SortOrder");
+
+                    b.ToTable("finance_project_lines", (string)null);
+                });
+
             modelBuilder.Entity("ConstructionFinance.Domain.Entities.Contract", b =>
                 {
                     b.HasOne("ConstructionFinance.Domain.Entities.ApprovalDecision", "ApprovalDecision")
@@ -876,6 +984,36 @@ namespace ConstructionFinance.Data.Migrations
                     b.Navigation("ProjectSummary");
                 });
 
+            modelBuilder.Entity("ConstructionFinance.Domain.Finance.ProjectDecision", b =>
+                {
+                    b.HasOne("ConstructionFinance.Domain.Entities.ApprovalDecision", "Decision")
+                        .WithMany()
+                        .HasForeignKey("ApprovalDecisionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("ConstructionFinance.Domain.Finance.Project", "Project")
+                        .WithMany("Decisions")
+                        .HasForeignKey("ProjectId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Decision");
+
+                    b.Navigation("Project");
+                });
+
+            modelBuilder.Entity("ConstructionFinance.Domain.Finance.ProjectLineItem", b =>
+                {
+                    b.HasOne("ConstructionFinance.Domain.Finance.Project", "Project")
+                        .WithMany("Lines")
+                        .HasForeignKey("ProjectId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Project");
+                });
+
             modelBuilder.Entity("ConstructionFinance.Domain.Entities.ApprovalDecision", b =>
                 {
                     b.Navigation("Contracts");
@@ -916,6 +1054,13 @@ namespace ConstructionFinance.Data.Migrations
             modelBuilder.Entity("ConstructionFinance.Domain.Entities.ProjectSummary", b =>
                 {
                     b.Navigation("YearlySettlements");
+                });
+
+            modelBuilder.Entity("ConstructionFinance.Domain.Finance.Project", b =>
+                {
+                    b.Navigation("Decisions");
+
+                    b.Navigation("Lines");
                 });
 #pragma warning restore 612, 618
         }
