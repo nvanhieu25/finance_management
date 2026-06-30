@@ -31,6 +31,7 @@
                 <ui:NavigationViewItemHeader Content="Dữ liệu nguồn"/>
                 <ui:NavigationViewItem Content="Quyết định" Tag="Decisions" IconSource="Document"/>
                 <ui:NavigationViewItem Content="Dự án" Tag="Projects" IconSource="GridView"/>
+                <ui:NavigationViewItem Content="Nhập liệu (lưới)" Tag="FinanceGrid" IconSource="Edit"/>
                 <ui:NavigationViewItem Content="Nhà cung cấp" Tag="Vendors" IconSource="People"/>
 
                 <ui:NavigationViewItemHeader Content="Hệ thống"/>

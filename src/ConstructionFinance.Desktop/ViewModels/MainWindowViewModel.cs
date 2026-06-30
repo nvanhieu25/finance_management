@@ -68,6 +68,12 @@ public partial class MainWindowViewModel : ViewModelBase
                 _nav.NavigateTo(pvm);
                 await pvm.LoadAsync();
                 break;
+            case "FinanceGrid":
+                var fgvm = _services.GetRequiredService<ViewModels.Finance.FinanceProjectGridViewModel>();
+                _nav.Reset();
+                _nav.NavigateTo(fgvm);
+                await fgvm.LoadAsync();
+                break;
             case "Settings":
                 var svm = _services.GetRequiredService<ViewModels.Settings.SettingsViewModel>();
                 _nav.Reset();
