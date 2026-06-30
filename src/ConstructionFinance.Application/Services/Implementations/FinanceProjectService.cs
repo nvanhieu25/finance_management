@@ -1,3 +1,4 @@
+using System.Linq;
 using ConstructionFinance.Application.Calc;
 using ConstructionFinance.Application.Services.Interfaces;
 using ConstructionFinance.Domain.Abstractions;
@@ -24,6 +25,21 @@ public class FinanceProjectService : IFinanceProjectService
             .Select(l => l.ToCalcInput())
             .ToList();
         return ProjectCalculator.Aggregate(inputs);
+    }
+
+    public async Task<IReadOnlyList<FinanceProjectSummary>> GetAllSummariesAsync(CancellationToken ct = default)
+    {
+        var projects = await _repo.ListWithLinesAsync(ct);
+        return projects
+            .Select(p => new FinanceProjectSummary(
+                ProjectId: p.Id,
+                Code: p.Code,
+                Name: p.Name,
+                ContractorName: p.ContractorName,
+                ContractValue: p.ContractValue,
+                Aggregate: ProjectCalculator.Aggregate(
+                    p.Lines.OrderBy(l => l.SortOrder).Select(l => l.ToCalcInput()).ToList())))
+            .ToList();
     }
 
     public Task<IReadOnlyList<Project>> ListAsync(CancellationToken ct = default) =>

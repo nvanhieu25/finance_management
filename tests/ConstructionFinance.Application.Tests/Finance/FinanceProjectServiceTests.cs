@@ -64,4 +64,30 @@ public class FinanceProjectServiceTests
         h.Context.ChangeTracker.Clear();
         (await svc.ListAsync()).ShouldBeEmpty();
     }
+
+    [Fact]
+    public async Task GetAllSummariesAsync_returns_one_computed_summary_per_project()
+    {
+        using var h = new ServiceTestHarness();
+        var svc = new FinanceProjectService(new FinanceProjectRepository(h.Context));
+
+        var p1 = new Project { Name = "DA1", ContractValue = 1_000m, ContractorName = "Nhà thầu A" };
+        p1.Lines.Add(new ProjectLineItem { SortOrder = 1, Date = new DateOnly(2026, 1, 5), Advance = 500m, DisbursedNSNN = 500m });
+        p1.Lines.Add(new ProjectLineItem { SortOrder = 2, Date = new DateOnly(2026, 2, 1), PaymentKLHT = 800m, RecoveredAdvance = 200m, DisbursedNSNN = 420m, DisbursedNgoaiHoi = 180m });
+        var p2 = new Project { Name = "DA2", ContractValue = 2_000m };
+        await svc.CreateAsync(p1);
+        await svc.CreateAsync(p2);
+        h.Context.ChangeTracker.Clear();
+
+        var summaries = await svc.GetAllSummariesAsync();
+
+        summaries.Count.ShouldBe(2);
+        var s1 = summaries.Single(s => s.Name == "DA1");
+        s1.ContractValue.ShouldBe(1_000m);
+        s1.ContractorName.ShouldBe("Nhà thầu A");
+        s1.Aggregate.UnrecoveredAdvance.ShouldBe(300m);   // 500 − 200
+        s1.Aggregate.TotalDisbursed.ShouldBe(1_100m);     // (500) + (420+180)
+        var s2 = summaries.Single(s => s.Name == "DA2");
+        s2.Aggregate.TotalDisbursed.ShouldBe(0m);
+    }
 }
