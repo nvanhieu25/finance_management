@@ -36,12 +36,12 @@
                         Padding="12,8">
                     <Grid ColumnDefinitions="*,Auto,Auto,Auto,Auto,Auto,Auto">
                         <TextBlock Grid.Column="0" Text="TỔNG CỘNG" FontWeight="Bold" VerticalAlignment="Center"/>
-                        <TextBlock Grid.Column="1" Text="{Binding GrandContractValue, StringFormat=HĐ #\,##0}" Margin="16,0" FontWeight="SemiBold"/>
-                        <TextBlock Grid.Column="2" Text="{Binding GrandSumAdvance, StringFormat=Ứng #\,##0}" Margin="16,0"/>
-                        <TextBlock Grid.Column="3" Text="{Binding GrandUnrecovered, StringFormat=TU chưa TH #\,##0}" Margin="16,0"/>
-                        <TextBlock Grid.Column="4" Text="{Binding GrandSumNSNN, StringFormat=NSNN #\,##0}" Margin="16,0"/>
-                        <TextBlock Grid.Column="5" Text="{Binding GrandSumNgoaiHoi, StringFormat=NgoaiHoi #\,##0}" Margin="16,0"/>
-                        <TextBlock Grid.Column="6" Text="{Binding GrandTotalDisbursed, StringFormat=Giải ngân #\,##0}" Margin="16,0" FontWeight="Bold"/>
+                        <TextBlock Grid.Column="1" Text="{Binding GrandContractValue, StringFormat=HĐ #\,##0}" Margin="16,0" FontWeight="SemiBold" TextAlignment="Right"/>
+                        <TextBlock Grid.Column="2" Text="{Binding GrandSumAdvance, StringFormat=Ứng #\,##0}" Margin="16,0" TextAlignment="Right"/>
+                        <TextBlock Grid.Column="3" Text="{Binding GrandUnrecovered, StringFormat=TU chưa TH #\,##0}" Margin="16,0" TextAlignment="Right"/>
+                        <TextBlock Grid.Column="4" Text="{Binding GrandSumNSNN, StringFormat=NSNN #\,##0}" Margin="16,0" TextAlignment="Right"/>
+                        <TextBlock Grid.Column="5" Text="{Binding GrandSumNgoaiHoi, StringFormat=NgoaiHoi #\,##0}" Margin="16,0" TextAlignment="Right"/>
+                        <TextBlock Grid.Column="6" Text="{Binding GrandTotalDisbursed, StringFormat=Giải ngân #\,##0}" Margin="16,0" FontWeight="Bold" TextAlignment="Right"/>
                     </Grid>
                 </Border>
 
@@ -54,13 +54,55 @@
                     <DataGrid.Columns>
                         <DataGridTextColumn Header="Tên dự án" Binding="{Binding Name}" Width="220"/>
                         <DataGridTextColumn Header="Nhà thầu" Binding="{Binding ContractorName}" Width="160"/>
-                        <DataGridTextColumn Header="Giá trị HĐ" Binding="{Binding ContractValue, StringFormat=#\,##0}" Width="130"/>
-                        <DataGridTextColumn Header="Σ Tạm ứng" Binding="{Binding SumAdvance, StringFormat=#\,##0}" Width="120"/>
-                        <DataGridTextColumn Header="Σ Thu hồi" Binding="{Binding SumRecovered, StringFormat=#\,##0}" Width="120"/>
-                        <DataGridTextColumn Header="TU chưa thu hồi" Binding="{Binding UnrecoveredAdvance, StringFormat=#\,##0}" Width="140"/>
-                        <DataGridTextColumn Header="GN NSNN" Binding="{Binding SumNSNN, StringFormat=#\,##0}" Width="120"/>
-                        <DataGridTextColumn Header="GN Ngoại hối" Binding="{Binding SumNgoaiHoi, StringFormat=#\,##0}" Width="120"/>
-                        <DataGridTextColumn Header="Tổng giải ngân" Binding="{Binding TotalDisbursed, StringFormat=#\,##0}" Width="140"/>
+                        <DataGridTemplateColumn Header="Giá trị HĐ" Width="130">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding ContractValue, StringFormat=#\,##0}" TextAlignment="Right"/>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                        <DataGridTemplateColumn Header="Σ Tạm ứng" Width="120">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding SumAdvance, StringFormat=#\,##0}" TextAlignment="Right"/>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                        <DataGridTemplateColumn Header="Σ Thu hồi" Width="120">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding SumRecovered, StringFormat=#\,##0}" TextAlignment="Right"/>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                        <DataGridTemplateColumn Header="TU chưa thu hồi" Width="140">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding UnrecoveredAdvance, StringFormat=#\,##0}" TextAlignment="Right"/>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                        <DataGridTemplateColumn Header="GN NSNN" Width="120">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding SumNSNN, StringFormat=#\,##0}" TextAlignment="Right"/>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                        <DataGridTemplateColumn Header="GN Ngoại hối" Width="120">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding SumNgoaiHoi, StringFormat=#\,##0}" TextAlignment="Right"/>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                        <DataGridTemplateColumn Header="Tổng giải ngân" Width="140">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding TotalDisbursed, StringFormat=#\,##0}" TextAlignment="Right"/>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
                         <DataGridTextColumn Header="Quyết toán theo năm" Binding="{Binding YearlySettlementsText}" Width="*"/>
                     </DataGrid.Columns>
                 </DataGrid>
