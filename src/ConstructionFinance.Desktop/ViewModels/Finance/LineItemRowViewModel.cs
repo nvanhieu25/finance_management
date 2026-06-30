@@ -45,6 +45,7 @@ public partial class LineItemRowViewModel : ObservableObject
 
     // Any raw input change → recompute derived cells + notify parent.
     partial void OnDateChanged(DateOnly value) => OnInputChanged();
+    partial void OnPackageNameChanged(string? value) => OnInputChanged();
     partial void OnAdvanceChanged(decimal value) => OnInputChanged();
     partial void OnPaymentKLHTChanged(decimal value) => OnInputChanged();
     partial void OnRecoveredAdvanceChanged(decimal value) => OnInputChanged();
