@@ -74,4 +74,27 @@ public class FinanceProjectRepositoryTests
         // old lines fully gone — only the 2 new rows remain in the table
         ctx.FinanceProjectLines.Count(l => l.ProjectId == id).ShouldBe(2);
     }
+
+    [Fact]
+    public async Task ListWithLinesAsync_returns_all_projects_with_their_lines()
+    {
+        using var ctx = TestDbContextFactory.CreateSqliteInMemory();
+        var repo = new ConstructionFinance.Data.Repositories.FinanceProjectRepository(ctx);
+
+        var a = new Project { Name = "Beta", ContractValue = 100m };
+        a.Lines.Add(new ProjectLineItem { SortOrder = 1, Date = new DateOnly(2026, 1, 1), Advance = 50m, DisbursedNSNN = 50m });
+        var b = new Project { Name = "Alpha", ContractValue = 200m };
+        b.Lines.Add(new ProjectLineItem { SortOrder = 1, Date = new DateOnly(2026, 2, 1), PaymentKLHT = 80m, DisbursedNSNN = 80m });
+        b.Lines.Add(new ProjectLineItem { SortOrder = 2, Date = new DateOnly(2026, 3, 1), DisbursedNgoaiHoi = 20m });
+        await repo.AddAsync(a);
+        await repo.AddAsync(b);
+        ctx.ChangeTracker.Clear();
+
+        var all = await repo.ListWithLinesAsync();
+        all.Count.ShouldBe(2);
+        all[0].Name.ShouldBe("Alpha");           // ordered by Name
+        all[0].Lines.Count.ShouldBe(2);
+        all[1].Name.ShouldBe("Beta");
+        all[1].Lines.Single().Advance.ShouldBe(50m);
+    }
 }

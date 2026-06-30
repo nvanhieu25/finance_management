@@ -61,6 +61,12 @@ public class FinanceProjectRepository : IFinanceProjectRepository
     public async Task<IReadOnlyList<Project>> ListAsync(CancellationToken ct = default) =>
         await _context.FinanceProjects.OrderBy(p => p.Name).ToListAsync(ct);
 
+    public async Task<IReadOnlyList<Project>> ListWithLinesAsync(CancellationToken ct = default) =>
+        await _context.FinanceProjects
+            .Include(p => p.Lines)
+            .OrderBy(p => p.Name)
+            .ToListAsync(ct);
+
     public async Task DeleteAsync(int id, CancellationToken ct = default)
     {
         var p = await _context.FinanceProjects.FindAsync(new object[] { id }, ct);
