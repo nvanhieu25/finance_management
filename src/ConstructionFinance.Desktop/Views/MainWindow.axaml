@@ -26,6 +26,7 @@
             <ui:NavigationView.MenuItems>
                 <ui:NavigationViewItemHeader Content="Tổng hợp"/>
                 <ui:NavigationViewItem Content="Bảng tổng hợp" Tag="TongHop" IconSource="Library"/>
+                <ui:NavigationViewItem Content="Tổng hợp dự án" Tag="FinanceSummary" IconSource="ViewAll"/>
                 <ui:NavigationViewItem Content="Thông tri" Tag="ThongTri" IconSource="Document"/>
 
                 <ui:NavigationViewItemHeader Content="Dữ liệu nguồn"/>

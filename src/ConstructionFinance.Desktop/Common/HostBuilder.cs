@@ -48,6 +48,7 @@ public static class HostBuilder
                 services.AddTransient<ViewModels.TongHop.ImportWizardViewModel>();
                 services.AddTransient<ViewModels.ThongTri.ThongTriViewModel>();
                 services.AddTransient<ViewModels.Finance.FinanceProjectGridViewModel>();
+                services.AddTransient<ViewModels.Finance.FinanceSummaryViewModel>();
                 services.AddSingleton<IServiceProvider>(sp => sp);
                 // ViewModels + IDialogService/INavigationService registered in later tasks.
             })
