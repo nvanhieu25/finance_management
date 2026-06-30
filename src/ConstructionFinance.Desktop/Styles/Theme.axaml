@@ -146,4 +146,44 @@
         <Setter Property="Padding" Value="10,0"/>
     </Style>
 
+    <!-- ===== Excel-like entry grid cell styles ===== -->
+    <Style Selector="TextBlock.gridHeaderCell">
+        <Setter Property="Padding" Value="8,8"/>
+        <Setter Property="FontSize" Value="12"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="VerticalAlignment" Value="Center"/>
+    </Style>
+    <Style Selector="TextBlock.gridTotalCell">
+        <Setter Property="Padding" Value="8,8"/>
+        <Setter Property="FontSize" Value="12"/>
+        <Setter Property="FontWeight" Value="Bold"/>
+        <Setter Property="VerticalAlignment" Value="Center"/>
+    </Style>
+    <Style Selector="Grid.gridRow">
+        <Setter Property="MinHeight" Value="34"/>
+    </Style>
+    <Style Selector="TextBox.gridCell">
+        <Setter Property="BorderBrush" Value="{DynamicResource GridLineBrush}"/>
+        <Setter Property="BorderThickness" Value="0,0,1,1"/>
+        <Setter Property="CornerRadius" Value="0"/>
+        <Setter Property="Padding" Value="6,4"/>
+        <Setter Property="FontSize" Value="13"/>
+        <Setter Property="VerticalContentAlignment" Value="Center"/>
+    </Style>
+    <Style Selector="TextBox.gridCell.num">
+        <Setter Property="TextAlignment" Value="Right"/>
+    </Style>
+    <Style Selector="TextBox.gridCell:focus">
+        <Setter Property="BorderBrush" Value="{DynamicResource BrandPrimaryBrush}"/>
+        <Setter Property="BorderThickness" Value="1"/>
+    </Style>
+    <Style Selector="TextBlock.gridCellRO">
+        <Setter Property="Padding" Value="6,4"/>
+        <Setter Property="FontSize" Value="13"/>
+        <Setter Property="VerticalAlignment" Value="Center"/>
+    </Style>
+    <Style Selector="TextBlock.gridCellRO.num">
+        <Setter Property="TextAlignment" Value="Right"/>
+    </Style>
+
 </Styles>
