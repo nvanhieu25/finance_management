@@ -31,6 +31,7 @@ public partial class FinanceProjectGridView : UserControl
         // Ctrl+V → paste a TSV block from the active cell.
         if (e.Key == Key.V && e.KeyModifiers.HasFlag(KeyModifiers.Control))
         {
+            e.Handled = true;   // mark handled before the await so the TextBox doesn't also paste
             var clipboard = TopLevel.GetTopLevel(this)?.Clipboard;
             if (clipboard is null) return;
             var text = await clipboard.GetTextAsync();
@@ -38,7 +39,6 @@ public partial class FinanceProjectGridView : UserControl
 
             var block = ClipboardGridParser.Parse(text);
             vm.ApplyPaste(rowIndex, colIndex, block);
-            e.Handled = true;
             return;
         }
 
