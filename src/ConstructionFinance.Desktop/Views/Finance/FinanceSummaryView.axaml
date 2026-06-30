@@ -34,14 +34,15 @@
                 <Border DockPanel.Dock="Bottom" Background="{DynamicResource GridHeaderBrush}"
                         BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="0,1,0,0"
                         Padding="12,8">
-                    <Grid ColumnDefinitions="*,Auto,Auto,Auto,Auto,Auto,Auto">
+                    <Grid ColumnDefinitions="*,Auto,Auto,Auto,Auto,Auto,Auto,Auto">
                         <TextBlock Grid.Column="0" Text="TỔNG CỘNG" FontWeight="Bold" VerticalAlignment="Center"/>
                         <TextBlock Grid.Column="1" Text="{Binding GrandContractValue, StringFormat=HĐ #\,##0}" Margin="16,0" FontWeight="SemiBold" TextAlignment="Right"/>
                         <TextBlock Grid.Column="2" Text="{Binding GrandSumAdvance, StringFormat=Ứng #\,##0}" Margin="16,0" TextAlignment="Right"/>
-                        <TextBlock Grid.Column="3" Text="{Binding GrandUnrecovered, StringFormat=TU chưa TH #\,##0}" Margin="16,0" TextAlignment="Right"/>
-                        <TextBlock Grid.Column="4" Text="{Binding GrandSumNSNN, StringFormat=NSNN #\,##0}" Margin="16,0" TextAlignment="Right"/>
-                        <TextBlock Grid.Column="5" Text="{Binding GrandSumNgoaiHoi, StringFormat=NgoaiHoi #\,##0}" Margin="16,0" TextAlignment="Right"/>
-                        <TextBlock Grid.Column="6" Text="{Binding GrandTotalDisbursed, StringFormat=Giải ngân #\,##0}" Margin="16,0" FontWeight="Bold" TextAlignment="Right"/>
+                        <TextBlock Grid.Column="3" Text="{Binding GrandSumRecovered, StringFormat=Thu hồi #\,##0}" Margin="16,0" TextAlignment="Right"/>
+                        <TextBlock Grid.Column="4" Text="{Binding GrandUnrecovered, StringFormat=TU chưa TH #\,##0}" Margin="16,0" TextAlignment="Right"/>
+                        <TextBlock Grid.Column="5" Text="{Binding GrandSumNSNN, StringFormat=NSNN #\,##0}" Margin="16,0" TextAlignment="Right"/>
+                        <TextBlock Grid.Column="6" Text="{Binding GrandSumNgoaiHoi, StringFormat=Ngoại hối #\,##0}" Margin="16,0" TextAlignment="Right"/>
+                        <TextBlock Grid.Column="7" Text="{Binding GrandTotalDisbursed, StringFormat=Giải ngân #\,##0}" Margin="16,0" FontWeight="Bold" TextAlignment="Right"/>
                     </Grid>
                 </Border>
 

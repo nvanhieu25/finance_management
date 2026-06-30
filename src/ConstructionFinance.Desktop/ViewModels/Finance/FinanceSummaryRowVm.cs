@@ -40,7 +40,7 @@ public class FinanceSummaryRowVm
             if (y.KLHT > 0) parts.Add($"KLHT {y.KLHT:#,##0}");
             if (y.Advance > 0) parts.Add($"Ứng {y.Advance:#,##0}");
             if (y.NSNN > 0) parts.Add($"NSNN {y.NSNN:#,##0}");
-            if (y.NgoaiHoi > 0) parts.Add($"NgoaiHoi {y.NgoaiHoi:#,##0}");
+            if (y.NgoaiHoi > 0) parts.Add($"Ngoại hối {y.NgoaiHoi:#,##0}");
             return $"{y.Year}: {string.Join(", ", parts)}";
         }));
 }
