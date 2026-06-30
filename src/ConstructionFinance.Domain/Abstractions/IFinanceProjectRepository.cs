@@ -8,4 +8,5 @@ public interface IFinanceProjectRepository
     Task<Project?> GetWithLinesAsync(int id, CancellationToken ct = default);
     Task<IReadOnlyList<Project>> ListAsync(CancellationToken ct = default);
     Task DeleteAsync(int id, CancellationToken ct = default);
+    Task UpdateAsync(Project project, CancellationToken ct = default);
 }
