@@ -85,4 +85,22 @@ public class FinanceProjectGridViewModelTests
         await vm.SaveCommand.ExecuteAsync(null);
         svc.Verify(s => s.UpdateAsync(It.Is<Project>(p => p.Id == 7), It.IsAny<CancellationToken>()), Times.Once);
     }
+
+    [Fact]
+    public async Task Save_new_project_includes_ContractAnnexValue()
+    {
+        var (vm, svc) = Create();
+        svc.Setup(s => s.CreateAsync(It.IsAny<Project>(), It.IsAny<CancellationToken>())).ReturnsAsync(5);
+        svc.Setup(s => s.ListAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<Project> { new() { Id = 5, Name = "DA1" } });
+
+        vm.ProjectName = "DA1";
+        vm.ContractValue = 1_000m;
+        vm.ContractAnnexValue = 1_100m;
+        vm.AddRowCommand.Execute(null);
+
+        await vm.SaveCommand.ExecuteAsync(null);
+
+        svc.Verify(s => s.CreateAsync(It.Is<Project>(p => p.ContractAnnexValue == 1_100m), It.IsAny<CancellationToken>()), Times.Once);
+    }
 }

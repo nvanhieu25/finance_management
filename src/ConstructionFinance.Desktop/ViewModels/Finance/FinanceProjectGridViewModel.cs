@@ -36,6 +36,7 @@ public partial class FinanceProjectGridViewModel : ViewModelBase
     [ObservableProperty] private string? _projectCode;
     [ObservableProperty] private string? _contractorName;
     [ObservableProperty] private decimal _contractValue;
+    [ObservableProperty] private decimal _contractAnnexValue;
     [ObservableProperty] private string? _notes;
 
     [ObservableProperty] private decimal _sumAdvance;
@@ -83,6 +84,7 @@ public partial class FinanceProjectGridViewModel : ViewModelBase
             ProjectCode = project.Code;
             ContractorName = project.ContractorName;
             ContractValue = project.ContractValue;
+            ContractAnnexValue = project.ContractAnnexValue;
             Notes = project.Notes;
 
             ClearLines();
@@ -102,6 +104,7 @@ public partial class FinanceProjectGridViewModel : ViewModelBase
         ProjectCode = null;
         ContractorName = null;
         ContractValue = 0m;
+        ContractAnnexValue = 0m;
         Notes = null;
         ClearLines();
         Lines.Add(new LineItemRowViewModel());
@@ -139,6 +142,7 @@ public partial class FinanceProjectGridViewModel : ViewModelBase
             Code = ProjectCode,
             ContractorName = ContractorName,
             ContractValue = ContractValue,
+            ContractAnnexValue = ContractAnnexValue,
             Notes = Notes
         };
         for (var i = 0; i < Lines.Count; i++)
