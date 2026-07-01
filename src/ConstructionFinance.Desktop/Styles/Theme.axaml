@@ -6,19 +6,25 @@
         <Color x:Key="BrandPrimaryColor">#1C4E80</Color>
         <SolidColorBrush x:Key="BrandPrimaryBrush" Color="#1C4E80"/>
         <SolidColorBrush x:Key="BrandPrimaryDarkBrush" Color="#163E66"/>
+        <!-- Soft brand tints for row hover / selection / subtle fills -->
+        <SolidColorBrush x:Key="AccentSoftBrush" Color="#EBF1F8"/>
+        <SolidColorBrush x:Key="AccentSoftHoverBrush" Color="#F1F5FA"/>
 
-        <SolidColorBrush x:Key="AppBackgroundBrush" Color="#F4F6F9"/>
+        <SolidColorBrush x:Key="AppBackgroundBrush" Color="#F4F6FA"/>
         <SolidColorBrush x:Key="CardBackgroundBrush" Color="#FFFFFF"/>
-        <SolidColorBrush x:Key="CardBorderBrush" Color="#E3E8EF"/>
+        <SolidColorBrush x:Key="CardBorderBrush" Color="#E6EBF2"/>
+        <SolidColorBrush x:Key="ToolbarStripBrush" Color="#FBFCFE"/>
 
-        <SolidColorBrush x:Key="TextPrimaryBrush" Color="#1A1F2B"/>
-        <SolidColorBrush x:Key="TextMutedBrush" Color="#6B7480"/>
+        <SolidColorBrush x:Key="TextPrimaryBrush" Color="#1A2233"/>
+        <SolidColorBrush x:Key="TextMutedBrush" Color="#6B7688"/>
 
-        <SolidColorBrush x:Key="GridHeaderBrush" Color="#EEF2F7"/>
-        <SolidColorBrush x:Key="GridLineBrush" Color="#EDF1F5"/>
+        <SolidColorBrush x:Key="GridHeaderBrush" Color="#F1F4F9"/>
+        <SolidColorBrush x:Key="GridLineBrush" Color="#EAEEF4"/>
 
         <SolidColorBrush x:Key="DangerBrush" Color="#C0392B"/>
         <SolidColorBrush x:Key="WarningBrush" Color="#B7791F"/>
+        <Color x:Key="SuccessColor">#2E7D32</Color>
+        <SolidColorBrush x:Key="SuccessBrush" Color="#2E7D32"/>
 
         <SolidColorBrush x:Key="InfoBarBackgroundBrush" Color="#FFF8E1"/>
         <SolidColorBrush x:Key="InfoBarBorderBrush" Color="#F0D27A"/>
@@ -30,9 +36,9 @@
         <Setter Property="Background" Value="{StaticResource CardBackgroundBrush}"/>
         <Setter Property="BorderBrush" Value="{StaticResource CardBorderBrush}"/>
         <Setter Property="BorderThickness" Value="1"/>
-        <Setter Property="CornerRadius" Value="10"/>
-        <Setter Property="Padding" Value="16"/>
-        <Setter Property="BoxShadow" Value="0 2 10 0 #14000000"/>
+        <Setter Property="CornerRadius" Value="12"/>
+        <Setter Property="Padding" Value="18"/>
+        <Setter Property="BoxShadow" Value="0 6 18 0 #14141F2E"/>
     </Style>
 
     <!-- ===== Typography ===== -->
@@ -59,16 +65,17 @@
         <Setter Property="Background" Value="{StaticResource CardBackgroundBrush}"/>
         <Setter Property="BorderBrush" Value="{StaticResource CardBorderBrush}"/>
         <Setter Property="BorderThickness" Value="1"/>
-        <Setter Property="CornerRadius" Value="10"/>
+        <Setter Property="CornerRadius" Value="12"/>
         <Setter Property="ClipToBounds" Value="True"/>
-        <Setter Property="BoxShadow" Value="0 2 10 0 #14000000"/>
+        <Setter Property="BoxShadow" Value="0 6 18 0 #14141F2E"/>
     </Style>
 
     <!-- ===== Toolbar strip attached to the top of a table card ===== -->
     <Style Selector="Border.toolbarStrip">
+        <Setter Property="Background" Value="{StaticResource ToolbarStripBrush}"/>
         <Setter Property="BorderBrush" Value="{StaticResource CardBorderBrush}"/>
         <Setter Property="BorderThickness" Value="0,0,0,1"/>
-        <Setter Property="Padding" Value="12,10"/>
+        <Setter Property="Padding" Value="14,10"/>
     </Style>
 
     <!-- ===== Info / read-only banner ===== -->
@@ -132,7 +139,7 @@
 
     <!-- ===== DataGrid polish ===== -->
     <Style Selector="DataGrid">
-        <Setter Property="RowHeight" Value="38"/>
+        <Setter Property="RowHeight" Value="40"/>
         <Setter Property="FontSize" Value="13"/>
         <Setter Property="BorderThickness" Value="0"/>
         <Setter Property="GridLinesVisibility" Value="Horizontal"/>
@@ -142,8 +149,20 @@
         <Setter Property="Background" Value="{StaticResource GridHeaderBrush}"/>
         <Setter Property="FontWeight" Value="SemiBold"/>
         <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/>
-        <Setter Property="MinHeight" Value="40"/>
-        <Setter Property="Padding" Value="10,0"/>
+        <Setter Property="MinHeight" Value="42"/>
+        <Setter Property="Padding" Value="12,0"/>
+    </Style>
+    <!-- Row hover + selection tint -->
+    <Style Selector="DataGridRow:pointerover /template/ Rectangle#BackgroundRectangle">
+        <Setter Property="Fill" Value="{StaticResource AccentSoftHoverBrush}"/>
+        <Setter Property="Opacity" Value="1"/>
+    </Style>
+    <Style Selector="DataGridRow:selected /template/ Rectangle#BackgroundRectangle">
+        <Setter Property="Fill" Value="{StaticResource AccentSoftBrush}"/>
+        <Setter Property="Opacity" Value="1"/>
+    </Style>
+    <Style Selector="DataGridRow:selected DataGridCell TextBlock">
+        <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/>
     </Style>
 
     <!-- ===== Excel-like entry grid cell styles ===== -->
