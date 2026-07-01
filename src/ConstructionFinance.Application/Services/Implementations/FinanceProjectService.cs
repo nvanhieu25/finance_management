@@ -53,4 +53,15 @@ public class FinanceProjectService : IFinanceProjectService
 
     public Task DeleteAsync(int id, CancellationToken ct = default) =>
         _repo.DeleteAsync(id, ct);
+
+    public async Task<int> SaveImportedAsync(IReadOnlyList<Project> projects, CancellationToken ct = default)
+    {
+        var saved = 0;
+        foreach (var project in projects)
+        {
+            await _repo.AddAsync(project, ct);
+            saved++;
+        }
+        return saved;
+    }
 }

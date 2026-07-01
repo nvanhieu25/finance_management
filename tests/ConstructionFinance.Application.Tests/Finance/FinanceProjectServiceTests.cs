@@ -90,4 +90,23 @@ public class FinanceProjectServiceTests
         var s2 = summaries.Single(s => s.Name == "DA2");
         s2.Aggregate.TotalDisbursed.ShouldBe(0m);
     }
+
+    [Fact]
+    public async Task SaveImportedAsync_persists_all_projects_with_lines()
+    {
+        using var h = new ServiceTestHarness();
+        var svc = new FinanceProjectService(new FinanceProjectRepository(h.Context));
+
+        var p1 = new Project { Name = "DA1", ContractValue = 1_000m, ContractAnnexValue = 1_100m };
+        p1.Lines.Add(new ProjectLineItem { SortOrder = 1, Date = new DateOnly(2026, 1, 5), Advance = 500m, DisbursedNSNN = 500m });
+        var p2 = new Project { Name = "DA2", ContractValue = 2_000m };
+
+        var count = await svc.SaveImportedAsync(new[] { p1, p2 });
+        h.Context.ChangeTracker.Clear();
+
+        count.ShouldBe(2);
+        var summaries = await svc.GetAllSummariesAsync();
+        summaries.Count.ShouldBe(2);
+        summaries.Single(s => s.Name == "DA1").Aggregate.TotalDisbursed.ShouldBe(500m);
+    }
 }
