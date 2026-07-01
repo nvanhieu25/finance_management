@@ -82,7 +82,8 @@ public class FinanceExportService : IFinanceExportService
     /// Excel sheet names ≤31 chars, no []:*?/\, unique within the workbook.
     private static string UniqueSheetName(string raw, HashSet<string> used)
     {
-        var cleaned = new string((raw ?? "DA").Where(ch => !"[]:*?/\\".Contains(ch)).ToArray()).Trim();
+        // Excel also rejects a sheet name that starts/ends with an apostrophe, so strip it too.
+        var cleaned = new string((raw ?? "DA").Where(ch => !"[]:*?/\\'".Contains(ch)).ToArray()).Trim();
         if (cleaned.Length == 0) cleaned = "DA";
         if (cleaned.Length > 31) cleaned = cleaned[..31];
         var name = cleaned;
