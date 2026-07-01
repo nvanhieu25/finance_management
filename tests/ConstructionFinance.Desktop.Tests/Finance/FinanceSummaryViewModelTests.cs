@@ -18,20 +18,23 @@ public class FinanceSummaryViewModelTests
                 new(new System.DateOnly(2026, 1, 1), null, advance, 0m, 0m, nsnn, 0m),
             }));
 
-    private static FinanceSummaryViewModel Create(out Mock<IFinanceProjectService> svc)
+    private static FinanceSummaryViewModel Create(out Mock<IFinanceProjectService> svc,
+        out Mock<IFinanceImportService> importer, out FakeDialogService dlg)
     {
         svc = new Mock<IFinanceProjectService>(MockBehavior.Strict);
         svc.Setup(s => s.GetAllSummariesAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<FinanceProjectSummary> { S(1, "Cầu A12", 500m, 500m), S(2, "Đường B3", 0m, 300m) });
+        importer = new Mock<IFinanceImportService>(MockBehavior.Strict);
+        dlg = new FakeDialogService();
         var nav = new FakeNavigationService();
         var services = new ServiceCollection().BuildServiceProvider();
-        return new FinanceSummaryViewModel(svc.Object, nav, services);
+        return new FinanceSummaryViewModel(svc.Object, importer.Object, dlg, nav, services);
     }
 
     [Fact]
     public async Task LoadAsync_shows_all_rows_and_grand_total()
     {
-        var vm = Create(out _);
+        var vm = Create(out _, out _, out _);
         await vm.LoadAsync();
 
         vm.Rows.Count.ShouldBe(2);
@@ -43,12 +46,44 @@ public class FinanceSummaryViewModelTests
     [Fact]
     public async Task FilterText_narrows_rows_and_grand_total_instantly()
     {
-        var vm = Create(out _);
+        var vm = Create(out _, out _, out _);
         await vm.LoadAsync();
 
         vm.FilterText = "cầu";                      // case-insensitive substring
         vm.Rows.Count.ShouldBe(1);
         vm.Rows[0].Name.ShouldBe("Cầu A12");
         vm.GrandSumNSNN.ShouldBe(500m);            // only the matching project
+    }
+
+    [Fact]
+    public async Task ImportCommand_parses_saves_and_reloads()
+    {
+        var vm = Create(out var svc, out var importer, out var dlg);
+        dlg.PickOpenFileResult = "/tmp/legacy.xlsx";
+        dlg.ConfirmResult = true;
+        importer.Setup(i => i.ParseWorkbookAsync("/tmp/legacy.xlsx", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ConstructionFinance.Application.Import.FinanceImportResult(
+                new List<ConstructionFinance.Domain.Finance.Project> { new() { Name = "DA1" } },
+                new List<string>()));
+        svc.Setup(s => s.SaveImportedAsync(It.IsAny<IReadOnlyList<ConstructionFinance.Domain.Finance.Project>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(1);
+
+        await vm.LoadAsync(); // initial load
+        await vm.ImportCommand.ExecuteAsync(null);
+
+        importer.Verify(i => i.ParseWorkbookAsync("/tmp/legacy.xlsx", It.IsAny<CancellationToken>()), Times.Once);
+        svc.Verify(s => s.SaveImportedAsync(It.Is<IReadOnlyList<ConstructionFinance.Domain.Finance.Project>>(l => l.Count == 1), It.IsAny<CancellationToken>()), Times.Once);
+        svc.Verify(s => s.GetAllSummariesAsync(It.IsAny<CancellationToken>()), Times.AtLeast(2)); // initial + reload
+    }
+
+    [Fact]
+    public async Task ImportCommand_noop_when_no_file_picked()
+    {
+        var vm = Create(out var svc, out var importer, out var dlg);
+        dlg.PickOpenFileResult = null; // user cancelled
+
+        await vm.ImportCommand.ExecuteAsync(null);
+
+        importer.Verify(i => i.ParseWorkbookAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 }

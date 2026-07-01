@@ -14,13 +14,22 @@ namespace ConstructionFinance.Desktop.ViewModels.Finance;
 public partial class FinanceSummaryViewModel : ViewModelBase
 {
     private readonly IFinanceProjectService _service;
+    private readonly IFinanceImportService _importer;
+    private readonly IDialogService _dialog;
     private readonly INavigationService _nav;
     private readonly IServiceProvider _services;
     private List<FinanceProjectSummary> _all = new();
 
-    public FinanceSummaryViewModel(IFinanceProjectService service, INavigationService nav, IServiceProvider services)
+    public FinanceSummaryViewModel(
+        IFinanceProjectService service,
+        IFinanceImportService importer,
+        IDialogService dialog,
+        INavigationService nav,
+        IServiceProvider services)
     {
         _service = service;
+        _importer = importer;
+        _dialog = dialog;
         _nav = nav;
         _services = services;
     }
@@ -85,5 +94,39 @@ public partial class FinanceSummaryViewModel : ViewModelBase
         var grid = _services.GetRequiredService<FinanceProjectGridViewModel>();
         await grid.LoadProjectAsync(SelectedRow.ProjectId);
         _nav.NavigateTo(grid);
+    }
+
+    [RelayCommand]
+    private async Task ImportAsync()
+    {
+        var path = await _dialog.PickOpenFileAsync("Chọn file Excel cũ", new[] { ".xlsx" });
+        if (string.IsNullOrEmpty(path)) return;
+
+        IsBusy = true;
+        ErrorMessage = null;
+        try
+        {
+            var result = await _importer.ParseWorkbookAsync(path);
+            if (result.Projects.Count == 0)
+            {
+                await _dialog.ShowMessageAsync("Nhập Excel", "Không tìm thấy dự án (sheet DA) nào trong file.");
+                return;
+            }
+
+            var msg = $"Tìm thấy {result.Projects.Count} dự án. Nhập vào ứng dụng?";
+            if (result.Warnings.Count > 0)
+                msg += $"\n\n{result.Warnings.Count} cảnh báo:\n- " + string.Join("\n- ", result.Warnings.Take(10));
+            if (!await _dialog.ConfirmAsync("Nhập Excel", msg)) return;
+
+            var saved = await _service.SaveImportedAsync(result.Projects);
+            await LoadAsync();
+            await _dialog.ShowMessageAsync("Nhập Excel", $"Đã nhập {saved} dự án.");
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = ex.Message;
+            await _dialog.ShowMessageAsync("Lỗi nhập Excel", ex.Message);
+        }
+        finally { IsBusy = false; }
     }
 }
