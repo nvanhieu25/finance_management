@@ -35,6 +35,7 @@ public static class DependencyInjection
         services.AddScoped<IProjectSummaryService, ProjectSummaryService>();
         services.AddScoped<IFinanceProjectService, FinanceProjectService>();
         services.AddScoped<IFinanceImportService, FinanceImportService>();
+        services.AddScoped<IFinanceExportService, FinanceExportService>();
 
         return services;
     }
