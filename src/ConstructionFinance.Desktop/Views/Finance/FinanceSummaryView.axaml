@@ -34,6 +34,12 @@
                                     <TextBlock Text="Nhập Excel cũ"/>
                                 </StackPanel>
                             </Button>
+                            <Button Classes="toolbar" Command="{Binding ExportCommand}">
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <ui:SymbolIcon Symbol="{x:Static ui:Symbol.SaveAs}"/>
+                                    <TextBlock Text="Xuất Excel"/>
+                                </StackPanel>
+                            </Button>
                         </StackPanel>
                     </Grid>
                 </Border>

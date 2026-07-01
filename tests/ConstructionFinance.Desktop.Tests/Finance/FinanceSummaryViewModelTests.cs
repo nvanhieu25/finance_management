@@ -19,22 +19,23 @@ public class FinanceSummaryViewModelTests
             }));
 
     private static FinanceSummaryViewModel Create(out Mock<IFinanceProjectService> svc,
-        out Mock<IFinanceImportService> importer, out FakeDialogService dlg)
+        out Mock<IFinanceImportService> importer, out Mock<IFinanceExportService> exporter, out FakeDialogService dlg)
     {
         svc = new Mock<IFinanceProjectService>(MockBehavior.Strict);
         svc.Setup(s => s.GetAllSummariesAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<FinanceProjectSummary> { S(1, "Cầu A12", 500m, 500m), S(2, "Đường B3", 0m, 300m) });
         importer = new Mock<IFinanceImportService>(MockBehavior.Strict);
+        exporter = new Mock<IFinanceExportService>(MockBehavior.Strict);
         dlg = new FakeDialogService();
         var nav = new FakeNavigationService();
         var services = new ServiceCollection().BuildServiceProvider();
-        return new FinanceSummaryViewModel(svc.Object, importer.Object, dlg, nav, services);
+        return new FinanceSummaryViewModel(svc.Object, importer.Object, exporter.Object, dlg, nav, services);
     }
 
     [Fact]
     public async Task LoadAsync_shows_all_rows_and_grand_total()
     {
-        var vm = Create(out _, out _, out _);
+        var vm = Create(out _, out _, out _, out _);
         await vm.LoadAsync();
 
         vm.Rows.Count.ShouldBe(2);
@@ -46,7 +47,7 @@ public class FinanceSummaryViewModelTests
     [Fact]
     public async Task FilterText_narrows_rows_and_grand_total_instantly()
     {
-        var vm = Create(out _, out _, out _);
+        var vm = Create(out _, out _, out _, out _);
         await vm.LoadAsync();
 
         vm.FilterText = "cầu";                      // case-insensitive substring
@@ -58,7 +59,7 @@ public class FinanceSummaryViewModelTests
     [Fact]
     public async Task ImportCommand_parses_saves_and_reloads()
     {
-        var vm = Create(out var svc, out var importer, out var dlg);
+        var vm = Create(out var svc, out var importer, out _, out var dlg);
         dlg.PickOpenFileResult = "/tmp/legacy.xlsx";
         dlg.ConfirmResult = true;
         importer.Setup(i => i.ParseWorkbookAsync("/tmp/legacy.xlsx", It.IsAny<CancellationToken>()))
@@ -79,11 +80,39 @@ public class FinanceSummaryViewModelTests
     [Fact]
     public async Task ImportCommand_noop_when_no_file_picked()
     {
-        var vm = Create(out var svc, out var importer, out var dlg);
+        var vm = Create(out var svc, out var importer, out _, out var dlg);
         dlg.PickOpenFileResult = null; // user cancelled
 
         await vm.ImportCommand.ExecuteAsync(null);
 
         importer.Verify(i => i.ParseWorkbookAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task ExportCommand_gathers_displayed_projects_and_exports()
+    {
+        var vm = Create(out var svc, out _, out var exporter, out var dlg);
+        await vm.LoadAsync(); // Rows = 2 projects
+        dlg.PickSaveFileResult = "/tmp/out.xlsx";
+        svc.Setup(s => s.GetWithLinesAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((int id, CancellationToken _) => new ConstructionFinance.Domain.Finance.Project { Id = id, Name = $"P{id}" });
+        exporter.Setup(e => e.ExportAsync(It.IsAny<IReadOnlyList<ConstructionFinance.Domain.Finance.Project>>(), "/tmp/out.xlsx", It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        await vm.ExportCommand.ExecuteAsync(null);
+
+        exporter.Verify(e => e.ExportAsync(It.Is<IReadOnlyList<ConstructionFinance.Domain.Finance.Project>>(l => l.Count == 2), "/tmp/out.xlsx", It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task ExportCommand_noop_when_save_cancelled()
+    {
+        var vm = Create(out var svc, out _, out var exporter, out var dlg);
+        await vm.LoadAsync();
+        dlg.PickSaveFileResult = null; // cancelled
+
+        await vm.ExportCommand.ExecuteAsync(null);
+
+        exporter.Verify(e => e.ExportAsync(It.IsAny<IReadOnlyList<ConstructionFinance.Domain.Finance.Project>>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 }

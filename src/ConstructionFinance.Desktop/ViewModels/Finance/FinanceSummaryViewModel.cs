@@ -15,6 +15,7 @@ public partial class FinanceSummaryViewModel : ViewModelBase
 {
     private readonly IFinanceProjectService _service;
     private readonly IFinanceImportService _importer;
+    private readonly IFinanceExportService _exporter;
     private readonly IDialogService _dialog;
     private readonly INavigationService _nav;
     private readonly IServiceProvider _services;
@@ -23,12 +24,14 @@ public partial class FinanceSummaryViewModel : ViewModelBase
     public FinanceSummaryViewModel(
         IFinanceProjectService service,
         IFinanceImportService importer,
+        IFinanceExportService exporter,
         IDialogService dialog,
         INavigationService nav,
         IServiceProvider services)
     {
         _service = service;
         _importer = importer;
+        _exporter = exporter;
         _dialog = dialog;
         _nav = nav;
         _services = services;
@@ -126,6 +129,40 @@ public partial class FinanceSummaryViewModel : ViewModelBase
         {
             ErrorMessage = ex.Message;
             await _dialog.ShowMessageAsync("Lỗi nhập Excel", ex.Message);
+        }
+        finally { IsBusy = false; }
+    }
+
+    [RelayCommand]
+    private async Task ExportAsync()
+    {
+        if (Rows.Count == 0)
+        {
+            await _dialog.ShowMessageAsync("Xuất Excel", "Không có dự án nào để xuất.");
+            return;
+        }
+
+        var path = await _dialog.PickSaveFileAsync("Xuất Excel", "TongHop.xlsx", new[] { ".xlsx" });
+        if (string.IsNullOrEmpty(path)) return;
+
+        IsBusy = true;
+        ErrorMessage = null;
+        try
+        {
+            var projects = new List<ConstructionFinance.Domain.Finance.Project>();
+            foreach (var row in Rows)
+            {
+                var p = await _service.GetWithLinesAsync(row.ProjectId);
+                if (p is not null) projects.Add(p);
+            }
+
+            await _exporter.ExportAsync(projects, path);
+            await _dialog.ShowMessageAsync("Xuất Excel", $"Đã xuất {projects.Count} dự án ra:\n{path}");
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = ex.Message;
+            await _dialog.ShowMessageAsync("Lỗi xuất Excel", ex.Message);
         }
         finally { IsBusy = false; }
     }
