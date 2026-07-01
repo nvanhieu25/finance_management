@@ -29,6 +29,32 @@
         <SolidColorBrush x:Key="InfoBarBackgroundBrush" Color="#FFF8E1"/>
         <SolidColorBrush x:Key="InfoBarBorderBrush" Color="#F0D27A"/>
         <SolidColorBrush x:Key="InfoBarTextBrush" Color="#7A5B17"/>
+
+        <!-- ===== Navigation pane: deep-blue, high-contrast ===== -->
+        <SolidColorBrush x:Key="NavPaneBrush" Color="#15355A"/>
+        <!-- Pane background is driven by these FluentAvalonia theme-resource keys -->
+        <SolidColorBrush x:Key="NavigationViewDefaultPaneBackground" Color="#15355A"/>
+        <SolidColorBrush x:Key="NavigationViewExpandedPaneBackground" Color="#15355A"/>
+        <SolidColorBrush x:Key="NavigationViewMinimalPaneBackground" Color="#15355A"/>
+        <!-- FluentAvalonia NavigationView item theming (WinUI-style resource keys) -->
+        <SolidColorBrush x:Key="NavigationViewItemForeground" Color="#D6E2F0"/>
+        <SolidColorBrush x:Key="NavigationViewItemForegroundPointerOver" Color="#FFFFFF"/>
+        <SolidColorBrush x:Key="NavigationViewItemForegroundPressed" Color="#FFFFFF"/>
+        <SolidColorBrush x:Key="NavigationViewItemForegroundSelected" Color="#FFFFFF"/>
+        <SolidColorBrush x:Key="NavigationViewItemForegroundSelectedPointerOver" Color="#FFFFFF"/>
+        <SolidColorBrush x:Key="NavigationViewItemForegroundSelectedPressed" Color="#FFFFFF"/>
+        <SolidColorBrush x:Key="NavigationViewItemForegroundDisabled" Color="#6F86A0"/>
+        <SolidColorBrush x:Key="NavigationViewItemBackground" Color="Transparent"/>
+        <SolidColorBrush x:Key="NavigationViewItemBackgroundPointerOver" Color="#1FFFFFFF"/>
+        <SolidColorBrush x:Key="NavigationViewItemBackgroundPressed" Color="#2EFFFFFF"/>
+        <SolidColorBrush x:Key="NavigationViewItemBackgroundSelected" Color="#29FFFFFF"/>
+        <SolidColorBrush x:Key="NavigationViewItemBackgroundSelectedPointerOver" Color="#33FFFFFF"/>
+        <SolidColorBrush x:Key="NavigationViewItemBackgroundSelectedPressed" Color="#29FFFFFF"/>
+        <SolidColorBrush x:Key="NavigationViewItemHeaderForeground" Color="#8FAAC9"/>
+        <SolidColorBrush x:Key="NavigationViewSelectionIndicatorForeground" Color="#5AA0E6"/>
+        <!-- Pane toggle (hamburger) + back button on the dark pane -->
+        <SolidColorBrush x:Key="NavigationViewButtonForegroundPointerOver" Color="#FFFFFF"/>
+        <SolidColorBrush x:Key="NavigationViewItemSeparatorForeground" Color="#2A4E77"/>
     </Styles.Resources>
 
     <!-- ===== Card surface ===== -->
