@@ -47,4 +47,33 @@ public class FinanceExportServiceTests
         }
         finally { if (File.Exists(target)) File.Delete(target); }
     }
+
+    [Fact]
+    public async Task ExportAsync_writes_a_TH_summary_with_per_project_rows_and_grand_total()
+    {
+        var p2 = new Project { Name = "DA2", ContractValue = 1_000_000_000m, ContractorName = "Nhà thầu B" };
+        p2.Lines.Add(new ProjectLineItem { SortOrder = 1, Date = new DateOnly(2026, 3, 1), DisbursedNSNN = 300_000_000m });
+
+        var target = Path.Combine(Path.GetTempPath(), $"fin-exp-th-{Guid.NewGuid():N}.xlsx");
+        try
+        {
+            await new FinanceExportService().ExportAsync(new[] { SampleProject(), p2 }, target);
+
+            using var wb = new XLWorkbook(target);
+            var th = wb.Worksheet("TH");
+            th.Position.ShouldBe(1); // TH is the first sheet
+
+            // header row 2, project rows from row 3
+            th.Cell(3, 2).GetString().ShouldBe("DA1");
+            th.Cell(3, 10).GetValue<decimal>().ShouldBe(1_100_000_000m); // DA1 TotalDisbursed
+            th.Cell(4, 2).GetString().ShouldBe("DA2");
+            th.Cell(4, 3).GetString().ShouldBe("Nhà thầu B");
+            th.Cell(4, 10).GetValue<decimal>().ShouldBe(300_000_000m);
+
+            // grand-total row (row 5): J = 1_100M + 300M = 1_400M
+            th.Cell(5, 1).GetString().ShouldContain("TỔNG");
+            th.Cell(5, 10).GetValue<decimal>().ShouldBe(1_400_000_000m);
+        }
+        finally { if (File.Exists(target)) File.Delete(target); }
+    }
 }
