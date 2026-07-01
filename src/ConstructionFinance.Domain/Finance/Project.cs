@@ -10,6 +10,7 @@ public class Project : BaseEntity
     public required string Name { get; set; }
     public string? ContractorName { get; set; }
     public decimal ContractValue { get; set; }
+    public decimal ContractAnnexValue { get; set; }
     public string? Notes { get; set; }
 
     public List<ProjectLineItem> Lines { get; set; } = new();

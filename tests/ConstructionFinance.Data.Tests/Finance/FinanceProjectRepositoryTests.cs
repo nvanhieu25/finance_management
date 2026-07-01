@@ -76,6 +76,20 @@ public class FinanceProjectRepositoryTests
     }
 
     [Fact]
+    public async Task ContractAnnexValue_round_trips()
+    {
+        using var ctx = TestDbContextFactory.CreateSqliteInMemory();
+        var repo = new ConstructionFinance.Data.Repositories.FinanceProjectRepository(ctx);
+
+        var id = await repo.AddAsync(new Project { Name = "DA1", ContractValue = 1_000m, ContractAnnexValue = 1_100m });
+        ctx.ChangeTracker.Clear();
+
+        var loaded = await repo.GetWithLinesAsync(id);
+        loaded!.ContractValue.ShouldBe(1_000m);
+        loaded.ContractAnnexValue.ShouldBe(1_100m);
+    }
+
+    [Fact]
     public async Task ListWithLinesAsync_returns_all_projects_with_their_lines()
     {
         using var ctx = TestDbContextFactory.CreateSqliteInMemory();

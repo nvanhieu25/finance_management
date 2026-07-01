@@ -767,6 +767,10 @@ namespace ConstructionFinance.Data.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("TEXT");
 
+                    b.Property<decimal>("ContractAnnexValue")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("TEXT");
+
                     b.Property<decimal>("ContractValue")
                         .HasPrecision(18, 2)
                         .HasColumnType("TEXT");

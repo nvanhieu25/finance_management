@@ -14,6 +14,7 @@ public class FinanceProjectConfiguration : IEntityTypeConfiguration<Project>
         b.Property(x => x.Name).IsRequired().HasMaxLength(255);
         b.Property(x => x.ContractorName).HasMaxLength(255);
         b.Property(x => x.ContractValue).HasPrecision(18, 2);
+        b.Property(x => x.ContractAnnexValue).HasPrecision(18, 2);
 
         b.HasMany(x => x.Lines)
             .WithOne(l => l.Project)
