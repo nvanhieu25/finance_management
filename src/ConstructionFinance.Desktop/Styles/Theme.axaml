@@ -1,5 +1,6 @@
 <Styles xmlns="https://github.com/avaloniaui"
-        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:ui="using:FluentAvalonia.UI.Controls">
 
     <Styles.Resources>
         <!-- ===== Brand / color tokens ===== -->
@@ -30,31 +31,8 @@
         <SolidColorBrush x:Key="InfoBarBorderBrush" Color="#F0D27A"/>
         <SolidColorBrush x:Key="InfoBarTextBrush" Color="#7A5B17"/>
 
-        <!-- ===== Navigation pane: deep-blue, high-contrast ===== -->
+        <!-- ===== Navigation pane: deep-blue, high-contrast (applied via the SplitView + item styles below) ===== -->
         <SolidColorBrush x:Key="NavPaneBrush" Color="#15355A"/>
-        <!-- Pane background is driven by these FluentAvalonia theme-resource keys -->
-        <SolidColorBrush x:Key="NavigationViewDefaultPaneBackground" Color="#15355A"/>
-        <SolidColorBrush x:Key="NavigationViewExpandedPaneBackground" Color="#15355A"/>
-        <SolidColorBrush x:Key="NavigationViewMinimalPaneBackground" Color="#15355A"/>
-        <!-- FluentAvalonia NavigationView item theming (WinUI-style resource keys) -->
-        <SolidColorBrush x:Key="NavigationViewItemForeground" Color="#D6E2F0"/>
-        <SolidColorBrush x:Key="NavigationViewItemForegroundPointerOver" Color="#FFFFFF"/>
-        <SolidColorBrush x:Key="NavigationViewItemForegroundPressed" Color="#FFFFFF"/>
-        <SolidColorBrush x:Key="NavigationViewItemForegroundSelected" Color="#FFFFFF"/>
-        <SolidColorBrush x:Key="NavigationViewItemForegroundSelectedPointerOver" Color="#FFFFFF"/>
-        <SolidColorBrush x:Key="NavigationViewItemForegroundSelectedPressed" Color="#FFFFFF"/>
-        <SolidColorBrush x:Key="NavigationViewItemForegroundDisabled" Color="#6F86A0"/>
-        <SolidColorBrush x:Key="NavigationViewItemBackground" Color="Transparent"/>
-        <SolidColorBrush x:Key="NavigationViewItemBackgroundPointerOver" Color="#1FFFFFFF"/>
-        <SolidColorBrush x:Key="NavigationViewItemBackgroundPressed" Color="#2EFFFFFF"/>
-        <SolidColorBrush x:Key="NavigationViewItemBackgroundSelected" Color="#29FFFFFF"/>
-        <SolidColorBrush x:Key="NavigationViewItemBackgroundSelectedPointerOver" Color="#33FFFFFF"/>
-        <SolidColorBrush x:Key="NavigationViewItemBackgroundSelectedPressed" Color="#29FFFFFF"/>
-        <SolidColorBrush x:Key="NavigationViewItemHeaderForeground" Color="#8FAAC9"/>
-        <SolidColorBrush x:Key="NavigationViewSelectionIndicatorForeground" Color="#5AA0E6"/>
-        <!-- Pane toggle (hamburger) + back button on the dark pane -->
-        <SolidColorBrush x:Key="NavigationViewButtonForegroundPointerOver" Color="#FFFFFF"/>
-        <SolidColorBrush x:Key="NavigationViewItemSeparatorForeground" Color="#2A4E77"/>
     </Styles.Resources>
 
     <!-- ===== Card surface ===== -->
@@ -229,6 +207,20 @@
     </Style>
     <Style Selector="TextBlock.gridCellRO.num">
         <Setter Property="TextAlignment" Value="Right"/>
+    </Style>
+
+    <!-- ===== Navigation pane: force deep-blue via the inner SplitView + light content ===== -->
+    <Style Selector="ui|NavigationView /template/ SplitView">
+        <Setter Property="PaneBackground" Value="{DynamicResource NavPaneBrush}"/>
+    </Style>
+    <Style Selector="ui|NavigationViewItem">
+        <Setter Property="Foreground" Value="#E4ECF6"/>
+    </Style>
+    <Style Selector="ui|NavigationViewItem:selected">
+        <Setter Property="Foreground" Value="#FFFFFF"/>
+    </Style>
+    <Style Selector="ui|NavigationViewItemHeader">
+        <Setter Property="Foreground" Value="#93AECB"/>
     </Style>
 
 </Styles>
