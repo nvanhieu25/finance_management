@@ -23,6 +23,14 @@ Thumbs.db
 publish/
 TestResults/
 
+# Build output / installer artifacts
+dist/
+installer/output/
+
+# Excel temp/lock files
+.~*.xlsx
+~$*.xlsx
+
 # Logs
 logs/
 *.log

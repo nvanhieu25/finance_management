@@ -53,6 +53,19 @@ Output: `installer/output/ConstructionFinance-Setup-1.0.0.exe`
 4. Verify Start Menu shortcut + (optional) Desktop shortcut work
 5. Verify `.cfb` file association: double-click any `.cfb` should open the app
 
+## Alternative: Portable ZIP (no Inno Setup needed)
+
+If you only need a copy-and-run build for another machine (no Start Menu
+shortcut / `.cfb` association), skip Inno Setup entirely:
+
+1. Run step 1 above (`dotnet publish … win-x64 self-contained`).
+2. Zip the `publish` folder — the target user unzips it and runs
+   `ConstructionFinance.exe`. No .NET install required (self-contained).
+
+This is the fallback when building on Linux without `wine32:i386`
+(Inno Setup's `ISCC.exe` is 32-bit and needs the WoW64 runtime).
+The repo's `dist/` folder is the conventional output location (gitignored).
+
 ### 4. Version bump
 
 For new versions:
