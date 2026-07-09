@@ -25,16 +25,34 @@
                            OpenPaneLength="240">
             <ui:NavigationView.MenuItems>
                 <ui:NavigationViewItemHeader Content="Tổng hợp"/>
-                <ui:NavigationViewItem Content="Bảng tổng hợp" Tag="TongHop" IconSource="Library"/>
-                <ui:NavigationViewItem Content="Thông tri" Tag="ThongTri" IconSource="Document"/>
+                <ui:NavigationViewItem Content="Bảng tổng hợp" Tag="TongHop">
+                    <ui:NavigationViewItem.IconSource><ui:SymbolIconSource Symbol="{x:Static ui:Symbol.Library}"/></ui:NavigationViewItem.IconSource>
+                </ui:NavigationViewItem>
+                <ui:NavigationViewItem Content="Tổng hợp dự án" Tag="FinanceSummary">
+                    <ui:NavigationViewItem.IconSource><ui:SymbolIconSource Symbol="{x:Static ui:Symbol.ViewAll}"/></ui:NavigationViewItem.IconSource>
+                </ui:NavigationViewItem>
+                <ui:NavigationViewItem Content="Thông tri" Tag="ThongTri">
+                    <ui:NavigationViewItem.IconSource><ui:SymbolIconSource Symbol="{x:Static ui:Symbol.Mail}"/></ui:NavigationViewItem.IconSource>
+                </ui:NavigationViewItem>
 
                 <ui:NavigationViewItemHeader Content="Dữ liệu nguồn"/>
-                <ui:NavigationViewItem Content="Quyết định" Tag="Decisions" IconSource="Document"/>
-                <ui:NavigationViewItem Content="Dự án" Tag="Projects" IconSource="GridView"/>
-                <ui:NavigationViewItem Content="Nhà cung cấp" Tag="Vendors" IconSource="People"/>
+                <ui:NavigationViewItem Content="Quyết định" Tag="Decisions">
+                    <ui:NavigationViewItem.IconSource><ui:SymbolIconSource Symbol="{x:Static ui:Symbol.Document}"/></ui:NavigationViewItem.IconSource>
+                </ui:NavigationViewItem>
+                <ui:NavigationViewItem Content="Dự án" Tag="Projects">
+                    <ui:NavigationViewItem.IconSource><ui:SymbolIconSource Symbol="{x:Static ui:Symbol.Folder}"/></ui:NavigationViewItem.IconSource>
+                </ui:NavigationViewItem>
+                <ui:NavigationViewItem Content="Nhập liệu (lưới)" Tag="FinanceGrid">
+                    <ui:NavigationViewItem.IconSource><ui:SymbolIconSource Symbol="{x:Static ui:Symbol.Edit}"/></ui:NavigationViewItem.IconSource>
+                </ui:NavigationViewItem>
+                <ui:NavigationViewItem Content="Nhà cung cấp" Tag="Vendors">
+                    <ui:NavigationViewItem.IconSource><ui:SymbolIconSource Symbol="{x:Static ui:Symbol.People}"/></ui:NavigationViewItem.IconSource>
+                </ui:NavigationViewItem>
 
                 <ui:NavigationViewItemHeader Content="Hệ thống"/>
-                <ui:NavigationViewItem Content="Cài đặt" Tag="Settings" IconSource="Settings"/>
+                <ui:NavigationViewItem Content="Cài đặt" Tag="Settings">
+                    <ui:NavigationViewItem.IconSource><ui:SymbolIconSource Symbol="{x:Static ui:Symbol.Settings}"/></ui:NavigationViewItem.IconSource>
+                </ui:NavigationViewItem>
             </ui:NavigationView.MenuItems>
             <ui:NavigationView.PaneFooter>
                 <Button Command="{Binding OpenImportWizardCommand}"

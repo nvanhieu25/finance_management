@@ -1,0 +1,159 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:ui="using:FluentAvalonia.UI.Controls"
+             xmlns:vm="using:ConstructionFinance.Desktop.ViewModels.Finance"
+             x:Class="ConstructionFinance.Desktop.Views.Finance.FinanceProjectGridView"
+             x:DataType="vm:FinanceProjectGridViewModel">
+    <DockPanel>
+        <!-- Page header -->
+        <StackPanel DockPanel.Dock="Top" Spacing="2" Margin="0,0,0,12">
+            <TextBlock Classes="pageTitle" Text="Nhập liệu dự án (lưới)"/>
+            <TextBlock Classes="pageSubtitle" Text="Nhập đợt như Excel — số tổng hợp tính sống"/>
+        </StackPanel>
+
+        <!-- Project picker + header fields + actions -->
+        <Border DockPanel.Dock="Top" Classes="card" Margin="0,0,0,12">
+            <StackPanel Spacing="10">
+                <Grid ColumnDefinitions="Auto,*,Auto">
+                    <StackPanel Grid.Column="0" Spacing="3">
+                        <TextBlock Text="DỰ ÁN" Classes="muted" FontSize="11" FontWeight="SemiBold"/>
+                        <ComboBox ItemsSource="{Binding Projects}"
+                                  SelectedItem="{Binding SelectedProject}"
+                                  MinWidth="320"
+                                  DisplayMemberBinding="{Binding Name}"/>
+                    </StackPanel>
+                    <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8" VerticalAlignment="Bottom">
+                        <Button Classes="toolbar" Command="{Binding NewProjectCommand}">
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <ui:SymbolIcon Symbol="{x:Static ui:Symbol.Add}"/>
+                                <TextBlock Text="Dự án mới"/>
+                            </StackPanel>
+                        </Button>
+                        <Button Classes="accent toolbar" Command="{Binding SaveCommand}">
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <ui:SymbolIcon Symbol="{x:Static ui:Symbol.Save}"/>
+                                <TextBlock Text="Lưu"/>
+                            </StackPanel>
+                        </Button>
+                        <Button Classes="toolbar danger" Command="{Binding DeleteProjectCommand}">
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <ui:SymbolIcon Symbol="{x:Static ui:Symbol.Delete}"/>
+                                <TextBlock Text="Xóa dự án"/>
+                            </StackPanel>
+                        </Button>
+                    </StackPanel>
+                </Grid>
+
+                <Grid ColumnDefinitions="2*,*,Auto,Auto" RowDefinitions="Auto">
+                    <StackPanel Grid.Column="0" Spacing="3" Margin="0,0,6,0">
+                        <TextBlock Text="Tên dự án" Classes="formLabel"/>
+                        <TextBox Text="{Binding ProjectName}"/>
+                    </StackPanel>
+                    <StackPanel Grid.Column="1" Spacing="3" Margin="6,0">
+                        <TextBlock Text="Nhà thầu" Classes="formLabel"/>
+                        <TextBox Text="{Binding ContractorName}"/>
+                    </StackPanel>
+                    <StackPanel Grid.Column="2" Spacing="3" Margin="6,0,0,0">
+                        <TextBlock Text="Giá trị HĐ" Classes="formLabel"/>
+                        <TextBox Text="{Binding ContractValue}" MinWidth="160"
+                                 TextAlignment="Right"/>
+                    </StackPanel>
+                    <StackPanel Grid.Column="3" Spacing="3" Margin="6,0,0,0">
+                        <TextBlock Text="Phụ lục HĐ" Classes="formLabel"/>
+                        <TextBox Text="{Binding ContractAnnexValue}" MinWidth="150" TextAlignment="Right"/>
+                    </StackPanel>
+                </Grid>
+            </StackPanel>
+        </Border>
+
+        <!-- Row toolbar -->
+        <Border DockPanel.Dock="Top" Classes="toolbarStrip" Margin="0,0,0,0">
+            <Grid ColumnDefinitions="Auto,*,Auto">
+                <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8">
+                    <Button Classes="toolbar" Command="{Binding AddRowCommand}">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <ui:SymbolIcon Symbol="{x:Static ui:Symbol.Add}"/>
+                            <TextBlock Text="Thêm đợt"/>
+                        </StackPanel>
+                    </Button>
+                    <Button Classes="toolbar danger" Command="{Binding DeleteRowCommand}">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <ui:SymbolIcon Symbol="{x:Static ui:Symbol.Delete}"/>
+                            <TextBlock Text="Xóa đợt"/>
+                        </StackPanel>
+                    </Button>
+                    <TextBlock Text="Mẹo: Ctrl+V để dán khối từ Excel" Classes="muted"
+                               VerticalAlignment="Center" Margin="8,0,0,0"/>
+                </StackPanel>
+                <TextBlock Grid.Column="1" Text="{Binding ErrorMessage}"
+                           Foreground="{DynamicResource DangerBrush}"
+                           VerticalAlignment="Center" HorizontalAlignment="Right" Margin="12,0"/>
+                <ProgressBar Grid.Column="2" IsIndeterminate="True" IsVisible="{Binding IsBusy}"
+                             Width="100" VerticalAlignment="Center"/>
+            </Grid>
+        </Border>
+
+        <!-- The grid: frozen header (top), scrollable rows (center), frozen TOTAL (bottom) -->
+        <Border Classes="tableCard" x:Name="GridRoot" Focusable="True">
+            <DockPanel>
+                <!-- Frozen header -->
+                <Border DockPanel.Dock="Top" Background="{DynamicResource GridHeaderBrush}"
+                        BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="0,0,0,1">
+                    <Grid ColumnDefinitions="110,*,130,130,120,130,130,130,44">
+                        <TextBlock Grid.Column="0" Text="Ngày" Classes="gridHeaderCell"/>
+                        <TextBlock Grid.Column="1" Text="Gói thầu" Classes="gridHeaderCell"/>
+                        <TextBlock Grid.Column="2" Text="Tạm ứng" Classes="gridHeaderCell" TextAlignment="Right"/>
+                        <TextBlock Grid.Column="3" Text="TT KLHT" Classes="gridHeaderCell" TextAlignment="Right"/>
+                        <TextBlock Grid.Column="4" Text="Thu hồi" Classes="gridHeaderCell" TextAlignment="Right"/>
+                        <TextBlock Grid.Column="5" Text="GN NSNN" Classes="gridHeaderCell" TextAlignment="Right"/>
+                        <TextBlock Grid.Column="6" Text="GN Ngoại hối" Classes="gridHeaderCell" TextAlignment="Right"/>
+                        <TextBlock Grid.Column="7" Text="Giải ngân" Classes="gridHeaderCell" TextAlignment="Right"/>
+                        <TextBlock Grid.Column="8" Text="✓" Classes="gridHeaderCell" TextAlignment="Center"/>
+                    </Grid>
+                </Border>
+
+                <!-- Frozen TOTAL row -->
+                <Border DockPanel.Dock="Bottom" Background="{DynamicResource GridHeaderBrush}"
+                        BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="0,1,0,0">
+                    <Grid ColumnDefinitions="110,*,130,130,120,130,130,130,44">
+                        <TextBlock Grid.Column="0" Text="TỔNG" Classes="gridTotalCell"/>
+                        <TextBlock Grid.Column="1" Text="{Binding UnrecoveredAdvance, StringFormat=TU chưa thu hồi: #\,##0}"
+                                   Classes="gridTotalCell"/>
+                        <TextBlock Grid.Column="2" Text="{Binding SumAdvance, StringFormat=#\,##0}" Classes="gridTotalCell" TextAlignment="Right"/>
+                        <TextBlock Grid.Column="3" Text="{Binding SumKLHT, StringFormat=#\,##0}" Classes="gridTotalCell" TextAlignment="Right"/>
+                        <TextBlock Grid.Column="4" Text="{Binding SumRecovered, StringFormat=#\,##0}" Classes="gridTotalCell" TextAlignment="Right"/>
+                        <TextBlock Grid.Column="5" Text="{Binding SumNSNN, StringFormat=#\,##0}" Classes="gridTotalCell" TextAlignment="Right"/>
+                        <TextBlock Grid.Column="6" Text="{Binding SumNgoaiHoi, StringFormat=#\,##0}" Classes="gridTotalCell" TextAlignment="Right"/>
+                        <TextBlock Grid.Column="7" Text="{Binding TotalDisbursed, StringFormat=#\,##0}" Classes="gridTotalCell" TextAlignment="Right"/>
+                        <TextBlock Grid.Column="8" Text="" Classes="gridTotalCell"/>
+                    </Grid>
+                </Border>
+
+                <!-- Scrollable rows -->
+                <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+                    <ItemsControl x:Name="RowsHost" ItemsSource="{Binding Lines}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="vm:LineItemRowViewModel">
+                                <Grid ColumnDefinitions="110,*,130,130,120,130,130,130,44"
+                                      Classes="gridRow">
+                                    <TextBox Grid.Column="0" Classes="gridCell" Text="{Binding DateText}"/>
+                                    <TextBox Grid.Column="1" Classes="gridCell" Text="{Binding PackageName}"/>
+                                    <TextBox Grid.Column="2" Classes="gridCell num" Text="{Binding Advance}"/>
+                                    <TextBox Grid.Column="3" Classes="gridCell num" Text="{Binding PaymentKLHT}"/>
+                                    <TextBox Grid.Column="4" Classes="gridCell num" Text="{Binding RecoveredAdvance}"/>
+                                    <TextBox Grid.Column="5" Classes="gridCell num" Text="{Binding DisbursedNSNN}"/>
+                                    <TextBox Grid.Column="6" Classes="gridCell num" Text="{Binding DisbursedNgoaiHoi}"/>
+                                    <TextBlock Grid.Column="7" Classes="gridCellRO num" Text="{Binding Disbursed, StringFormat=#\,##0}"/>
+                                    <TextBlock Grid.Column="8" Classes="gridCellRO" TextAlignment="Center"
+                                               Text="{Binding IsBalanced, Converter={x:Static vm:BalancedGlyphConverter.Instance}}"
+                                               Foreground="{Binding IsBalanced, Converter={x:Static vm:BalancedBrushConverter.Instance}}"
+                                               ToolTip.Tip="{Binding Expected, StringFormat=Cần khớp: #\,##0}"/>
+                                </Grid>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
+            </DockPanel>
+        </Border>
+    </DockPanel>
+</UserControl>

@@ -8,7 +8,10 @@ public static class AppPaths
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
         AppFolderName);
 
-    public static string DatabaseFile => Path.Combine(LocalAppDataRoot, "app.db");
+    public static string DatabaseFile =>
+        Environment.GetEnvironmentVariable("CONSTRUCTIONFINANCE_DB") is { Length: > 0 } overridePath
+            ? overridePath
+            : Path.Combine(LocalAppDataRoot, "app.db");
     public static string AttachmentsFolder => Path.Combine(LocalAppDataRoot, "attachments");
     public static string LogsFolder => Path.Combine(LocalAppDataRoot, "logs");
     public static string BackupsFolder => Path.Combine(LocalAppDataRoot, "Backups");

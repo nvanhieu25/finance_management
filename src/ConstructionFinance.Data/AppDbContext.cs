@@ -1,5 +1,8 @@
 using ConstructionFinance.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
+using FinanceProject = ConstructionFinance.Domain.Finance.Project;
+using FinanceProjectLineItem = ConstructionFinance.Domain.Finance.ProjectLineItem;
+using FinanceProjectDecision = ConstructionFinance.Domain.Finance.ProjectDecision;
 
 namespace ConstructionFinance.Data;
 
@@ -22,6 +25,10 @@ public class AppDbContext : DbContext
     public DbSet<ImportBatch> ImportBatches => Set<ImportBatch>();
     public DbSet<ProjectSummary> ProjectSummaries => Set<ProjectSummary>();
     public DbSet<SettlementByYear> SettlementByYears => Set<SettlementByYear>();
+
+    public DbSet<FinanceProject> FinanceProjects => Set<FinanceProject>();
+    public DbSet<FinanceProjectLineItem> FinanceProjectLines => Set<FinanceProjectLineItem>();
+    public DbSet<FinanceProjectDecision> FinanceProjectDecisions => Set<FinanceProjectDecision>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
