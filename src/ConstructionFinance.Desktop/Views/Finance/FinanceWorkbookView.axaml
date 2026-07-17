@@ -1,0 +1,27 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:ConstructionFinance.Desktop.ViewModels.Finance"
+             x:Class="ConstructionFinance.Desktop.Views.Finance.FinanceWorkbookView"
+             x:DataType="vm:FinanceWorkbookViewModel">
+    <DockPanel>
+        <StackPanel DockPanel.Dock="Top" Spacing="2" Margin="0,0,0,12">
+            <TextBlock Classes="pageTitle" Text="Tài chính dự án"/>
+            <TextBlock Classes="pageSubtitle" Text="Mỗi trang là một dự án — trang TH là bảng tổng hợp"/>
+        </StackPanel>
+
+        <TabControl ItemsSource="{Binding Pages}"
+                    SelectedItem="{Binding SelectedPage}"
+                    TabStripPlacement="Bottom">
+            <TabControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:WorkbookPageViewModel">
+                    <TextBlock Text="{Binding Header}"/>
+                </DataTemplate>
+            </TabControl.ItemTemplate>
+            <TabControl.ContentTemplate>
+                <DataTemplate x:DataType="vm:WorkbookPageViewModel">
+                    <ContentControl Content="{Binding Content}"/>
+                </DataTemplate>
+            </TabControl.ContentTemplate>
+        </TabControl>
+    </DockPanel>
+</UserControl>

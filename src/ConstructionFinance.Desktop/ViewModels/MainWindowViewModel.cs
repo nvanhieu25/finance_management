@@ -25,8 +25,8 @@ public partial class MainWindowViewModel : ViewModelBase
 
     public async Task InitializeAsync()
     {
-        try { await NavigateToAsync("TongHop"); }
-        catch (Exception ex) { Log.Warning(ex, "Initial navigation to TongHop failed"); }
+        try { await NavigateToAsync("FinanceWorkbook"); }
+        catch (Exception ex) { Log.Warning(ex, "Initial navigation to FinanceWorkbook failed"); }
     }
 
     [ObservableProperty] private string _title = "Quản lý Tài chính Công trình";
@@ -79,6 +79,12 @@ public partial class MainWindowViewModel : ViewModelBase
                 _nav.Reset();
                 _nav.NavigateTo(fsvm);
                 await fsvm.LoadAsync();
+                break;
+            case "FinanceWorkbook":
+                var fwvm = _services.GetRequiredService<ViewModels.Finance.FinanceWorkbookViewModel>();
+                _nav.Reset();
+                _nav.NavigateTo(fwvm);
+                await fwvm.LoadAsync();
                 break;
             case "Settings":
                 var svm = _services.GetRequiredService<ViewModels.Settings.SettingsViewModel>();

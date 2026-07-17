@@ -25,6 +25,9 @@
                            OpenPaneLength="240">
             <ui:NavigationView.MenuItems>
                 <ui:NavigationViewItemHeader Content="Tổng hợp"/>
+                <ui:NavigationViewItem Content="Tài chính dự án" Tag="FinanceWorkbook">
+                    <ui:NavigationViewItem.IconSource><ui:SymbolIconSource Symbol="{x:Static ui:Symbol.Calculator}"/></ui:NavigationViewItem.IconSource>
+                </ui:NavigationViewItem>
                 <ui:NavigationViewItem Content="Bảng tổng hợp" Tag="TongHop">
                     <ui:NavigationViewItem.IconSource><ui:SymbolIconSource Symbol="{x:Static ui:Symbol.Library}"/></ui:NavigationViewItem.IconSource>
                 </ui:NavigationViewItem>
