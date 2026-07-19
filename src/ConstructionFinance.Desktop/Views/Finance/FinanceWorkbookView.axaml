@@ -15,7 +15,8 @@
             </StackPanel>
         </Border>
 
-        <TabControl ItemsSource="{Binding Pages}"
+        <TabControl x:Name="WorkbookTabs"
+                    ItemsSource="{Binding Pages}"
                     SelectedItem="{Binding SelectedPage}"
                     TabStripPlacement="Bottom">
             <TabControl.ItemTemplate>
@@ -24,10 +25,10 @@
                         <TextBlock.ContextMenu>
                             <ContextMenu>
                                 <MenuItem Header="Đổi tên"
-                                          Command="{Binding $parent[TabControl].((vm:FinanceWorkbookViewModel)DataContext).RenamePageCommand}"
+                                          Command="{Binding #WorkbookTabs.((vm:FinanceWorkbookViewModel)DataContext).RenamePageCommand}"
                                           CommandParameter="{Binding}"/>
                                 <MenuItem Header="Xóa dự án"
-                                          Command="{Binding $parent[TabControl].((vm:FinanceWorkbookViewModel)DataContext).ClosePageCommand}"
+                                          Command="{Binding #WorkbookTabs.((vm:FinanceWorkbookViewModel)DataContext).ClosePageCommand}"
                                           CommandParameter="{Binding}"/>
                             </ContextMenu>
                         </TextBlock.ContextMenu>

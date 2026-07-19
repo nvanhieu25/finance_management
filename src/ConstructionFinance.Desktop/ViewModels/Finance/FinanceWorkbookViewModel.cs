@@ -89,11 +89,25 @@ public partial class FinanceWorkbookViewModel : ViewModelBase
         SelectedPage = page;
     }
 
-    /// Delete the project behind a page, then close the tab. TH is pinned.
+    /// Close a project page. TH is pinned (never a ProjectPageViewModel).
+    /// An unsaved (id 0) page just gets a light "discard" confirm — there's
+    /// nothing in the DB to delete. A saved page gets the delete-warning
+    /// confirm and is removed from the database.
     [RelayCommand]
     private async Task ClosePageAsync(WorkbookPageViewModel? page)
     {
-        if (page is not ProjectPageViewModel project || project.IsPinned) return;
+        if (page is not ProjectPageViewModel project) return;
+
+        if (project.ProjectId == 0)
+        {
+            var discard = await _dialog.ConfirmAsync("Đóng dự án",
+                "Đóng dự án chưa lưu? Dữ liệu chưa lưu sẽ mất.");
+            if (!discard) return;
+
+            Pages.Remove(project);
+            SelectedPage = SummaryPage;
+            return;
+        }
 
         var ok = await _dialog.ConfirmAsync("Xóa dự án",
             $"Bạn có chắc muốn xóa dự án \"{project.Title}\" và toàn bộ đợt của nó?");
@@ -101,8 +115,7 @@ public partial class FinanceWorkbookViewModel : ViewModelBase
 
         try
         {
-            if (project.ProjectId != 0)
-                await _service.DeleteAsync(project.ProjectId);
+            await _service.DeleteAsync(project.ProjectId);
             Pages.Remove(project);
             SelectedPage = SummaryPage;
             await SummaryPage.Summary.LoadAsync();

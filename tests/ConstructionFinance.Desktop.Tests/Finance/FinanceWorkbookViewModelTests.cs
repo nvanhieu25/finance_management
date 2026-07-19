@@ -212,4 +212,74 @@ public class FinanceWorkbookViewModelTests
 
         sut.Pages[0].ShouldBeOfType<SummaryPageViewModel>();
     }
+
+    /// Builds a SUT whose service/dialog mocks the caller can assert against.
+    /// The dialog confirms everything (returns true).
+    private static (FinanceWorkbookViewModel Sut, Mock<IFinanceProjectService> Service)
+        CreateSutWithConfirmingDialog(params (int Id, string Name)[] projects)
+    {
+        var service = new Mock<IFinanceProjectService>();
+        service.Setup(s => s.GetAllSummariesAsync(It.IsAny<CancellationToken>()))
+               .ReturnsAsync(Array.Empty<FinanceProjectSummary>());
+        service.Setup(s => s.ListAsync(It.IsAny<CancellationToken>()))
+               .ReturnsAsync(projects.Select(p => new Project { Id = p.Id, Name = p.Name }).ToList());
+        foreach (var p in projects)
+        {
+            var captured = p;
+            service.Setup(s => s.GetWithLinesAsync(captured.Id, It.IsAny<CancellationToken>()))
+                   .ReturnsAsync(new Project { Id = captured.Id, Name = captured.Name });
+        }
+
+        var dialog = new Mock<IDialogService>();
+        dialog.Setup(d => d.ConfirmAsync(It.IsAny<string>(), It.IsAny<string>()))
+              .ReturnsAsync(true);
+
+        var summaryVm = new FinanceSummaryViewModel(
+            service.Object,
+            Mock.Of<IFinanceImportService>(),
+            Mock.Of<IFinanceExportService>(),
+            Mock.Of<IDialogService>(),
+            Mock.Of<INavigationService>(),
+            new ServiceCollection().BuildServiceProvider());
+
+        var services = new ServiceCollection();
+        services.AddTransient(_ => new FinanceProjectGridViewModel(service.Object, Mock.Of<IDialogService>()));
+
+        var sut = new FinanceWorkbookViewModel(
+            service.Object,
+            new SummaryPageViewModel(summaryVm),
+            dialog.Object,
+            services.BuildServiceProvider());
+
+        return (sut, service);
+    }
+
+    [Fact]
+    public async Task ClosePage_on_an_unsaved_tab_removes_it_without_calling_delete()
+    {
+        var (sut, service) = CreateSutWithConfirmingDialog();
+        await sut.LoadAsync();
+        sut.AddPageCommand.Execute(null);   // an unsaved (id 0) page
+        var newPage = sut.Pages[1];
+
+        await sut.ClosePageCommand.ExecuteAsync(newPage);
+
+        sut.Pages.ShouldNotContain(newPage);
+        sut.SelectedPage.ShouldBe(sut.SummaryPage);
+        service.Verify(s => s.DeleteAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task ClosePage_on_a_saved_tab_deletes_the_project_once()
+    {
+        var (sut, service) = CreateSutWithConfirmingDialog((7, "DA7"));
+        await sut.LoadAsync();
+        var savedPage = sut.Pages[1];
+
+        await sut.ClosePageCommand.ExecuteAsync(savedPage);
+
+        sut.Pages.ShouldNotContain(savedPage);
+        sut.SelectedPage.ShouldBe(sut.SummaryPage);
+        service.Verify(s => s.DeleteAsync(7, It.IsAny<CancellationToken>()), Times.Once);
+    }
 }
