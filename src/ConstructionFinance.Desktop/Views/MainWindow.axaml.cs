@@ -1,7 +1,7 @@
 using Avalonia.Controls;
+using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
-using Avalonia.Threading;
 using ConstructionFinance.Desktop.ViewModels;
 using FluentAvalonia.UI.Controls;
 using Serilog;
@@ -10,61 +10,50 @@ namespace ConstructionFinance.Desktop.Views;
 
 public partial class MainWindow : Window
 {
-    // NavigationView.SelectedItem is the single source of truth for the current
-    // screen. But FluentAvalonia's NavigationView raises SelectionChanged with
-    // transient values while it attaches and realizes its items — including
-    // several events AFTER the pane's Loaded fires as it finishes measuring with
-    // real data. We swallow every one of those until we deliberately land, then
-    // navigate exactly once from the landing selection.
-    private bool _navInitialized;
-    private string? _currentTag;
+    // FluentAvalonia raises BOTH SelectionChanged and ItemInvoked for its own
+    // transient selections during startup, landing us on random screens. Those
+    // are never driven by real input, so we only honor a nav invoke AFTER the
+    // user has actually pressed the pointer or a key. The initial landing is an
+    // explicit one-time navigation below, independent of nav events.
+    private bool _userInteracted;
 
     public MainWindow()
     {
         AvaloniaXamlLoader.Load(this);
+
+        AddHandler(PointerPressedEvent, OnUserInteraction, RoutingStrategies.Tunnel);
+        AddHandler(KeyDownEvent, OnUserInteraction, RoutingStrategies.Tunnel);
+
         var nav = this.FindControl<NavigationView>("Nav");
         if (nav is not null)
         {
-            nav.SelectionChanged += OnNavSelectionChanged;
+            nav.ItemInvoked += OnNavItemInvoked;
             nav.Loaded += OnNavLoaded;
         }
     }
 
-    private void OnNavLoaded(object? sender, RoutedEventArgs e)
+    private void OnUserInteraction(object? sender, RoutedEventArgs e) => _userInteracted = true;
+
+    private async void OnNavLoaded(object? sender, RoutedEventArgs e)
     {
         if (sender is not NavigationView nav) return;
         nav.Loaded -= OnNavLoaded;
 
-        // FA keeps raising SelectionChanged after Loaded as it realizes items
-        // with real data. Defer the landing to Background priority so all that
-        // churn drains first (ignored while _navInitialized is false), then land
-        // exactly once.
-        Dispatcher.UIThread.Post(async () =>
+        nav.SelectedItem = this.FindControl<NavigationViewItem>("NavFinanceWorkbook");
+        if (DataContext is MainWindowViewModel vm)
         {
-            nav.SelectedItem = this.FindControl<NavigationViewItem>("NavFinanceWorkbook");
-            _navInitialized = true;
-            if (DataContext is MainWindowViewModel vm
-                && nav.SelectedItem is NavigationViewItem item
-                && item.Tag is string tag)
-            {
-                _currentTag = tag;
-                // async void continuation: an unhandled exception here would crash
-                // the app (no global handler registered), so degrade gracefully
-                // like the old InitializeAsync did.
-                try { await vm.NavigateToAsync(tag); }
-                catch (Exception ex) { Log.Warning(ex, "Navigation to {Tag} failed", tag); }
-            }
-        }, DispatcherPriority.Background);
+            try { await vm.NavigateToAsync("FinanceWorkbook"); }
+            catch (Exception ex) { Log.Warning(ex, "Initial workbook navigation failed"); }
+        }
     }
 
-    private async void OnNavSelectionChanged(object? sender, NavigationViewSelectionChangedEventArgs e)
+    private async void OnNavItemInvoked(object? sender, NavigationViewItemInvokedEventArgs e)
     {
-        if (!_navInitialized) return;
-        if (DataContext is MainWindowViewModel vm && e.SelectedItem is NavigationViewItem item && item.Tag is string tag)
+        if (!_userInteracted) return;   // ignore FA's startup churn (no real input yet)
+        if (DataContext is MainWindowViewModel vm
+            && e.InvokedItemContainer is NavigationViewItem item
+            && item.Tag is string tag)
         {
-            // Skip redundant re-navigation to the screen we're already on.
-            if (tag == _currentTag) return;
-            _currentTag = tag;
             try { await vm.NavigateToAsync(tag); }
             catch (Exception ex) { Log.Warning(ex, "Navigation to {Tag} failed", tag); }
         }
