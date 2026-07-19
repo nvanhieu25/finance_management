@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 using ConstructionFinance.Application.Services.Interfaces;
 using ConstructionFinance.Desktop.Common;
 using ConstructionFinance.Desktop.Services;
@@ -75,6 +76,50 @@ public partial class FinanceWorkbookViewModel : ViewModelBase
                         .FirstOrDefault(p => p.ProjectId == projectId);
         if (page is not null) SelectedPage = page;
         return Task.CompletedTask;
+    }
+
+    /// New blank project page. It is unsaved until Save-All writes it.
+    [RelayCommand]
+    private void AddPage()
+    {
+        var grid = _services.GetRequiredService<FinanceProjectGridViewModel>();
+        grid.InitializeNew();
+        var page = new ProjectPageViewModel(grid);
+        Pages.Add(page);
+        SelectedPage = page;
+    }
+
+    /// Delete the project behind a page, then close the tab. TH is pinned.
+    [RelayCommand]
+    private async Task ClosePageAsync(WorkbookPageViewModel? page)
+    {
+        if (page is not ProjectPageViewModel project || project.IsPinned) return;
+
+        var ok = await _dialog.ConfirmAsync("Xóa dự án",
+            $"Bạn có chắc muốn xóa dự án \"{project.Title}\" và toàn bộ đợt của nó?");
+        if (!ok) return;
+
+        try
+        {
+            if (project.ProjectId != 0)
+                await _service.DeleteAsync(project.ProjectId);
+            Pages.Remove(project);
+            SelectedPage = SummaryPage;
+            await SummaryPage.Summary.LoadAsync();
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = ex.Message;
+            await _dialog.ShowMessageAsync("Lỗi", ex.Message);
+        }
+    }
+
+    /// Rename = focus the project-name box on that page; the grid owns the field.
+    [RelayCommand]
+    private void RenamePage(WorkbookPageViewModel? page)
+    {
+        if (page is not ProjectPageViewModel project) return;
+        SelectedPage = project;
     }
 
     private async Task<ProjectPageViewModel> CreateProjectPageAsync(int projectId)

@@ -187,4 +187,29 @@ public class FinanceWorkbookViewModelTests
         sut.Pages[1].Title.ShouldBe("DA2");
         sut.SelectedPage.ShouldBe(sut.Pages[0]);
     }
+
+    [Fact]
+    public async Task AddPage_appends_a_dirty_new_project_page_and_selects_it()
+    {
+        var sut = CreateSutWithProjects((1, "DA1"));
+        await sut.LoadAsync();
+
+        sut.AddPageCommand.Execute(null);
+
+        sut.Pages.Count.ShouldBe(3);
+        sut.Pages[2].ShouldBeOfType<ProjectPageViewModel>();
+        sut.Pages[2].IsDirty.ShouldBeTrue();
+        sut.SelectedPage.ShouldBe(sut.Pages[2]);
+    }
+
+    [Fact]
+    public async Task ClosePage_never_closes_the_pinned_TH_page()
+    {
+        var sut = CreateSutWithProjects((1, "DA1"));
+        await sut.LoadAsync();
+
+        await sut.ClosePageCommand.ExecuteAsync(sut.Pages[0]);
+
+        sut.Pages[0].ShouldBeOfType<SummaryPageViewModel>();
+    }
 }
