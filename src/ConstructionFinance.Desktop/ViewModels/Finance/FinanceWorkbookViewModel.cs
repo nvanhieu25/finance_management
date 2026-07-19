@@ -4,6 +4,7 @@ using ConstructionFinance.Application.Services.Interfaces;
 using ConstructionFinance.Desktop.Common;
 using ConstructionFinance.Desktop.Services;
 using Microsoft.Extensions.DependencyInjection;
+using Serilog;
 
 namespace ConstructionFinance.Desktop.ViewModels.Finance;
 
@@ -45,12 +46,25 @@ public partial class FinanceWorkbookViewModel : ViewModelBase
 
             var projects = await _service.ListAsync();
             foreach (var project in projects)
-                Pages.Add(await CreateProjectPageAsync(project.Id));
+            {
+                try
+                {
+                    Pages.Add(await CreateProjectPageAsync(project.Id));
+                }
+                catch (Exception ex)
+                {
+                    Log.Warning(ex, "Skipped project {ProjectId} while building the workbook", project.Id);
+                }
+            }
 
             SelectedPage = SummaryPage;
             await SummaryPage.Summary.LoadAsync();
         }
-        catch (Exception ex) { ErrorMessage = ex.Message; }
+        catch (Exception ex)
+        {
+            Log.Warning(ex, "Loading the finance workbook failed");
+            ErrorMessage = ex.Message;
+        }
         finally { IsBusy = false; }
     }
 
@@ -67,6 +81,15 @@ public partial class FinanceWorkbookViewModel : ViewModelBase
     {
         var grid = _services.GetRequiredService<FinanceProjectGridViewModel>();
         await grid.LoadProjectAsync(projectId);
+
+        // The grid swallows its own load failures (missing project / DB error),
+        // leaving CurrentProjectId unset. Surface that as a throw so the caller's
+        // per-project catch skips this ONE project instead of adding a phantom
+        // "(dự án mới)" tab that was never really loaded.
+        if (grid.CurrentProjectId != projectId)
+            throw new InvalidOperationException(
+                grid.ErrorMessage ?? $"Project {projectId} could not be loaded.");
+
         return new ProjectPageViewModel(grid);
     }
 }

@@ -142,4 +142,49 @@ public class FinanceWorkbookViewModelTests
 
         sut.SelectedPage.ShouldBe(before);
     }
+
+    [Fact]
+    public async Task LoadAsync_skips_a_project_that_fails_to_load_and_keeps_the_rest()
+    {
+        // Project 1 fails to load its lines; project 2 loads fine. The workbook
+        // must skip the bad one, keep the good one, and still land on the TH tab.
+        var service = new Mock<IFinanceProjectService>();
+        service.Setup(s => s.GetAllSummariesAsync(It.IsAny<CancellationToken>()))
+               .ReturnsAsync(Array.Empty<FinanceProjectSummary>());
+        service.Setup(s => s.ListAsync(It.IsAny<CancellationToken>()))
+               .ReturnsAsync(new List<Project>
+               {
+                   new() { Id = 1, Name = "DA1" },
+                   new() { Id = 2, Name = "DA2" }
+               });
+        service.Setup(s => s.GetWithLinesAsync(1, It.IsAny<CancellationToken>()))
+               .ThrowsAsync(new InvalidOperationException("boom"));
+        service.Setup(s => s.GetWithLinesAsync(2, It.IsAny<CancellationToken>()))
+               .ReturnsAsync(new Project { Id = 2, Name = "DA2" });
+
+        var summaryVm = new FinanceSummaryViewModel(
+            service.Object,
+            Mock.Of<IFinanceImportService>(),
+            Mock.Of<IFinanceExportService>(),
+            Mock.Of<IDialogService>(),
+            Mock.Of<INavigationService>(),
+            new ServiceCollection().BuildServiceProvider());
+
+        var services = new ServiceCollection();
+        services.AddTransient(_ => new FinanceProjectGridViewModel(service.Object, Mock.Of<IDialogService>()));
+
+        var sut = new FinanceWorkbookViewModel(
+            service.Object,
+            new SummaryPageViewModel(summaryVm),
+            Mock.Of<IDialogService>(),
+            services.BuildServiceProvider());
+
+        await sut.LoadAsync();
+
+        // TH + only the good project.
+        sut.Pages.Count.ShouldBe(2);
+        sut.Pages[0].ShouldBeOfType<SummaryPageViewModel>();
+        sut.Pages[1].Title.ShouldBe("DA2");
+        sut.SelectedPage.ShouldBe(sut.Pages[0]);
+    }
 }
