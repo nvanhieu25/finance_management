@@ -70,7 +70,7 @@ public partial class MainWindowViewModel : ViewModelBase
                 var fgvm = _services.GetRequiredService<ViewModels.Finance.FinanceProjectGridViewModel>();
                 _nav.Reset();
                 _nav.NavigateTo(fgvm);
-                await fgvm.LoadAsync();
+                fgvm.InitializeNew();
                 break;
             case "FinanceSummary":
                 var fsvm = _services.GetRequiredService<ViewModels.Finance.FinanceSummaryViewModel>();
