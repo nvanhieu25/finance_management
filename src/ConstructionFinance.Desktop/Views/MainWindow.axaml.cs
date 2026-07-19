@@ -3,6 +3,7 @@ using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
 using ConstructionFinance.Desktop.ViewModels;
 using FluentAvalonia.UI.Controls;
+using Serilog;
 
 namespace ConstructionFinance.Desktop.Views;
 
@@ -44,7 +45,11 @@ public partial class MainWindow : Window
             && nav.SelectedItem is NavigationViewItem item
             && item.Tag is string tag)
         {
-            await vm.NavigateToAsync(tag);
+            // async void: an unhandled exception here would crash the app (no
+            // global handler registered), so degrade gracefully like the old
+            // InitializeAsync did.
+            try { await vm.NavigateToAsync(tag); }
+            catch (Exception ex) { Log.Warning(ex, "Navigation to {Tag} failed", tag); }
         }
     }
 
@@ -53,7 +58,8 @@ public partial class MainWindow : Window
         if (!_navInitialized) return;
         if (DataContext is MainWindowViewModel vm && e.SelectedItem is NavigationViewItem item && item.Tag is string tag)
         {
-            await vm.NavigateToAsync(tag);
+            try { await vm.NavigateToAsync(tag); }
+            catch (Exception ex) { Log.Warning(ex, "Navigation to {Tag} failed", tag); }
         }
     }
 }
