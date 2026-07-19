@@ -3,6 +3,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using ConstructionFinance.Application.Services.Interfaces;
 using ConstructionFinance.Desktop.Common;
 using ConstructionFinance.Desktop.Services;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace ConstructionFinance.Desktop.ViewModels.Finance;
 
@@ -41,10 +42,31 @@ public partial class FinanceWorkbookViewModel : ViewModelBase
         {
             Pages.Clear();
             Pages.Add(SummaryPage);
+
+            var projects = await _service.ListAsync();
+            foreach (var project in projects)
+                Pages.Add(await CreateProjectPageAsync(project.Id));
+
             SelectedPage = SummaryPage;
             await SummaryPage.Summary.LoadAsync();
         }
         catch (Exception ex) { ErrorMessage = ex.Message; }
         finally { IsBusy = false; }
+    }
+
+    /// Jump to a project's tab — used by the TH page's double-click.
+    public Task GoToProjectAsync(int projectId)
+    {
+        var page = Pages.OfType<ProjectPageViewModel>()
+                        .FirstOrDefault(p => p.ProjectId == projectId);
+        if (page is not null) SelectedPage = page;
+        return Task.CompletedTask;
+    }
+
+    private async Task<ProjectPageViewModel> CreateProjectPageAsync(int projectId)
+    {
+        var grid = _services.GetRequiredService<FinanceProjectGridViewModel>();
+        await grid.LoadProjectAsync(projectId);
+        return new ProjectPageViewModel(grid);
     }
 }
