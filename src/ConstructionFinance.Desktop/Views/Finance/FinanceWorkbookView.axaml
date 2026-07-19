@@ -12,6 +12,10 @@
         <Border DockPanel.Dock="Top" Classes="toolbarStrip" Margin="0,0,0,8">
             <StackPanel Orientation="Horizontal" Spacing="8">
                 <Button Classes="toolbar" Command="{Binding AddPageCommand}" Content="+ Thêm dự án"/>
+                <Button Classes="toolbar" Command="{Binding ClosePageCommand}"
+                        CommandParameter="{Binding SelectedPage}" Content="Xóa dự án"/>
+                <TextBlock Classes="muted" VerticalAlignment="Center"
+                           Text="Đổi tên: sửa ô “Tên dự án” trong trang dự án"/>
             </StackPanel>
         </Border>
 
@@ -21,18 +25,7 @@
                     TabStripPlacement="Bottom">
             <TabControl.ItemTemplate>
                 <DataTemplate x:DataType="vm:WorkbookPageViewModel">
-                    <TextBlock Text="{Binding Header}">
-                        <TextBlock.ContextMenu>
-                            <ContextMenu>
-                                <MenuItem Header="Đổi tên"
-                                          Command="{Binding #WorkbookTabs.((vm:FinanceWorkbookViewModel)DataContext).RenamePageCommand}"
-                                          CommandParameter="{Binding}"/>
-                                <MenuItem Header="Xóa dự án"
-                                          Command="{Binding #WorkbookTabs.((vm:FinanceWorkbookViewModel)DataContext).ClosePageCommand}"
-                                          CommandParameter="{Binding}"/>
-                            </ContextMenu>
-                        </TextBlock.ContextMenu>
-                    </TextBlock>
+                    <TextBlock Text="{Binding Header}"/>
                 </DataTemplate>
             </TabControl.ItemTemplate>
             <TabControl.ContentTemplate>
