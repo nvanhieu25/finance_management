@@ -7,7 +7,6 @@ using ConstructionFinance.Desktop.ViewModels.ThongTri;
 using ConstructionFinance.Desktop.ViewModels.TongHop;
 using ConstructionFinance.Desktop.ViewModels.Vendors;
 using Microsoft.Extensions.DependencyInjection;
-using Serilog;
 
 namespace ConstructionFinance.Desktop.ViewModels;
 
@@ -23,11 +22,10 @@ public partial class MainWindowViewModel : ViewModelBase
         _nav.CurrentContentChanged += (_, content) => CurrentContent = content;
     }
 
-    public async Task InitializeAsync()
-    {
-        try { await NavigateToAsync("FinanceWorkbook"); }
-        catch (Exception ex) { Log.Warning(ex, "Initial navigation to FinanceWorkbook failed"); }
-    }
+    // Landing navigation is driven deterministically by NavigationView.SelectedItem
+    // (set in MainWindow ctor), which raises SelectionChanged → NavigateToAsync.
+    // Keeping this as a no-op avoids a second, racy navigation path.
+    public Task InitializeAsync() => Task.CompletedTask;
 
     [ObservableProperty] private string _title = "Quản lý Tài chính Công trình";
     [ObservableProperty] private string _statusText = $"DB: {AppPaths.DatabaseFile} | Sẵn sàng";
