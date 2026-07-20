@@ -128,6 +128,18 @@ public class FinanceWorkbookViewModelTests
     }
 
     [Fact]
+    public async Task Activating_a_project_from_the_TH_page_switches_to_its_tab()
+    {
+        var sut = CreateSutWithProjects((1, "DA1"), (2, "DA2"));
+        await sut.LoadAsync();
+
+        sut.SummaryPage.Summary.ActivateProject(2);
+
+        sut.SelectedPage.ShouldBeOfType<ProjectPageViewModel>();
+        ((ProjectPageViewModel)sut.SelectedPage!).ProjectId.ShouldBe(2);
+    }
+
+    [Fact]
     public async Task GoToProjectAsync_ignores_an_unknown_project()
     {
         var sut = CreateSutWithProjects((1, "DA1"));
