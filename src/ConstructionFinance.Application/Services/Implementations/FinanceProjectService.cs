@@ -84,11 +84,15 @@ public class FinanceProjectService : IFinanceProjectService
 
                 case ImportResolution.Overwrite when candidate.ExistingId is { } id:
                     candidate.Parsed.Id = id;
+                    // Normalize so re-importing an Excel cell like "  da1 " does not
+                    // rewrite the stored "DA1" with the padded spelling.
+                    candidate.Parsed.Name = candidate.Parsed.Name.Trim();
                     await _repo.UpdateAsync(candidate.Parsed, ct);
                     written++;
                     break;
 
                 default:
+                    // NextFreeName already trims, so the persisted name is normalized.
                     var name = ImportMerge.NextFreeName(candidate.Parsed.Name, taken);
                     candidate.Parsed.Name = name;
                     candidate.Parsed.Id = 0;
