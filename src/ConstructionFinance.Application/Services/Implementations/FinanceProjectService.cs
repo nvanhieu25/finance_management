@@ -1,5 +1,6 @@
 using System.Linq;
 using ConstructionFinance.Application.Calc;
+using ConstructionFinance.Application.Import;
 using ConstructionFinance.Application.Services.Interfaces;
 using ConstructionFinance.Domain.Abstractions;
 using ConstructionFinance.Domain.Finance;
@@ -63,5 +64,40 @@ public class FinanceProjectService : IFinanceProjectService
             saved++;
         }
         return saved;
+    }
+
+    /// Apply the user's per-project import decisions. Skip writes nothing;
+    /// Overwrite replaces the existing project's lines wholesale; AddNew inserts
+    /// under a free name so an import can never silently duplicate a project.
+    public async Task<int> SaveMergedAsync(IReadOnlyList<ImportCandidate> candidates, CancellationToken ct = default)
+    {
+        var existing = await _repo.ListAsync(ct);
+        var taken = new HashSet<string>(existing.Select(p => p.Name.Trim()), StringComparer.OrdinalIgnoreCase);
+
+        var written = 0;
+        foreach (var candidate in candidates)
+        {
+            switch (candidate.Resolution)
+            {
+                case ImportResolution.Skip:
+                    continue;
+
+                case ImportResolution.Overwrite when candidate.ExistingId is { } id:
+                    candidate.Parsed.Id = id;
+                    await _repo.UpdateAsync(candidate.Parsed, ct);
+                    written++;
+                    break;
+
+                default:
+                    var name = ImportMerge.NextFreeName(candidate.Parsed.Name, taken);
+                    candidate.Parsed.Name = name;
+                    candidate.Parsed.Id = 0;
+                    taken.Add(name);
+                    await _repo.AddAsync(candidate.Parsed, ct);
+                    written++;
+                    break;
+            }
+        }
+        return written;
     }
 }
