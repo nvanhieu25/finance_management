@@ -73,12 +73,28 @@ public partial class MainWindow : Window
     private async void OnNavItemInvoked(object? sender, NavigationViewItemInvokedEventArgs e)
     {
         if (!_userInteracted) return;   // ignore FA's startup churn (no real input yet)
-        if (DataContext is MainWindowViewModel vm
-            && e.InvokedItemContainer is NavigationViewItem item
-            && item.Tag is string tag)
+        if (DataContext is not MainWindowViewModel vm
+            || e.InvokedItemContainer is not NavigationViewItem item
+            || item.Tag is not string tag)
+            return;
+
+        // Excel-style guard: leaving a dirty workbook for another screen would drop
+        // unsaved project edits (the workbook VM is transient — nav-away discards it).
+        // Prompt first; if the user stays, snap the nav highlight back to the workbook.
+        if (tag != "FinanceWorkbook"
+            && vm.CurrentContent is ViewModels.Finance.FinanceWorkbookViewModel { IsDirty: true }
+            && sender is NavigationView nav)
         {
-            try { await vm.NavigateToAsync(tag); }
-            catch (Exception ex) { Log.Warning(ex, "Navigation to {Tag} failed", tag); }
+            var leave = await _dialog.ConfirmAsync("Còn thay đổi chưa lưu",
+                "Có dự án chưa lưu. Rời khỏi màn Tài chính dự án mà không lưu?");
+            if (!leave)
+            {
+                nav.SelectedItem = this.FindControl<NavigationViewItem>("NavFinanceWorkbook");
+                return;
+            }
         }
+
+        try { await vm.NavigateToAsync(tag); }
+        catch (Exception ex) { Log.Warning(ex, "Navigation to {Tag} failed", tag); }
     }
 }
