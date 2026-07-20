@@ -1,0 +1,39 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:ConstructionFinance.Desktop.ViewModels.Finance"
+             xmlns:common="using:ConstructionFinance.Desktop.Common"
+             xmlns:imp="using:ConstructionFinance.Application.Import"
+             x:Class="ConstructionFinance.Desktop.Views.Finance.ImportResolutionDialog"
+             x:DataType="vm:ImportResolutionDialogViewModel"
+             Width="640">
+    <DockPanel>
+        <TextBlock DockPanel.Dock="Top" Text="{Binding Headline}"
+                   FontWeight="SemiBold" Margin="0,0,0,4"/>
+        <TextBlock DockPanel.Dock="Top" Classes="muted" TextWrapping="Wrap" Margin="0,0,0,12"
+                   Text="Chọn cách xử lý cho từng dự án trùng tên. Bỏ qua = giữ nguyên dữ liệu đang có."/>
+
+        <DataGrid ItemsSource="{Binding Rows}" IsReadOnly="False"
+                  HeadersVisibility="Column" MaxHeight="360" CanUserSortColumns="False">
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="Dự án" Binding="{Binding Name}" Width="240" IsReadOnly="True"/>
+                <DataGridTextColumn Header="Trạng thái" Binding="{Binding StatusText}" Width="140" IsReadOnly="True"/>
+                <DataGridTemplateColumn Header="Xử lý" Width="*">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate x:DataType="vm:ImportResolutionRowVm">
+                            <ComboBox ItemsSource="{Binding Options}"
+                                      SelectedItem="{Binding Resolution}"
+                                      IsEnabled="{Binding IsDuplicate}"
+                                      HorizontalAlignment="Stretch" Margin="4,2">
+                                <ComboBox.ItemTemplate>
+                                    <DataTemplate DataType="imp:ImportResolution">
+                                        <TextBlock Text="{Binding ., Converter={x:Static common:EnumToVietnameseConverter.Instance}}"/>
+                                    </DataTemplate>
+                                </ComboBox.ItemTemplate>
+                            </ComboBox>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+            </DataGrid.Columns>
+        </DataGrid>
+    </DockPanel>
+</UserControl>

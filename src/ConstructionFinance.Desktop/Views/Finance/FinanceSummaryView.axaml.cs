@@ -11,7 +11,7 @@ public partial class FinanceSummaryView : UserControl
 
     private void OnRowDoubleTapped(object? sender, TappedEventArgs e)
     {
-        if (DataContext is FinanceSummaryViewModel vm && vm.OpenProjectCommand.CanExecute(null))
-            vm.OpenProjectCommand.Execute(null);
+        if (DataContext is FinanceSummaryViewModel vm && vm.SelectedRow is { } row)
+            vm.ActivateProject(row.ProjectId);
     }
 }

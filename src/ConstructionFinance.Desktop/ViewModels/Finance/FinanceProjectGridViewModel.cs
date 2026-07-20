@@ -10,13 +10,14 @@ using ConstructionFinance.Domain.Finance;
 
 namespace ConstructionFinance.Desktop.ViewModels.Finance;
 
-/// Master–detail entry grid: pick a project, edit its đợt rows Excel-style,
-/// totals computed live by ProjectCalculator, persisted via the finance service.
+/// Excel-like entry grid for exactly ONE project — the workbook tab that hosts
+/// this instance IS the project selection, so there is no project picker here.
+/// Totals are computed live by ProjectCalculator; nothing derived is persisted.
 public partial class FinanceProjectGridViewModel : ViewModelBase
 {
     private readonly IFinanceProjectService _service;
     private readonly IDialogService _dialog;
-    private bool _suppressSelectionLoad;
+    private bool _loading;
 
     public FinanceProjectGridViewModel(IFinanceProjectService service, IDialogService dialog)
     {
@@ -25,10 +26,8 @@ public partial class FinanceProjectGridViewModel : ViewModelBase
         Lines.CollectionChanged += OnLinesCollectionChanged;
     }
 
-    public ObservableCollection<Project> Projects { get; } = new();
     public ObservableCollection<LineItemRowViewModel> Lines { get; } = new();
 
-    [ObservableProperty] private Project? _selectedProject;
     [ObservableProperty] private LineItemRowViewModel? _selectedRow;
 
     [ObservableProperty] private int _currentProjectId;
@@ -47,33 +46,56 @@ public partial class FinanceProjectGridViewModel : ViewModelBase
     [ObservableProperty] private decimal _unrecoveredAdvance;
     [ObservableProperty] private decimal _totalDisbursed;
 
+    [ObservableProperty] private bool _isDirty;
     [ObservableProperty] private bool _isBusy;
     [ObservableProperty] private string? _errorMessage;
 
-    public async Task LoadAsync()
+    /// Raised whenever IsDirty flips, so the hosting page can bubble it to the workbook.
+    public event EventHandler? DirtyChanged;
+
+    // Header edits mark the project unsaved. Derived Sum* props deliberately do
+    // NOT mark dirty — they are recomputed output, not user input.
+    partial void OnProjectNameChanged(string value) => MarkDirty();
+    partial void OnProjectCodeChanged(string? value) => MarkDirty();
+    partial void OnContractorNameChanged(string? value) => MarkDirty();
+    partial void OnContractValueChanged(decimal value) => MarkDirty();
+    partial void OnContractAnnexValueChanged(decimal value) => MarkDirty();
+    partial void OnNotesChanged(string? value) => MarkDirty();
+
+    partial void OnIsDirtyChanged(bool value) => DirtyChanged?.Invoke(this, EventArgs.Empty);
+
+    private void MarkDirty()
     {
-        IsBusy = true;
-        ErrorMessage = null;
-        try
-        {
-            var list = await _service.ListAsync();
-            Projects.Clear();
-            foreach (var p in list) Projects.Add(p);
-        }
-        catch (Exception ex) { ErrorMessage = ex.Message; }
-        finally { IsBusy = false; }
+        if (_loading) return;
+        IsDirty = true;
     }
 
-    partial void OnSelectedProjectChanged(Project? value)
+    /// Blank project with one starter row. Unsaved by definition → starts dirty.
+    public void InitializeNew()
     {
-        if (_suppressSelectionLoad || value is null) return;
-        _ = LoadProjectAsync(value.Id);
+        _loading = true;
+        try
+        {
+            CurrentProjectId = 0;
+            ProjectName = "";
+            ProjectCode = null;
+            ContractorName = null;
+            ContractValue = 0m;
+            ContractAnnexValue = 0m;
+            Notes = null;
+            ClearLines();
+            Lines.Add(new LineItemRowViewModel());
+            RecomputeTotals();
+        }
+        finally { _loading = false; }
+        IsDirty = true;
     }
 
     public async Task LoadProjectAsync(int id)
     {
         IsBusy = true;
         ErrorMessage = null;
+        _loading = true;
         try
         {
             var project = await _service.GetWithLinesAsync(id);
@@ -91,24 +113,14 @@ public partial class FinanceProjectGridViewModel : ViewModelBase
             foreach (var line in project.Lines.OrderBy(l => l.SortOrder))
                 Lines.Add(new LineItemRowViewModel(line));
             RecomputeTotals();
+            IsDirty = false;
         }
         catch (Exception ex) { ErrorMessage = ex.Message; }
-        finally { IsBusy = false; }
-    }
-
-    [RelayCommand]
-    private void NewProject()
-    {
-        CurrentProjectId = 0;
-        ProjectName = "";
-        ProjectCode = null;
-        ContractorName = null;
-        ContractValue = 0m;
-        ContractAnnexValue = 0m;
-        Notes = null;
-        ClearLines();
-        Lines.Add(new LineItemRowViewModel());
-        RecomputeTotals();
+        finally
+        {
+            _loading = false;
+            IsBusy = false;
+        }
     }
 
     [RelayCommand]
@@ -126,13 +138,20 @@ public partial class FinanceProjectGridViewModel : ViewModelBase
         RecomputeTotals();
     }
 
+    // The toolbar binds SaveCommand; the workbook calls SaveAsync directly for
+    // its bool result. [RelayCommand] cannot wrap a Task<bool> method, so the
+    // command is a thin void-ish wrapper over the real one.
     [RelayCommand]
-    private async Task SaveAsync()
+    private async Task Save() => await SaveAsync();
+
+    /// Persist this project. Returns true on success. The workbook's Save-All
+    /// relies on the bool: a failed page must stay dirty so it is not lost.
+    public async Task<bool> SaveAsync()
     {
         if (string.IsNullOrWhiteSpace(ProjectName))
         {
             await _dialog.ShowMessageAsync("Thiếu thông tin", "Tên dự án không được để trống.");
-            return;
+            return false;
         }
 
         var project = new Project
@@ -160,37 +179,19 @@ public partial class FinanceProjectGridViewModel : ViewModelBase
             else
                 await _service.UpdateAsync(project);
 
-            await LoadAsync();
-            _suppressSelectionLoad = true;
-            SelectedProject = Projects.FirstOrDefault(p => p.Id == CurrentProjectId);
-            _suppressSelectionLoad = false;
+            IsDirty = false;
+            return true;
         }
         catch (Exception ex)
         {
             ErrorMessage = ex.Message;
-            await _dialog.ShowMessageAsync("Lỗi", ex.Message);
+            return false;
         }
         finally { IsBusy = false; }
     }
 
-    [RelayCommand]
-    private async Task DeleteProjectAsync()
-    {
-        if (CurrentProjectId == 0) return;
-        var ok = await _dialog.ConfirmAsync("Xóa dự án",
-            $"Bạn có chắc muốn xóa dự án \"{ProjectName}\" và toàn bộ đợt của nó?");
-        if (!ok) return;
-        try
-        {
-            await _service.DeleteAsync(CurrentProjectId);
-            await LoadAsync();
-            NewProject();
-        }
-        catch (Exception ex) { await _dialog.ShowMessageAsync("Lỗi", ex.Message); }
-    }
-
     /// Paste a TSV block (rows of cells) starting at the given cell; new rows are
-    /// appended as needed. Only editable columns (0–6) are written. (Wired in Task 7.)
+    /// appended as needed. Only editable columns (0–6) are written.
     public void ApplyPaste(int startRow, int startCol, string[][] block)
     {
         for (var r = 0; r < block.Length; r++)
@@ -225,9 +226,14 @@ public partial class FinanceProjectGridViewModel : ViewModelBase
             foreach (LineItemRowViewModel row in e.OldItems) row.InputChanged -= OnRowInputChanged;
         if (e.NewItems is not null)
             foreach (LineItemRowViewModel row in e.NewItems) row.InputChanged += OnRowInputChanged;
+        MarkDirty();
     }
 
-    private void OnRowInputChanged(object? sender, EventArgs e) => RecomputeTotals();
+    private void OnRowInputChanged(object? sender, EventArgs e)
+    {
+        RecomputeTotals();
+        MarkDirty();
+    }
 
     private void ClearLines()
     {

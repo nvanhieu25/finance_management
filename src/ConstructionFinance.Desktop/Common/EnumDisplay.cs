@@ -1,3 +1,4 @@
+using ConstructionFinance.Application.Import;
 using ConstructionFinance.Domain.Enums;
 
 namespace ConstructionFinance.Desktop.Common;
@@ -43,6 +44,14 @@ public static class EnumDisplay
         _ => a.ToString()
     };
 
+    public static string ImportResolution(ImportResolution r) => r switch
+    {
+        Application.Import.ImportResolution.Overwrite => "Ghi đè",
+        Application.Import.ImportResolution.Skip => "Bỏ qua",
+        Application.Import.ImportResolution.AddNew => "Thêm bản mới",
+        _ => r.ToString()
+    };
+
     /// Backup types are persisted as strings, not enums. Map the well-known values.
     public static string BackupType(string? type) => type switch
     {
@@ -60,6 +69,7 @@ public static class EnumDisplay
         PaymentType pt => PaymentType(pt),
         AttachmentEntityType at => AttachmentEntityType(at),
         AuditAction aa => AuditAction(aa),
+        ImportResolution ir => ImportResolution(ir),
         string s => s,
         null => string.Empty,
         _ => value.ToString() ?? string.Empty

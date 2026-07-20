@@ -109,11 +109,15 @@ public class FinanceWorkbookViewModelTests
     }
 
     [Fact]
-    public void Header_shows_a_dot_only_when_dirty()
+    public async Task Header_shows_a_dot_only_when_dirty()
     {
-        var page = new SummaryPageViewModel(null!) { Title = "DA1" };
+        var sut = CreateSut();
+        await sut.LoadAsync();
+        var page = sut.Pages[0];
+        page.Title = "DA1";
 
         page.Header.ShouldBe("DA1");
+
         page.IsDirty = true;
         page.Header.ShouldBe("• DA1");
     }
@@ -1649,43 +1653,17 @@ Trong `FinanceProjectService.cs` thêm implementation (giữ nguyên phong cách
 
 (Field repository trong `FinanceProjectService` tên là `_repo`; `AddAsync`/`UpdateAsync`/`DeleteAsync`/`ListAsync` đều nhận `CancellationToken ct` — khớp với code trên.)
 
-- [ ] **Step 6: Nối vào luồng Import của TH**
+- [ ] **Step 6: Chạy suite + commit**
 
-Trong `FinanceSummaryViewModel.ImportAsync`, thay đoạn từ `var msg = …` tới `await _dialog.ShowMessageAsync("Nhập Excel", $"Đã nhập {saved} dự án.");` bằng:
-
-```csharp
-            var existing = await _service.ListAsync();
-            var candidates = ImportMerge.Classify(result.Projects, existing);
-            var duplicates = candidates.Where(c => c.ExistingId is not null).ToList();
-
-            var msg = $"Tìm thấy {result.Projects.Count} dự án ({duplicates.Count} trùng tên).";
-            if (duplicates.Count > 0)
-                msg += "\n\nDự án trùng sẽ được GHI ĐÈ bằng số liệu từ Excel:\n- "
-                     + string.Join("\n- ", duplicates.Select(c => c.Parsed.Name));
-            if (result.Warnings.Count > 0)
-                msg += $"\n\n{result.Warnings.Count} cảnh báo:\n- " + string.Join("\n- ", result.Warnings.Take(10));
-            msg += "\n\nTiếp tục nhập?";
-            if (!await _dialog.ConfirmAsync("Nhập Excel", msg)) return;
-
-            var saved = await _service.SaveMergedAsync(candidates);
-            await LoadAsync();
-            await _dialog.ShowMessageAsync("Nhập Excel", $"Đã nhập {saved} dự án.");
-```
-
-Thêm `using ConstructionFinance.Application.Import;` vào đầu file.
-
-> **GHI CHÚ:** bước này là luồng **tạm** chỉ để Task 7 chạy được đầu-cuối với hạ tầng vừa dựng. Dialog chọn **từng dòng** theo spec §6 được cài ở **Task 7b ngay sau đây** và sẽ thay thế đoạn `ConfirmAsync` này.
-
-- [ ] **Step 7: Chạy suite + commit**
+**KHÔNG đụng UI trong task này.** `FinanceSummaryViewModel.ImportAsync` giữ nguyên (vẫn gọi `SaveImportedAsync`); toàn bộ việc nối UI + chuyển sang `SaveMergedAsync` nằm ở Task 7b, để task này không sinh ra code phải xóa ngay sau đó. Kết quả của Task 7 là **logic phân loại + service method đã có test**, dùng được ngay ở 7b.
 
 ```bash
 dotnet test 2>&1 | grep -E "Passed!|Failed!"
 git add src/ConstructionFinance.Application/Import/ImportMerge.cs \
         src/ConstructionFinance.Application/Services/Interfaces/IFinanceProjectService.cs \
         src/ConstructionFinance.Application/Services/Implementations/FinanceProjectService.cs \
-        src/ConstructionFinance.Desktop/ViewModels/Finance/FinanceSummaryViewModel.cs \
         tests/ConstructionFinance.Application.Tests/Finance/ImportMergeTests.cs
-git commit -m "feat(finance): match imported projects by name instead of blind-appending"
+git commit -m "feat(finance): name-matching import merge logic + SaveMergedAsync"
 ```
 
 ---
@@ -1912,7 +1890,7 @@ public partial class ImportResolutionDialog : UserControl
 
 - [ ] **Step 6: Nối dialog vào luồng Import**
 
-Trong `FinanceSummaryViewModel.ImportAsync`, thay đoạn tạm của Task 7 (từ `var msg = …` tới `if (!await _dialog.ConfirmAsync("Nhập Excel", msg)) return;`) bằng:
+Trong `FinanceSummaryViewModel.ImportAsync`, thay đoạn từ `var msg = …` tới `var saved = await _service.SaveImportedAsync(result.Projects);` bằng:
 
 ```csharp
             var existing = await _service.ListAsync();
@@ -1928,7 +1906,9 @@ Trong `FinanceSummaryViewModel.ImportAsync`, thay đoạn tạm của Task 7 (t�
             var saved = await _service.SaveMergedAsync(review.ToCandidates());
 ```
 
-Xóa dòng `var saved = await _service.SaveMergedAsync(candidates);` cũ của Task 7 (đã được thay ở trên).
+Giữ nguyên 2 dòng sau đó (`await LoadAsync();` và `await _dialog.ShowMessageAsync("Nhập Excel", $"Đã nhập {saved} dự án.");`).
+
+Thêm `using ConstructionFinance.Application.Import;` vào đầu file.
 
 - [ ] **Step 7: Build + chạy suite + chạy app**
 

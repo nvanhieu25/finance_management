@@ -1,4 +1,5 @@
 using ConstructionFinance.Application.Services.Interfaces;
+using ConstructionFinance.Desktop.Services;
 using ConstructionFinance.Desktop.Tests.Common;
 using ConstructionFinance.Desktop.ViewModels.Finance;
 using ConstructionFinance.Domain.Finance;
@@ -13,8 +14,6 @@ public class FinanceProjectGridViewModelTests
     private static (FinanceProjectGridViewModel vm, Mock<IFinanceProjectService> svc) Create()
     {
         var svc = new Mock<IFinanceProjectService>(MockBehavior.Strict);
-        svc.Setup(s => s.ListAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<Project>());
         var dlg = new FakeDialogService();
         return (new FinanceProjectGridViewModel(svc.Object, dlg), svc);
     }
@@ -54,8 +53,6 @@ public class FinanceProjectGridViewModelTests
         var (vm, svc) = Create();
         svc.Setup(s => s.CreateAsync(It.IsAny<Project>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(42);
-        svc.Setup(s => s.ListAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<Project> { new() { Id = 42, Name = "DA1" } });
 
         vm.ProjectName = "DA1";
         vm.ContractValue = 1_000m;
@@ -76,8 +73,6 @@ public class FinanceProjectGridViewModelTests
             .ReturnsAsync(new Project { Id = 7, Name = "DA7", ContractValue = 2_000m });
         svc.Setup(s => s.UpdateAsync(It.IsAny<Project>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
-        svc.Setup(s => s.ListAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<Project> { new() { Id = 7, Name = "DA7" } });
 
         await vm.LoadProjectAsync(7);
         vm.CurrentProjectId.ShouldBe(7);
@@ -91,8 +86,6 @@ public class FinanceProjectGridViewModelTests
     {
         var (vm, svc) = Create();
         svc.Setup(s => s.CreateAsync(It.IsAny<Project>(), It.IsAny<CancellationToken>())).ReturnsAsync(5);
-        svc.Setup(s => s.ListAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<Project> { new() { Id = 5, Name = "DA1" } });
 
         vm.ProjectName = "DA1";
         vm.ContractValue = 1_000m;
@@ -102,5 +95,109 @@ public class FinanceProjectGridViewModelTests
         await vm.SaveCommand.ExecuteAsync(null);
 
         svc.Verify(s => s.CreateAsync(It.Is<Project>(p => p.ContractAnnexValue == 1_100m), It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public void InitializeNew_starts_dirty_with_one_blank_row()
+    {
+        var sut = new FinanceProjectGridViewModel(Mock.Of<IFinanceProjectService>(), Mock.Of<IDialogService>());
+
+        sut.InitializeNew();
+
+        sut.CurrentProjectId.ShouldBe(0);
+        sut.Lines.Count.ShouldBe(1);
+        sut.IsDirty.ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task LoadProjectAsync_leaves_the_grid_clean()
+    {
+        var service = new Mock<IFinanceProjectService>();
+        service.Setup(s => s.GetWithLinesAsync(7, It.IsAny<CancellationToken>()))
+               .ReturnsAsync(new Project { Id = 7, Name = "DA1" });
+        var sut = new FinanceProjectGridViewModel(service.Object, Mock.Of<IDialogService>());
+
+        await sut.LoadProjectAsync(7);
+
+        sut.ProjectName.ShouldBe("DA1");
+        sut.IsDirty.ShouldBeFalse();
+    }
+
+    [Fact]
+    public async Task LoadProjectAsync_with_unknown_id_leaves_dirty_state_untouched()
+    {
+        var service = new Mock<IFinanceProjectService>();
+        service.Setup(s => s.GetWithLinesAsync(999, It.IsAny<CancellationToken>()))
+               .ReturnsAsync((Project?)null);
+        var sut = new FinanceProjectGridViewModel(service.Object, Mock.Of<IDialogService>());
+        sut.InitializeNew();          // dirty = true
+        sut.IsDirty.ShouldBeTrue();
+
+        await sut.LoadProjectAsync(999);
+
+        sut.IsDirty.ShouldBeTrue();   // unchanged — nothing was loaded
+    }
+
+    [Fact]
+    public async Task Editing_a_header_field_marks_the_grid_dirty()
+    {
+        var service = new Mock<IFinanceProjectService>();
+        service.Setup(s => s.GetWithLinesAsync(7, It.IsAny<CancellationToken>()))
+               .ReturnsAsync(new Project { Id = 7, Name = "DA1" });
+        var sut = new FinanceProjectGridViewModel(service.Object, Mock.Of<IDialogService>());
+        await sut.LoadProjectAsync(7);
+
+        sut.ContractorName = "Nhà thầu X";
+
+        sut.IsDirty.ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task Editing_a_row_marks_the_grid_dirty()
+    {
+        var service = new Mock<IFinanceProjectService>();
+        service.Setup(s => s.GetWithLinesAsync(7, It.IsAny<CancellationToken>()))
+               .ReturnsAsync(new Project
+               {
+                   Id = 7,
+                   Name = "DA1",
+                   Lines = { new ProjectLineItem { SortOrder = 1, Advance = 10m } }
+               });
+        var sut = new FinanceProjectGridViewModel(service.Object, Mock.Of<IDialogService>());
+        await sut.LoadProjectAsync(7);
+
+        sut.Lines[0].PaymentKLHT = 50m;
+
+        sut.IsDirty.ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task SaveAsync_clears_dirty_and_returns_true()
+    {
+        var service = new Mock<IFinanceProjectService>();
+        service.Setup(s => s.CreateAsync(It.IsAny<Project>(), It.IsAny<CancellationToken>()))
+               .ReturnsAsync(42);
+        var sut = new FinanceProjectGridViewModel(service.Object, Mock.Of<IDialogService>());
+        sut.InitializeNew();
+        sut.ProjectName = "DA moi";
+
+        var ok = await sut.SaveAsync();
+
+        ok.ShouldBeTrue();
+        sut.CurrentProjectId.ShouldBe(42);
+        sut.IsDirty.ShouldBeFalse();
+    }
+
+    [Fact]
+    public async Task SaveAsync_refuses_a_blank_name_and_stays_dirty()
+    {
+        var sut = new FinanceProjectGridViewModel(Mock.Of<IFinanceProjectService>(), Mock.Of<IDialogService>());
+        sut.InitializeNew();
+        sut.ProjectName = "   ";
+
+        var ok = await sut.SaveAsync();
+
+        ok.ShouldBeFalse();
+        sut.IsDirty.ShouldBeTrue();
     }
 }

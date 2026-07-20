@@ -11,34 +11,15 @@
             <TextBlock Classes="pageSubtitle" Text="Nhập đợt như Excel — số tổng hợp tính sống"/>
         </StackPanel>
 
-        <!-- Project picker + header fields + actions -->
+        <!-- Header fields + actions -->
         <Border DockPanel.Dock="Top" Classes="card" Margin="0,0,0,12">
             <StackPanel Spacing="10">
-                <Grid ColumnDefinitions="Auto,*,Auto">
-                    <StackPanel Grid.Column="0" Spacing="3">
-                        <TextBlock Text="DỰ ÁN" Classes="muted" FontSize="11" FontWeight="SemiBold"/>
-                        <ComboBox ItemsSource="{Binding Projects}"
-                                  SelectedItem="{Binding SelectedProject}"
-                                  MinWidth="320"
-                                  DisplayMemberBinding="{Binding Name}"/>
-                    </StackPanel>
-                    <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8" VerticalAlignment="Bottom">
-                        <Button Classes="toolbar" Command="{Binding NewProjectCommand}">
-                            <StackPanel Orientation="Horizontal" Spacing="6">
-                                <ui:SymbolIcon Symbol="{x:Static ui:Symbol.Add}"/>
-                                <TextBlock Text="Dự án mới"/>
-                            </StackPanel>
-                        </Button>
+                <Grid ColumnDefinitions="*,Auto">
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Bottom">
                         <Button Classes="accent toolbar" Command="{Binding SaveCommand}">
                             <StackPanel Orientation="Horizontal" Spacing="6">
                                 <ui:SymbolIcon Symbol="{x:Static ui:Symbol.Save}"/>
                                 <TextBlock Text="Lưu"/>
-                            </StackPanel>
-                        </Button>
-                        <Button Classes="toolbar danger" Command="{Binding DeleteProjectCommand}">
-                            <StackPanel Orientation="Horizontal" Spacing="6">
-                                <ui:SymbolIcon Symbol="{x:Static ui:Symbol.Delete}"/>
-                                <TextBlock Text="Xóa dự án"/>
                             </StackPanel>
                         </Button>
                     </StackPanel>

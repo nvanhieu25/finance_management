@@ -7,7 +7,6 @@ using ConstructionFinance.Desktop.ViewModels.ThongTri;
 using ConstructionFinance.Desktop.ViewModels.TongHop;
 using ConstructionFinance.Desktop.ViewModels.Vendors;
 using Microsoft.Extensions.DependencyInjection;
-using Serilog;
 
 namespace ConstructionFinance.Desktop.ViewModels;
 
@@ -23,11 +22,11 @@ public partial class MainWindowViewModel : ViewModelBase
         _nav.CurrentContentChanged += (_, content) => CurrentContent = content;
     }
 
-    public async Task InitializeAsync()
-    {
-        try { await NavigateToAsync("TongHop"); }
-        catch (Exception ex) { Log.Warning(ex, "Initial navigation to TongHop failed"); }
-    }
+    // Landing navigation is driven by the View: MainWindow.OnNavLoaded sets the
+    // NavigationView.SelectedItem, and real user clicks navigate via the ItemInvoked
+    // event. This no-op (still called from App.axaml.cs) stays a no-op so there is no
+    // second, racy navigation path competing with the View-driven one.
+    public Task InitializeAsync() => Task.CompletedTask;
 
     [ObservableProperty] private string _title = "Quản lý Tài chính Công trình";
     [ObservableProperty] private string _statusText = $"DB: {AppPaths.DatabaseFile} | Sẵn sàng";
@@ -72,13 +71,19 @@ public partial class MainWindowViewModel : ViewModelBase
                 var fgvm = _services.GetRequiredService<ViewModels.Finance.FinanceProjectGridViewModel>();
                 _nav.Reset();
                 _nav.NavigateTo(fgvm);
-                await fgvm.LoadAsync();
+                fgvm.InitializeNew();
                 break;
             case "FinanceSummary":
                 var fsvm = _services.GetRequiredService<ViewModels.Finance.FinanceSummaryViewModel>();
                 _nav.Reset();
                 _nav.NavigateTo(fsvm);
                 await fsvm.LoadAsync();
+                break;
+            case "FinanceWorkbook":
+                var fwvm = _services.GetRequiredService<ViewModels.Finance.FinanceWorkbookViewModel>();
+                _nav.Reset();
+                _nav.NavigateTo(fwvm);
+                await fwvm.LoadAsync();
                 break;
             case "Settings":
                 var svm = _services.GetRequiredService<ViewModels.Settings.SettingsViewModel>();
