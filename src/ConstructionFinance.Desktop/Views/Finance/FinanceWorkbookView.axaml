@@ -3,6 +3,9 @@
              xmlns:vm="using:ConstructionFinance.Desktop.ViewModels.Finance"
              x:Class="ConstructionFinance.Desktop.Views.Finance.FinanceWorkbookView"
              x:DataType="vm:FinanceWorkbookViewModel">
+    <UserControl.KeyBindings>
+        <KeyBinding Gesture="Ctrl+S" Command="{Binding SaveAllCommand}"/>
+    </UserControl.KeyBindings>
     <DockPanel>
         <StackPanel DockPanel.Dock="Top" Spacing="2" Margin="0,0,0,12">
             <TextBlock Classes="pageTitle" Text="Tài chính dự án"/>
@@ -14,6 +17,7 @@
                 <Button Classes="toolbar" Command="{Binding AddPageCommand}" Content="+ Thêm dự án"/>
                 <Button Classes="toolbar" Command="{Binding ClosePageCommand}"
                         CommandParameter="{Binding SelectedPage}" Content="Xóa dự án"/>
+                <Button Classes="toolbar accent" Command="{Binding SaveAllCommand}" Content="Lưu tất cả (Ctrl+S)"/>
                 <TextBlock Classes="muted" VerticalAlignment="Center"
                            Text="Đổi tên: sửa ô “Tên dự án” trong trang dự án"/>
             </StackPanel>

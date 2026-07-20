@@ -282,4 +282,46 @@ public class FinanceWorkbookViewModelTests
         sut.SelectedPage.ShouldBe(sut.SummaryPage);
         service.Verify(s => s.DeleteAsync(7, It.IsAny<CancellationToken>()), Times.Once);
     }
+
+    [Fact]
+    public async Task IsDirty_is_true_when_any_project_page_is_dirty()
+    {
+        var sut = CreateSutWithProjects((1, "DA1"));
+        await sut.LoadAsync();
+        sut.IsDirty.ShouldBeFalse();
+
+        ((ProjectPageViewModel)sut.Pages[1]).Grid.ContractorName = "X";
+
+        sut.IsDirty.ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task SaveAll_saves_only_dirty_pages_and_clears_them()
+    {
+        var sut = CreateSutWithProjects((1, "DA1"), (2, "DA2"));
+        await sut.LoadAsync();
+        var dirty = (ProjectPageViewModel)sut.Pages[1];
+        dirty.Grid.ContractorName = "X";
+
+        await sut.SaveAllCommand.ExecuteAsync(null);
+
+        dirty.IsDirty.ShouldBeFalse();
+        sut.IsDirty.ShouldBeFalse();
+    }
+
+    [Fact]
+    public async Task SaveAll_keeps_a_failed_page_dirty_and_still_saves_the_others()
+    {
+        var sut = CreateSutWithProjects((1, "DA1"), (2, "DA2"));
+        await sut.LoadAsync();
+        var good = (ProjectPageViewModel)sut.Pages[1];
+        var bad = (ProjectPageViewModel)sut.Pages[2];
+        good.Grid.ContractorName = "X";
+        bad.Grid.ProjectName = "   ";   // blank name → SaveAsync returns false
+
+        await sut.SaveAllCommand.ExecuteAsync(null);
+
+        good.IsDirty.ShouldBeFalse();
+        bad.IsDirty.ShouldBeTrue();
+    }
 }

@@ -36,6 +36,9 @@ public partial class FinanceWorkbookViewModel : ViewModelBase
     [ObservableProperty] private bool _isBusy;
     [ObservableProperty] private string? _errorMessage;
 
+    /// True when any project page has unsaved edits (drives the toolbar + close guard).
+    public bool IsDirty => Pages.OfType<ProjectPageViewModel>().Any(p => p.IsDirty);
+
     public async Task LoadAsync()
     {
         IsBusy = true;
@@ -85,8 +88,41 @@ public partial class FinanceWorkbookViewModel : ViewModelBase
         var grid = _services.GetRequiredService<FinanceProjectGridViewModel>();
         grid.InitializeNew();
         var page = new ProjectPageViewModel(grid);
+        page.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName == nameof(WorkbookPageViewModel.IsDirty))
+                OnPropertyChanged(nameof(IsDirty));
+        };
         Pages.Add(page);
         SelectedPage = page;
+    }
+
+    /// Excel-style Save-All: write every dirty page, then refresh TH. A page that
+    /// fails stays dirty so its edits are never silently dropped.
+    [RelayCommand]
+    private async Task SaveAllAsync()
+    {
+        var dirtyPages = Pages.OfType<ProjectPageViewModel>().Where(p => p.IsDirty).ToList();
+        if (dirtyPages.Count == 0) return;
+
+        IsBusy = true;
+        var failed = new List<string>();
+        try
+        {
+            foreach (var page in dirtyPages)
+            {
+                var ok = await page.Grid.SaveAsync();
+                if (!ok) failed.Add(page.Title);
+            }
+
+            await SummaryPage.Summary.LoadAsync();
+            OnPropertyChanged(nameof(IsDirty));
+        }
+        finally { IsBusy = false; }
+
+        if (failed.Count > 0)
+            await _dialog.ShowMessageAsync("Lưu chưa xong",
+                "Chưa lưu được các dự án sau (kiểm tra lại tên dự án):\n- " + string.Join("\n- ", failed));
     }
 
     /// Close a project page. TH is pinned (never a ProjectPageViewModel).
@@ -148,6 +184,12 @@ public partial class FinanceWorkbookViewModel : ViewModelBase
             throw new InvalidOperationException(
                 grid.ErrorMessage ?? $"Project {projectId} could not be loaded.");
 
-        return new ProjectPageViewModel(grid);
+        var page = new ProjectPageViewModel(grid);
+        page.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName == nameof(WorkbookPageViewModel.IsDirty))
+                OnPropertyChanged(nameof(IsDirty));
+        };
+        return page;
     }
 }

@@ -4,6 +4,7 @@ using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
 using ConstructionFinance.Desktop.ViewModels;
 using FluentAvalonia.UI.Controls;
+using Microsoft.Extensions.DependencyInjection;
 using Serilog;
 
 namespace ConstructionFinance.Desktop.Views;
@@ -16,6 +17,10 @@ public partial class MainWindow : Window
     // user has actually pressed the pointer or a key. The initial landing is an
     // explicit one-time navigation below, independent of nav events.
     private bool _userInteracted;
+    private bool _forceClose;
+
+    private readonly Services.IDialogService _dialog =
+        App.Host!.Services.GetRequiredService<Services.IDialogService>();
 
     public MainWindow()
     {
@@ -30,9 +35,27 @@ public partial class MainWindow : Window
             nav.ItemInvoked += OnNavItemInvoked;
             nav.Loaded += OnNavLoaded;
         }
+
+        Closing += OnWindowClosing;
     }
 
     private void OnUserInteraction(object? sender, RoutedEventArgs e) => _userInteracted = true;
+
+    // Excel-style guard: never let unsaved project pages die silently.
+    private async void OnWindowClosing(object? sender, WindowClosingEventArgs e)
+    {
+        if (_forceClose) return;
+        if (DataContext is not MainWindowViewModel vm) return;
+        if (vm.CurrentContent is not ViewModels.Finance.FinanceWorkbookViewModel wb || !wb.IsDirty) return;
+
+        e.Cancel = true;
+        var leave = await _dialog.ConfirmAsync("Còn thay đổi chưa lưu",
+            "Có dự án chưa lưu. Thoát mà không lưu?");
+        if (!leave) return;
+
+        _forceClose = true;
+        Close();
+    }
 
     private async void OnNavLoaded(object? sender, RoutedEventArgs e)
     {
