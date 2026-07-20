@@ -54,24 +54,45 @@ public class FinanceSummaryViewModelTests
     }
 
     [Fact]
-    public async Task ImportCommand_parses_saves_and_reloads()
+    public async Task ImportCommand_classifies_shows_review_dialog_saves_merged_and_reloads()
     {
         var vm = Create(out var svc, out var importer, out _, out var dlg);
         dlg.PickOpenFileResult = "/tmp/legacy.xlsx";
-        dlg.ConfirmResult = true;
+        dlg.DialogResult = true; // user confirms the review dialog
         importer.Setup(i => i.ParseWorkbookAsync("/tmp/legacy.xlsx", It.IsAny<CancellationToken>()))
             .ReturnsAsync(new ConstructionFinance.Application.Import.FinanceImportResult(
                 new List<ConstructionFinance.Domain.Finance.Project> { new() { Name = "DA1" } },
                 new List<string>()));
-        svc.Setup(s => s.SaveImportedAsync(It.IsAny<IReadOnlyList<ConstructionFinance.Domain.Finance.Project>>(), It.IsAny<CancellationToken>()))
+        svc.Setup(s => s.ListAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<ConstructionFinance.Domain.Finance.Project>());
+        svc.Setup(s => s.SaveMergedAsync(It.IsAny<IReadOnlyList<ConstructionFinance.Application.Import.ImportCandidate>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(1);
 
         await vm.LoadAsync(); // initial load
         await vm.ImportCommand.ExecuteAsync(null);
 
         importer.Verify(i => i.ParseWorkbookAsync("/tmp/legacy.xlsx", It.IsAny<CancellationToken>()), Times.Once);
-        svc.Verify(s => s.SaveImportedAsync(It.Is<IReadOnlyList<ConstructionFinance.Domain.Finance.Project>>(l => l.Count == 1), It.IsAny<CancellationToken>()), Times.Once);
+        dlg.OpenedDialogs.OfType<ImportResolutionDialogViewModel>().Count().ShouldBe(1);
+        svc.Verify(s => s.SaveMergedAsync(It.Is<IReadOnlyList<ConstructionFinance.Application.Import.ImportCandidate>>(l => l.Count == 1), It.IsAny<CancellationToken>()), Times.Once);
         svc.Verify(s => s.GetAllSummariesAsync(It.IsAny<CancellationToken>()), Times.AtLeast(2)); // initial + reload
+    }
+
+    [Fact]
+    public async Task ImportCommand_noop_when_review_dialog_cancelled()
+    {
+        var vm = Create(out var svc, out var importer, out _, out var dlg);
+        dlg.PickOpenFileResult = "/tmp/legacy.xlsx";
+        dlg.DialogResult = null; // user cancels the review dialog
+        importer.Setup(i => i.ParseWorkbookAsync("/tmp/legacy.xlsx", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ConstructionFinance.Application.Import.FinanceImportResult(
+                new List<ConstructionFinance.Domain.Finance.Project> { new() { Name = "DA1" } },
+                new List<string>()));
+        svc.Setup(s => s.ListAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<ConstructionFinance.Domain.Finance.Project>());
+
+        await vm.ImportCommand.ExecuteAsync(null);
+
+        svc.Verify(s => s.SaveMergedAsync(It.IsAny<IReadOnlyList<ConstructionFinance.Application.Import.ImportCandidate>>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]

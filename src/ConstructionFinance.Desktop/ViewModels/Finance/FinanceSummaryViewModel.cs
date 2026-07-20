@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using ConstructionFinance.Application.Calc;
+using ConstructionFinance.Application.Import;
 using ConstructionFinance.Application.Services.Interfaces;
 using ConstructionFinance.Desktop.Common;
 using ConstructionFinance.Desktop.Services;
@@ -106,12 +107,17 @@ public partial class FinanceSummaryViewModel : ViewModelBase
                 return;
             }
 
-            var msg = $"Tìm thấy {result.Projects.Count} dự án. Nhập vào ứng dụng?";
-            if (result.Warnings.Count > 0)
-                msg += $"\n\n{result.Warnings.Count} cảnh báo:\n- " + string.Join("\n- ", result.Warnings.Take(10));
-            if (!await _dialog.ConfirmAsync("Nhập Excel", msg)) return;
+            var existing = await _service.ListAsync();
+            var candidates = ImportMerge.Classify(result.Projects, existing);
 
-            var saved = await _service.SaveImportedAsync(result.Projects);
+            if (result.Warnings.Count > 0)
+                await _dialog.ShowMessageAsync("Cảnh báo khi đọc file",
+                    $"{result.Warnings.Count} cảnh báo:\n- " + string.Join("\n- ", result.Warnings.Take(10)));
+
+            var review = new ImportResolutionDialogViewModel(candidates);
+            if (await _dialog.ShowDialogAsync(review) != true) return;
+
+            var saved = await _service.SaveMergedAsync(review.ToCandidates());
             await LoadAsync();
             await _dialog.ShowMessageAsync("Nhập Excel", $"Đã nhập {saved} dự án.");
         }
