@@ -2,7 +2,6 @@ using ConstructionFinance.Application.Calc;
 using ConstructionFinance.Application.Services.Interfaces;
 using ConstructionFinance.Desktop.Tests.Common;
 using ConstructionFinance.Desktop.ViewModels.Finance;
-using Microsoft.Extensions.DependencyInjection;
 using Moq;
 using Shouldly;
 using Xunit;
@@ -27,9 +26,7 @@ public class FinanceSummaryViewModelTests
         importer = new Mock<IFinanceImportService>(MockBehavior.Strict);
         exporter = new Mock<IFinanceExportService>(MockBehavior.Strict);
         dlg = new FakeDialogService();
-        var nav = new FakeNavigationService();
-        var services = new ServiceCollection().BuildServiceProvider();
-        return new FinanceSummaryViewModel(svc.Object, importer.Object, exporter.Object, dlg, nav, services);
+        return new FinanceSummaryViewModel(svc.Object, importer.Object, exporter.Object, dlg);
     }
 
     [Fact]
@@ -114,5 +111,17 @@ public class FinanceSummaryViewModelTests
         await vm.ExportCommand.ExecuteAsync(null);
 
         exporter.Verify(e => e.ExportAsync(It.IsAny<IReadOnlyList<ConstructionFinance.Domain.Finance.Project>>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public void ActivateProject_raises_the_activation_event_with_the_project_id()
+    {
+        var sut = Create(out _, out _, out _, out _);
+        var raised = 0;
+        sut.ProjectActivationRequested += (_, id) => raised = id;
+
+        sut.ActivateProject(42);
+
+        raised.ShouldBe(42);
     }
 }

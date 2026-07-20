@@ -5,36 +5,29 @@ using ConstructionFinance.Application.Calc;
 using ConstructionFinance.Application.Services.Interfaces;
 using ConstructionFinance.Desktop.Common;
 using ConstructionFinance.Desktop.Services;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace ConstructionFinance.Desktop.ViewModels.Finance;
 
 /// Project-centric Tổng hợp: instant name filter → live aggregate rows + grand
-/// total; open a row to edit that project in the Phase-3 entry grid.
+/// total; activate a row to jump to that project's workbook tab.
 public partial class FinanceSummaryViewModel : ViewModelBase
 {
     private readonly IFinanceProjectService _service;
     private readonly IFinanceImportService _importer;
     private readonly IFinanceExportService _exporter;
     private readonly IDialogService _dialog;
-    private readonly INavigationService _nav;
-    private readonly IServiceProvider _services;
     private List<FinanceProjectSummary> _all = new();
 
     public FinanceSummaryViewModel(
         IFinanceProjectService service,
         IFinanceImportService importer,
         IFinanceExportService exporter,
-        IDialogService dialog,
-        INavigationService nav,
-        IServiceProvider services)
+        IDialogService dialog)
     {
         _service = service;
         _importer = importer;
         _exporter = exporter;
         _dialog = dialog;
-        _nav = nav;
-        _services = services;
     }
 
     public ObservableCollection<FinanceSummaryRowVm> Rows { get; } = new();
@@ -90,14 +83,11 @@ public partial class FinanceSummaryViewModel : ViewModelBase
     [RelayCommand]
     private async Task RefreshAsync() => await LoadAsync();
 
-    [RelayCommand]
-    private async Task OpenProjectAsync()
-    {
-        if (SelectedRow is null) return;
-        var grid = _services.GetRequiredService<FinanceProjectGridViewModel>();
-        await grid.LoadProjectAsync(SelectedRow.ProjectId);
-        _nav.NavigateTo(grid);
-    }
+    /// Raised when the user activates a row (double-click). The workbook listens
+    /// and switches to that project's tab — the page never reaches up to its host.
+    public event EventHandler<int>? ProjectActivationRequested;
+
+    public void ActivateProject(int projectId) => ProjectActivationRequested?.Invoke(this, projectId);
 
     [RelayCommand]
     private async Task ImportAsync()

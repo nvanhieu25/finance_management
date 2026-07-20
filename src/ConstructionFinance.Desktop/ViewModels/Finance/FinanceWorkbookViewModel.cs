@@ -26,6 +26,9 @@ public partial class FinanceWorkbookViewModel : ViewModelBase
         _dialog = dialog;
         _services = services;
         SummaryPage = summaryPage;
+
+        SummaryPage.Summary.ProjectActivationRequested += async (_, projectId) =>
+            await GoToProjectAsync(projectId);
     }
 
     public ObservableCollection<WorkbookPageViewModel> Pages { get; } = new();

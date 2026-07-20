@@ -24,9 +24,7 @@ public class FinanceWorkbookViewModelTests
             service.Object,
             Mock.Of<IFinanceImportService>(),
             Mock.Of<IFinanceExportService>(),
-            Mock.Of<IDialogService>(),
-            Mock.Of<INavigationService>(),
-            new ServiceCollection().BuildServiceProvider());
+            Mock.Of<IDialogService>());
 
         return new FinanceWorkbookViewModel(
             service.Object,
@@ -90,9 +88,7 @@ public class FinanceWorkbookViewModelTests
             service.Object,
             Mock.Of<IFinanceImportService>(),
             Mock.Of<IFinanceExportService>(),
-            Mock.Of<IDialogService>(),
-            Mock.Of<INavigationService>(),
-            new ServiceCollection().BuildServiceProvider());
+            Mock.Of<IDialogService>());
 
         var services = new ServiceCollection();
         services.AddTransient(_ => new FinanceProjectGridViewModel(service.Object, Mock.Of<IDialogService>()));
@@ -166,9 +162,7 @@ public class FinanceWorkbookViewModelTests
             service.Object,
             Mock.Of<IFinanceImportService>(),
             Mock.Of<IFinanceExportService>(),
-            Mock.Of<IDialogService>(),
-            Mock.Of<INavigationService>(),
-            new ServiceCollection().BuildServiceProvider());
+            Mock.Of<IDialogService>());
 
         var services = new ServiceCollection();
         services.AddTransient(_ => new FinanceProjectGridViewModel(service.Object, Mock.Of<IDialogService>()));
@@ -238,9 +232,7 @@ public class FinanceWorkbookViewModelTests
             service.Object,
             Mock.Of<IFinanceImportService>(),
             Mock.Of<IFinanceExportService>(),
-            Mock.Of<IDialogService>(),
-            Mock.Of<INavigationService>(),
-            new ServiceCollection().BuildServiceProvider());
+            Mock.Of<IDialogService>());
 
         var services = new ServiceCollection();
         services.AddTransient(_ => new FinanceProjectGridViewModel(service.Object, Mock.Of<IDialogService>()));
