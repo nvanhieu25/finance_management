@@ -1,6 +1,8 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:ConstructionFinance.Desktop.ViewModels.Finance"
+             xmlns:common="using:ConstructionFinance.Desktop.Common"
+             xmlns:imp="using:ConstructionFinance.Application.Import"
              x:Class="ConstructionFinance.Desktop.Views.Finance.ImportResolutionDialog"
              x:DataType="vm:ImportResolutionDialogViewModel"
              Width="640">
@@ -21,7 +23,13 @@
                             <ComboBox ItemsSource="{Binding Options}"
                                       SelectedItem="{Binding Resolution}"
                                       IsEnabled="{Binding IsDuplicate}"
-                                      HorizontalAlignment="Stretch" Margin="4,2"/>
+                                      HorizontalAlignment="Stretch" Margin="4,2">
+                                <ComboBox.ItemTemplate>
+                                    <DataTemplate DataType="imp:ImportResolution">
+                                        <TextBlock Text="{Binding ., Converter={x:Static common:EnumToVietnameseConverter.Instance}}"/>
+                                    </DataTemplate>
+                                </ComboBox.ItemTemplate>
+                            </ComboBox>
                         </DataTemplate>
                     </DataGridTemplateColumn.CellTemplate>
                 </DataGridTemplateColumn>

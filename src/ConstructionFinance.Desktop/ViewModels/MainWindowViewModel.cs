@@ -22,9 +22,10 @@ public partial class MainWindowViewModel : ViewModelBase
         _nav.CurrentContentChanged += (_, content) => CurrentContent = content;
     }
 
-    // Landing navigation is driven deterministically by NavigationView.SelectedItem
-    // (set in MainWindow ctor), which raises SelectionChanged → NavigateToAsync.
-    // Keeping this as a no-op avoids a second, racy navigation path.
+    // Landing navigation is driven by the View: MainWindow.OnNavLoaded sets the
+    // NavigationView.SelectedItem, and real user clicks navigate via the ItemInvoked
+    // event. This no-op (still called from App.axaml.cs) stays a no-op so there is no
+    // second, racy navigation path competing with the View-driven one.
     public Task InitializeAsync() => Task.CompletedTask;
 
     [ObservableProperty] private string _title = "Quản lý Tài chính Công trình";
