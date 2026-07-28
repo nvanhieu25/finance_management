@@ -32,6 +32,29 @@ public static class TreeCalculator
             Yearly: BuildYearly(dots));
     }
 
+    public static TreeAggregate Roll(IReadOnlyList<TreeAggregate> children)
+    {
+        var yearly = children
+            .SelectMany(c => c.Yearly)
+            .GroupBy(y => y.FiscalYear)
+            .OrderBy(g => g.Key)
+            .Select(g => new FiscalYearSettlement(
+                FiscalYear: g.Key,
+                NSNN: g.Sum(y => y.NSNN),
+                NgoaiHoi: g.Sum(y => y.NgoaiHoi)))
+            .ToList();
+
+        return new TreeAggregate(
+            SumAdvance: children.Sum(c => c.SumAdvance),
+            SumKLHT: children.Sum(c => c.SumKLHT),
+            SumRecovered: children.Sum(c => c.SumRecovered),
+            DisbursedNSNN: children.Sum(c => c.DisbursedNSNN),
+            DisbursedNgoaiHoi: children.Sum(c => c.DisbursedNgoaiHoi),
+            UnrecoveredAdvance: children.Sum(c => c.UnrecoveredAdvance),
+            TotalDisbursed: children.Sum(c => c.TotalDisbursed),
+            Yearly: yearly);
+    }
+
     private static IReadOnlyList<FiscalYearSettlement> BuildYearly(IReadOnlyList<DotInput> dots) =>
         dots
             .GroupBy(d => FiscalYear(d.Date))
