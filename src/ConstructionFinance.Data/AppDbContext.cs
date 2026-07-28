@@ -3,6 +3,10 @@ using Microsoft.EntityFrameworkCore;
 using FinanceProject = ConstructionFinance.Domain.Finance.Project;
 using FinanceProjectLineItem = ConstructionFinance.Domain.Finance.ProjectLineItem;
 using FinanceProjectDecision = ConstructionFinance.Domain.Finance.ProjectDecision;
+using FinanceViTri = ConstructionFinance.Domain.Finance.ViTri;
+using FinanceCostGroup = ConstructionFinance.Domain.Finance.CostGroup;
+using FinancePackage = ConstructionFinance.Domain.Finance.Package;
+using FinanceDot = ConstructionFinance.Domain.Finance.Dot;
 
 namespace ConstructionFinance.Data;
 
@@ -29,6 +33,10 @@ public class AppDbContext : DbContext
     public DbSet<FinanceProject> FinanceProjects => Set<FinanceProject>();
     public DbSet<FinanceProjectLineItem> FinanceProjectLines => Set<FinanceProjectLineItem>();
     public DbSet<FinanceProjectDecision> FinanceProjectDecisions => Set<FinanceProjectDecision>();
+    public DbSet<FinanceViTri> ViTris => Set<FinanceViTri>();
+    public DbSet<FinanceCostGroup> CostGroups => Set<FinanceCostGroup>();
+    public DbSet<FinancePackage> Packages => Set<FinancePackage>();
+    public DbSet<FinanceDot> Dots => Set<FinanceDot>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
