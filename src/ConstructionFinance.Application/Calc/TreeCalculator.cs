@@ -64,4 +64,16 @@ public static class TreeCalculator
                 NSNN: g.Where(d => d.Fund == Fund.NSNN).Sum(Disbursed),
                 NgoaiHoi: g.Where(d => d.Fund == Fund.NgoaiHoi).Sum(Disbursed)))
             .ToList();
+
+    public static TreeAggregate AggregatePackageEntity(Package p) =>
+        AggregatePackage(p.Dots.OrderBy(d => d.SortOrder).Select(d => d.ToDotInput()).ToList());
+
+    public static TreeAggregate AggregateGroup(CostGroup g) =>
+        Roll(g.Packages.OrderBy(p => p.SortOrder).Select(AggregatePackageEntity).ToList());
+
+    public static TreeAggregate AggregateViTri(ViTri v) =>
+        Roll(v.CostGroups.OrderBy(g => g.SortOrder).Select(AggregateGroup).ToList());
+
+    public static TreeAggregate AggregateTree(Project project) =>
+        Roll(project.ViTris.OrderBy(v => v.SortOrder).Select(AggregateViTri).ToList());
 }
