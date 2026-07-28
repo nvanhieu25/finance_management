@@ -67,6 +67,19 @@ public class FinanceProjectRepository : IFinanceProjectRepository
             .OrderBy(p => p.Name)
             .ToListAsync(ct);
 
+    public async Task<Project?> GetTreeAsync(int id, CancellationToken ct = default) =>
+        await _context.FinanceProjects
+            .Include(p => p.ViTris).ThenInclude(v => v.CostGroups)
+                .ThenInclude(g => g.Packages).ThenInclude(pk => pk.Dots)
+            .FirstOrDefaultAsync(p => p.Id == id, ct);
+
+    public async Task<IReadOnlyList<Project>> ListTreesAsync(CancellationToken ct = default) =>
+        await _context.FinanceProjects
+            .Include(p => p.ViTris).ThenInclude(v => v.CostGroups)
+                .ThenInclude(g => g.Packages).ThenInclude(pk => pk.Dots)
+            .OrderBy(p => p.Name)
+            .ToListAsync(ct);
+
     public async Task DeleteAsync(int id, CancellationToken ct = default)
     {
         var p = await _context.FinanceProjects.FindAsync(new object[] { id }, ct);
