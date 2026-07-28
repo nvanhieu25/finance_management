@@ -28,6 +28,12 @@ public class FinanceProjectService : IFinanceProjectService
         return ProjectCalculator.Aggregate(inputs);
     }
 
+    public async Task<TreeAggregate?> GetTreeAggregateAsync(int projectId, CancellationToken ct = default)
+    {
+        var project = await _repo.GetTreeAsync(projectId, ct);
+        return project is null ? null : TreeCalculator.AggregateTree(project);
+    }
+
     public async Task<IReadOnlyList<FinanceProjectSummary>> GetAllSummariesAsync(CancellationToken ct = default)
     {
         var projects = await _repo.ListWithLinesAsync(ct);
