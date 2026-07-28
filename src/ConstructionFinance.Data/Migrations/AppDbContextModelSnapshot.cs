@@ -757,6 +757,133 @@ namespace ConstructionFinance.Data.Migrations
                     b.ToTable("vendors", (string)null);
                 });
 
+            modelBuilder.Entity("ConstructionFinance.Domain.Finance.CostGroup", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("ViTriId")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ViTriId", "SortOrder");
+
+                    b.ToTable("finance_cost_groups", (string)null);
+                });
+
+            modelBuilder.Entity("ConstructionFinance.Domain.Finance.Dot", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<decimal>("Advance")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Content")
+                        .HasMaxLength(255)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateOnly>("Date")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("DocumentNo")
+                        .HasMaxLength(255)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Fund")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("PackageId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<decimal>("PaymentKLHT")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal>("RecoveredAdvance")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PackageId", "SortOrder");
+
+                    b.ToTable("finance_dots", (string)null);
+                });
+
+            modelBuilder.Entity("ConstructionFinance.Domain.Finance.Package", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("BankAccount")
+                        .HasMaxLength(255)
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal>("ContractAnnexValue")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal>("ContractValue")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ContractorName")
+                        .HasMaxLength(255)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("CostGroupId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CostGroupId", "SortOrder");
+
+                    b.ToTable("finance_packages", (string)null);
+                });
+
             modelBuilder.Entity("ConstructionFinance.Domain.Finance.Project", b =>
                 {
                     b.Property<int>("Id")
@@ -867,6 +994,40 @@ namespace ConstructionFinance.Data.Migrations
                     b.HasIndex("ProjectId", "SortOrder");
 
                     b.ToTable("finance_project_lines", (string)null);
+                });
+
+            modelBuilder.Entity("ConstructionFinance.Domain.Finance.ViTri", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("NguonVon")
+                        .HasMaxLength(255)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("ProjectId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProjectId", "SortOrder");
+
+                    b.ToTable("finance_vitris", (string)null);
                 });
 
             modelBuilder.Entity("ConstructionFinance.Domain.Entities.Contract", b =>
@@ -988,6 +1149,39 @@ namespace ConstructionFinance.Data.Migrations
                     b.Navigation("ProjectSummary");
                 });
 
+            modelBuilder.Entity("ConstructionFinance.Domain.Finance.CostGroup", b =>
+                {
+                    b.HasOne("ConstructionFinance.Domain.Finance.ViTri", "ViTri")
+                        .WithMany("CostGroups")
+                        .HasForeignKey("ViTriId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ViTri");
+                });
+
+            modelBuilder.Entity("ConstructionFinance.Domain.Finance.Dot", b =>
+                {
+                    b.HasOne("ConstructionFinance.Domain.Finance.Package", "Package")
+                        .WithMany("Dots")
+                        .HasForeignKey("PackageId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Package");
+                });
+
+            modelBuilder.Entity("ConstructionFinance.Domain.Finance.Package", b =>
+                {
+                    b.HasOne("ConstructionFinance.Domain.Finance.CostGroup", "CostGroup")
+                        .WithMany("Packages")
+                        .HasForeignKey("CostGroupId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("CostGroup");
+                });
+
             modelBuilder.Entity("ConstructionFinance.Domain.Finance.ProjectDecision", b =>
                 {
                     b.HasOne("ConstructionFinance.Domain.Entities.ApprovalDecision", "Decision")
@@ -1011,6 +1205,17 @@ namespace ConstructionFinance.Data.Migrations
                 {
                     b.HasOne("ConstructionFinance.Domain.Finance.Project", "Project")
                         .WithMany("Lines")
+                        .HasForeignKey("ProjectId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Project");
+                });
+
+            modelBuilder.Entity("ConstructionFinance.Domain.Finance.ViTri", b =>
+                {
+                    b.HasOne("ConstructionFinance.Domain.Finance.Project", "Project")
+                        .WithMany("ViTris")
                         .HasForeignKey("ProjectId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -1060,11 +1265,28 @@ namespace ConstructionFinance.Data.Migrations
                     b.Navigation("YearlySettlements");
                 });
 
+            modelBuilder.Entity("ConstructionFinance.Domain.Finance.CostGroup", b =>
+                {
+                    b.Navigation("Packages");
+                });
+
+            modelBuilder.Entity("ConstructionFinance.Domain.Finance.Package", b =>
+                {
+                    b.Navigation("Dots");
+                });
+
             modelBuilder.Entity("ConstructionFinance.Domain.Finance.Project", b =>
                 {
                     b.Navigation("Decisions");
 
                     b.Navigation("Lines");
+
+                    b.Navigation("ViTris");
+                });
+
+            modelBuilder.Entity("ConstructionFinance.Domain.Finance.ViTri", b =>
+                {
+                    b.Navigation("CostGroups");
                 });
 #pragma warning restore 612, 618
         }
