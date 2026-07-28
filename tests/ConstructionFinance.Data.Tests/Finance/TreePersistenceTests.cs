@@ -47,10 +47,18 @@ public class TreePersistenceTests
         ctx.FinanceProjects.Add(project);
         await ctx.SaveChangesAsync();
 
-        ctx.FinanceProjects.Remove(project);
-        await ctx.SaveChangesAsync();
+        // Delete from a fresh context (sharing the same connection) with only a stub
+        // entity attached — no children loaded/tracked — so the deletion can only
+        // succeed via SQLite's real ON DELETE CASCADE, not the EF change-tracker's
+        // client-side cascade.
+        using var deleteCtx = new AppDbContext(new DbContextOptionsBuilder<AppDbContext>()
+            .UseSqlite(ctx.Database.GetDbConnection()).Options);
+        deleteCtx.FinanceProjects.Remove(new Project { Id = project.Id, Name = "DA1" });
+        await deleteCtx.SaveChangesAsync();
 
-        (await ctx.Dots.CountAsync()).ShouldBe(0);
-        (await ctx.Packages.CountAsync()).ShouldBe(0);
+        using var verifyCtx = new AppDbContext(new DbContextOptionsBuilder<AppDbContext>()
+            .UseSqlite(ctx.Database.GetDbConnection()).Options);
+        (await verifyCtx.Dots.CountAsync()).ShouldBe(0);
+        (await verifyCtx.Packages.CountAsync()).ShouldBe(0);
     }
 }
