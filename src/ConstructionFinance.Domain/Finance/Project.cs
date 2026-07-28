@@ -15,4 +15,5 @@ public class Project : BaseEntity
 
     public List<ProjectLineItem> Lines { get; set; } = new();
     public List<ProjectDecision> Decisions { get; set; } = new();
+    public List<ViTri> ViTris { get; set; } = new();
 }
