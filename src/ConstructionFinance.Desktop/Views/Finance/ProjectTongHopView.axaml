@@ -1,0 +1,25 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:ConstructionFinance.Desktop.ViewModels.Finance"
+             x:Class="ConstructionFinance.Desktop.Views.Finance.ProjectTongHopView"
+             x:DataType="vm:ProjectTongHopViewModel">
+    <DataGrid ItemsSource="{Binding Rows}" IsReadOnly="True"
+              GridLinesVisibility="All" HeadersVisibility="All"
+              CanUserResizeColumns="True" CanUserSortColumns="False">
+        <DataGrid.Columns>
+            <DataGridTextColumn Header="TT" Binding="{Binding Ordinal}" Width="48"/>
+            <DataGridTextColumn Header="Tên vị trí" Binding="{Binding Label}" Width="200"/>
+            <DataGridTextColumn Header="Đơn vị thi công" Binding="{Binding Contractor}" Width="150"/>
+            <DataGridTextColumn Header="Giá trị HĐ, PLHĐ" Binding="{Binding ContractValue}" Width="130"/>
+            <DataGridTextColumn Header="Tạm ứng" Binding="{Binding Advance}" Width="120"/>
+            <DataGridTextColumn Header="TT KLHT" Binding="{Binding KLHT}" Width="120"/>
+            <DataGridTextColumn Header="Thu hồi" Binding="{Binding Recovered}" Width="120"/>
+            <DataGridTextColumn Header="TT cho nhà thầu" Binding="{Binding DisbursedToContractor}" Width="130"/>
+            <DataGridTextColumn Header="Tạm ứng chưa thu hồi" Binding="{Binding Unrecovered}" Width="140"/>
+            <DataGridTextColumn Header="GN Dự phòng NSNN" Binding="{Binding NSNN}" Width="140"/>
+            <DataGridTextColumn Header="GN Quỹ DTNH" Binding="{Binding NgoaiHoi}" Width="130"/>
+            <DataGridTextColumn Header="Tổng đã giải ngân" Binding="{Binding TotalDisbursed}" Width="140"/>
+            <DataGridTextColumn Header="Quyết toán năm" Binding="{Binding YearlyText}" Width="260"/>
+        </DataGrid.Columns>
+    </DataGrid>
+</UserControl>

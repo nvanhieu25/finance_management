@@ -109,16 +109,19 @@ public partial class FinanceWorkbookViewModel : ViewModelBase
         }
     }
 
-    /// One tab per Vị trí of the currently-selected project.
-    public ObservableCollection<ViTriPageViewModel> ViTriPages { get; } = new();
+    // Heterogeneous: [Tổng hợp][one per Vị trí][Quyết toán năm].
+    public ObservableCollection<WorkbookPageViewModel> ViTriPages { get; } = new();
+    [ObservableProperty] private WorkbookPageViewModel? _selectedViTriPage;
 
-    [ObservableProperty] private ViTriPageViewModel? _selectedViTriPage;
+    // The two read-only aggregate tabs for the selected project (rebuilt per project).
+    private ProjectTongHopPageViewModel? _tongHopPage;
+    private YearSettlementPageViewModel? _yearPage;
 
     /// True when any project page (old flow) OR any Vị trí tab (new flow) has
     /// unsaved edits — drives the toolbar + close guard.
     public bool IsDirty =>
         Pages.OfType<ProjectPageViewModel>().Any(p => p.IsDirty) ||
-        ViTriPages.Any(p => p.IsDirty) ||
+        ViTriPages.OfType<ViTriPageViewModel>().Any(p => p.IsDirty) ||
         _viTriStructureDirty;
 
     public async Task LoadAsync()
@@ -132,6 +135,8 @@ public partial class FinanceWorkbookViewModel : ViewModelBase
             Projects.Clear();
             ViTriPages.Clear();
             SelectedViTriPage = null;
+            _tongHopPage = null;
+            _yearPage = null;
             _selectedProjectTree = null;
             _viTriStructureDirty = false;
 
@@ -187,6 +192,8 @@ public partial class FinanceWorkbookViewModel : ViewModelBase
     {
         ViTriPages.Clear();
         SelectedViTriPage = null;
+        _tongHopPage = null;
+        _yearPage = null;
         _selectedProjectTree = null;
         _viTriStructureDirty = false;
         OnPropertyChanged(nameof(IsDirty));
@@ -200,10 +207,17 @@ public partial class FinanceWorkbookViewModel : ViewModelBase
             if (tree is null) return;
 
             _selectedProjectTree = tree;
+
+            _tongHopPage = new ProjectTongHopPageViewModel(new ProjectTongHopViewModel());
+            _yearPage = new YearSettlementPageViewModel(new YearSettlementViewModel());
+
+            ViTriPages.Add(_tongHopPage);
             foreach (var viTri in tree.ViTris.OrderBy(v => v.SortOrder))
                 AddViTriPage(new VitriLedgerViewModel(viTri));
+            ViTriPages.Add(_yearPage);
 
-            SelectedViTriPage = ViTriPages.FirstOrDefault();
+            RefreshAggregateTabs();
+            SelectedViTriPage = ViTriPages.FirstOrDefault();   // the Tổng hợp tab
         }
         catch (Exception ex)
         {
@@ -221,7 +235,37 @@ public partial class FinanceWorkbookViewModel : ViewModelBase
             if (e.PropertyName == nameof(WorkbookPageViewModel.IsDirty))
                 OnPropertyChanged(nameof(IsDirty));
         };
-        ViTriPages.Add(page);
+        // Any ledger edit (subtotals recompute live) should refresh the aggregate tabs.
+        ledger.DirtyChanged += (_, _) => RefreshAggregateTabs();
+        InsertViTriPage(page);
+    }
+
+    /// Insert a Vị trí tab before the trailing "Quyết toán năm" tab (or at the end
+    /// if the aggregate tabs aren't present, e.g. the AddProject in-memory path).
+    private void InsertViTriPage(ViTriPageViewModel page)
+    {
+        var yearIndex = _yearPage is null ? -1 : ViTriPages.IndexOf(_yearPage);
+        if (yearIndex >= 0) ViTriPages.Insert(yearIndex, page);
+        else ViTriPages.Add(page);
+    }
+
+    /// Recompute the read-only Tổng hợp + Quyết toán năm tabs from the current
+    /// (possibly-unsaved) Vị trí ledgers.
+    private void RefreshAggregateTabs()
+    {
+        if (_tongHopPage is null && _yearPage is null) return;
+
+        var viTris = ViTriPages.OfType<ViTriPageViewModel>()
+                               .Select(p => p.Ledger.ToViTri())
+                               .ToList();
+        _tongHopPage?.Inner.Refresh(viTris);
+        _yearPage?.Inner.Refresh(viTris);
+    }
+
+    partial void OnSelectedViTriPageChanged(WorkbookPageViewModel? value)
+    {
+        if (value is ProjectTongHopPageViewModel or YearSettlementPageViewModel)
+            RefreshAggregateTabs();
     }
 
     /// New blank Vị trí tab under the selected project. No-op with no project selected.
@@ -230,30 +274,34 @@ public partial class FinanceWorkbookViewModel : ViewModelBase
     {
         if (SelectedProject is null) return;
 
-        var ledger = new VitriLedgerViewModel(new ViTri { Name = "Vị trí mới", SortOrder = ViTriPages.Count });
+        var count = ViTriPages.OfType<ViTriPageViewModel>().Count();
+        var ledger = new VitriLedgerViewModel(new ViTri { Name = "Vị trí mới", SortOrder = count });
         AddViTriPage(ledger);
-        SelectedViTriPage = ViTriPages[^1];
+        SelectedViTriPage = ViTriPages.OfType<ViTriPageViewModel>().Last();
 
         _viTriStructureDirty = true;
         OnPropertyChanged(nameof(IsDirty));
+        RefreshAggregateTabs();
     }
 
     /// Remove a Vị trí tab (after confirming) — it is only dropped from the DB once
     /// Save-All persists the rebuilt tree.
     [RelayCommand]
-    private async Task DeleteViTriAsync(ViTriPageViewModel? page)
+    private async Task DeleteViTriAsync(WorkbookPageViewModel? page)
     {
-        if (page is null) return;
+        if (page is not ViTriPageViewModel viTriPage) return;
 
         var ok = await _dialog.ConfirmAsync("Xóa vị trí",
-            $"Bạn có chắc muốn xóa vị trí \"{page.Title}\" và toàn bộ nhóm chi phí/gói thầu/đợt của nó?");
+            $"Bạn có chắc muốn xóa vị trí \"{viTriPage.Title}\" và toàn bộ nhóm chi phí/gói thầu/đợt của nó?");
         if (!ok) return;
 
-        ViTriPages.Remove(page);
-        SelectedViTriPage = ViTriPages.FirstOrDefault();
+        ViTriPages.Remove(viTriPage);
+        SelectedViTriPage = ViTriPages.OfType<ViTriPageViewModel>().FirstOrDefault()
+                            ?? (WorkbookPageViewModel?)_tongHopPage;
 
         _viTriStructureDirty = true;
         OnPropertyChanged(nameof(IsDirty));
+        RefreshAggregateTabs();
     }
 
     /// New project for the Vị trí workbook path: Id 0, a free default name, and ONE
@@ -275,8 +323,13 @@ public partial class FinanceWorkbookViewModel : ViewModelBase
 
         _selectedProjectTree = project;
         ViTriPages.Clear();
+        _tongHopPage = new ProjectTongHopPageViewModel(new ProjectTongHopViewModel());
+        _yearPage = new YearSettlementPageViewModel(new YearSettlementViewModel());
+        ViTriPages.Add(_tongHopPage);
         AddViTriPage(new VitriLedgerViewModel(viTri));
-        SelectedViTriPage = ViTriPages.FirstOrDefault();
+        ViTriPages.Add(_yearPage);
+        RefreshAggregateTabs();
+        SelectedViTriPage = ViTriPages.OfType<ViTriPageViewModel>().First();  // land on the ledger to type
 
         _skipNextSelectionReload = true;
         SelectedProject = project;
@@ -369,7 +422,7 @@ public partial class FinanceWorkbookViewModel : ViewModelBase
     {
         var dirtyPages = Pages.OfType<ProjectPageViewModel>().Where(p => p.IsDirty).ToList();
         var saveViTriTree = SelectedProject is not null && _selectedProjectTree is not null &&
-                             (ViTriPages.Any(p => p.IsDirty) || _viTriStructureDirty);
+                             (ViTriPages.OfType<ViTriPageViewModel>().Any(p => p.IsDirty) || _viTriStructureDirty);
 
         if (dirtyPages.Count == 0 && !saveViTriTree) return;
 
@@ -413,9 +466,10 @@ public partial class FinanceWorkbookViewModel : ViewModelBase
             Notes = loaded.Notes
         };
 
-        for (var i = 0; i < ViTriPages.Count; i++)
+        var ledgerPages = ViTriPages.OfType<ViTriPageViewModel>().ToList();
+        for (var i = 0; i < ledgerPages.Count; i++)
         {
-            var viTri = ViTriPages[i].Ledger.ToViTri();
+            var viTri = ledgerPages[i].Ledger.ToViTri();
             viTri.SortOrder = i;
             toSave.ViTris.Add(viTri);
         }
@@ -423,7 +477,7 @@ public partial class FinanceWorkbookViewModel : ViewModelBase
         try
         {
             await _service.ReplaceTreeAsync(toSave);
-            foreach (var page in ViTriPages)
+            foreach (var page in ViTriPages.OfType<ViTriPageViewModel>())
                 page.Ledger.IsDirty = false;
             _viTriStructureDirty = false;
             return true;

@@ -92,12 +92,12 @@
                     SelectedItem="{Binding SelectedViTriPage}"
                     TabStripPlacement="Bottom">
             <TabControl.ItemTemplate>
-                <DataTemplate x:DataType="vm:ViTriPageViewModel">
+                <DataTemplate x:DataType="vm:WorkbookPageViewModel">
                     <TextBlock Text="{Binding Header}"/>
                 </DataTemplate>
             </TabControl.ItemTemplate>
             <TabControl.ContentTemplate>
-                <DataTemplate x:DataType="vm:ViTriPageViewModel">
+                <DataTemplate x:DataType="vm:WorkbookPageViewModel">
                     <ContentControl Content="{Binding Content}"/>
                 </DataTemplate>
             </TabControl.ContentTemplate>

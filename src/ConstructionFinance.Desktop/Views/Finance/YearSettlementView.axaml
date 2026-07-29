@@ -1,0 +1,20 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:ConstructionFinance.Desktop.ViewModels.Finance"
+             x:Class="ConstructionFinance.Desktop.Views.Finance.YearSettlementView"
+             x:DataType="vm:YearSettlementViewModel">
+    <StackPanel Margin="0,4,0,0">
+        <TextBlock Classes="pageSubtitle" Margin="4,0,0,8"
+                   Text="Quyết toán theo năm tài chính (1/2 → 31/1)"/>
+        <DataGrid ItemsSource="{Binding Rows}" IsReadOnly="True"
+                  GridLinesVisibility="All" HeadersVisibility="All"
+                  CanUserResizeColumns="True" CanUserSortColumns="False">
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="Năm" Binding="{Binding YearLabel}" Width="220"/>
+                <DataGridTextColumn Header="Dự phòng NSNN" Binding="{Binding NSNN}" Width="180"/>
+                <DataGridTextColumn Header="Quỹ dự trữ ngoại hối" Binding="{Binding NgoaiHoi}" Width="200"/>
+                <DataGridTextColumn Header="Tổng" Binding="{Binding Total}" Width="180"/>
+            </DataGrid.Columns>
+        </DataGrid>
+    </StackPanel>
+</UserControl>

@@ -420,10 +420,16 @@ public class FinanceWorkbookViewModelTests
 
         sut.SelectedProject = sut.Projects.Single();
 
-        sut.ViTriPages.Count.ShouldBe(2);
-        sut.ViTriPages[0].Title.ShouldBe("V1");
-        sut.ViTriPages[1].Title.ShouldBe("V2");
-        sut.SelectedViTriPage.ShouldBe(sut.ViTriPages[0]);
+        // [Tổng hợp][V1][V2][Quyết toán năm]
+        sut.ViTriPages.Count.ShouldBe(4);
+        sut.ViTriPages[0].ShouldBeOfType<ProjectTongHopPageViewModel>();
+        sut.ViTriPages[0].Title.ShouldBe("Tổng hợp");
+        var ledgers = sut.ViTriPages.OfType<ViTriPageViewModel>().ToList();
+        ledgers[0].Title.ShouldBe("V1");
+        ledgers[1].Title.ShouldBe("V2");
+        sut.ViTriPages[^1].ShouldBeOfType<YearSettlementPageViewModel>();
+        sut.ViTriPages[^1].Title.ShouldBe("Quyết toán năm");
+        sut.SelectedViTriPage.ShouldBe(sut.ViTriPages[0]);   // lands on Tổng hợp
     }
 
     [Fact]
@@ -450,8 +456,10 @@ public class FinanceWorkbookViewModelTests
 
         sut.AddViTriCommand.Execute(null);
 
-        sut.ViTriPages.Count.ShouldBe(1);
-        sut.SelectedViTriPage.ShouldBe(sut.ViTriPages[0]);
+        sut.ViTriPages.OfType<ViTriPageViewModel>().Count().ShouldBe(1);
+        // new Vị trí sits before the trailing Quyết toán năm tab
+        sut.ViTriPages[^1].ShouldBeOfType<YearSettlementPageViewModel>();
+        sut.SelectedViTriPage.ShouldBeOfType<ViTriPageViewModel>();
         sut.IsDirty.ShouldBeTrue();
     }
 
@@ -475,12 +483,13 @@ public class FinanceWorkbookViewModelTests
             new ViTri { Name = "V1" }, new ViTri { Name = "V2" });
         await sut.LoadAsync();
         sut.SelectedProject = sut.Projects.Single();
-        var toDelete = sut.ViTriPages[0];
+        var toDelete = sut.ViTriPages.OfType<ViTriPageViewModel>().First();
 
         await sut.DeleteViTriCommand.ExecuteAsync(toDelete);
 
-        sut.ViTriPages.Count.ShouldBe(1);
-        sut.ViTriPages[0].Title.ShouldBe("V2");
+        var remaining = sut.ViTriPages.OfType<ViTriPageViewModel>().ToList();
+        remaining.Count.ShouldBe(1);
+        remaining[0].Title.ShouldBe("V2");
         sut.IsDirty.ShouldBeTrue();
     }
 
@@ -492,7 +501,7 @@ public class FinanceWorkbookViewModelTests
         sut.SelectedProject = sut.Projects.Single();
         sut.IsDirty.ShouldBeFalse();
 
-        sut.ViTriPages[0].Ledger.AddGroupCommand.Execute(null);
+        sut.ViTriPages.OfType<ViTriPageViewModel>().First().Ledger.AddGroupCommand.Execute(null);
 
         sut.IsDirty.ShouldBeTrue();
     }
@@ -503,7 +512,7 @@ public class FinanceWorkbookViewModelTests
         var (sut, service) = CreateSutWithProjectTree(7, "DA7", new ViTri { Name = "V1" });
         await sut.LoadAsync();
         sut.SelectedProject = sut.Projects.Single();
-        sut.ViTriPages[0].Ledger.AddGroupCommand.Execute(null); // a real edit -> dirty
+        sut.ViTriPages.OfType<ViTriPageViewModel>().First().Ledger.AddGroupCommand.Execute(null); // a real edit -> dirty
         sut.IsDirty.ShouldBeTrue();
 
         Project? saved = null;
@@ -550,8 +559,8 @@ public class FinanceWorkbookViewModelTests
         newProject.Id.ShouldBe(0);
         newProject.Name.ShouldBe("Dự án mới");
         sut.SelectedProject.ShouldBe(newProject);
-        sut.ViTriPages.Count.ShouldBe(1);
-        sut.ViTriPages[0].Ledger.Name.ShouldBe("Vị trí 1");
+        sut.ViTriPages.OfType<ViTriPageViewModel>().Count().ShouldBe(1);
+        sut.ViTriPages.OfType<ViTriPageViewModel>().First().Ledger.Name.ShouldBe("Vị trí 1");
         sut.IsDirty.ShouldBeTrue();
     }
 
