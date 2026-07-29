@@ -41,6 +41,19 @@ public partial class VitriLedgerViewModel : ViewModelBase
     /// the frozen top bar without an indexer path). The reference never changes.
     public LedgerRowViewModel TotalRow => _totalRow;
 
+    /// Shared column-width model for the outline grid (Excel-style manual column
+    /// resize) — ONE instance per Vị trí tab, bound by the header, the frozen TỔNG CỘNG
+    /// row, and every RowKind row template, so dragging a header grip resizes all of
+    /// them together. See LedgerColumnWidths for why this keeps content from ever
+    /// growing/shifting a column.
+    public LedgerColumnWidths ColumnWidths { get; } = new();
+
+    /// Excel-style "wrap text" toggle for the outline grid's long display cells (Nội
+    /// dung / Group·Package Name). Off (default): a cell that overflows shows past its
+    /// column into empty neighbors (Excel-style) and clips under the next occupied one.
+    /// On: text wraps within the column and the row grows taller instead of overflowing.
+    [ObservableProperty] private bool _wrapText;
+
     [ObservableProperty] private string _name = "";
     [ObservableProperty] private string? _nguonVon;
     [ObservableProperty] private int _sortOrder;

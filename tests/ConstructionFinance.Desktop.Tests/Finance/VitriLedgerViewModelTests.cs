@@ -357,4 +357,94 @@ public class VitriLedgerViewModelTests
         vm.Rows.Count.ShouldBe(before);
         vm.IsDirty.ShouldBeFalse();
     }
+
+    // ===== Excel-style column resize + wrap toggle =====
+
+    [Fact]
+    public void ColumnWidths_defaults_match_the_grid_header_layout()
+    {
+        var widths = new LedgerColumnWidths();
+
+        widths.NgayWidth.Value.ShouldBe(100);
+        widths.NoiDung.Value.ShouldBe(340);
+        widths.NhaThauTk.Value.ShouldBe(170);
+        widths.GiaTriHd.Value.ShouldBe(130);
+        widths.PhuLuc.Value.ShouldBe(110);
+        widths.SoCt.Value.ShouldBe(90);
+        widths.TamUng.Value.ShouldBe(120);
+        widths.Klht.Value.ShouldBe(120);
+        widths.ThuHoi.Value.ShouldBe(110);
+        widths.Nguon.Value.ShouldBe(110);
+        widths.GnNsnn.Value.ShouldBe(120);
+        widths.GnNgoaiHoi.Value.ShouldBe(120);
+        widths.SoDuTu.Value.ShouldBe(120);
+        widths.TongDaGn.Value.ShouldBe(120);
+    }
+
+    [Fact]
+    public void Resize_adds_the_delta_to_the_column_at_the_given_index()
+    {
+        var widths = new LedgerColumnWidths();
+
+        widths.Resize(LedgerColumnWidths.NoiDungIndex, 25);
+
+        widths.NoiDung.Value.ShouldBe(365);
+        // Nothing else moved.
+        widths.NgayWidth.Value.ShouldBe(100);
+    }
+
+    [Fact]
+    public void Resize_shrinking_clamps_to_the_minimum_column_width()
+    {
+        var widths = new LedgerColumnWidths();
+
+        widths.Resize(LedgerColumnWidths.SoCtIndex, -1000); // Số CT starts at 90
+
+        widths.SoCt.Value.ShouldBe(LedgerColumnWidths.MinColumnWidth);
+    }
+
+    [Fact]
+    public void Resize_with_an_out_of_range_index_is_a_no_op()
+    {
+        var widths = new LedgerColumnWidths();
+
+        widths.Resize(-1, 50);
+        widths.Resize(999, 50);
+
+        widths.NgayWidth.Value.ShouldBe(100);
+        widths.TongDaGn.Value.ShouldBe(120);
+    }
+
+    [Fact]
+    public void GetWidth_returns_the_column_at_the_given_index()
+    {
+        var widths = new LedgerColumnWidths();
+
+        widths.GetWidth(LedgerColumnWidths.Ngay).Value.ShouldBe(100);
+        widths.GetWidth(LedgerColumnWidths.TongDaGnIndex).Value.ShouldBe(120);
+    }
+
+    [Fact]
+    public void Two_ledgers_have_independent_ColumnWidths_instances()
+    {
+        var vm1 = new VitriLedgerViewModel(new ViTri { Name = "V1" });
+        var vm2 = new VitriLedgerViewModel(new ViTri { Name = "V2" });
+
+        vm1.ColumnWidths.Resize(LedgerColumnWidths.NoiDungIndex, 50);
+
+        vm1.ColumnWidths.NoiDung.Value.ShouldBe(390);
+        vm2.ColumnWidths.NoiDung.Value.ShouldBe(340); // untouched — separate tab, separate instance
+    }
+
+    [Fact]
+    public void WrapText_defaults_to_off_and_can_be_toggled()
+    {
+        var vm = new VitriLedgerViewModel(new ViTri { Name = "V1" });
+
+        vm.WrapText.ShouldBeFalse();
+
+        vm.WrapText = true;
+
+        vm.WrapText.ShouldBeTrue();
+    }
 }
