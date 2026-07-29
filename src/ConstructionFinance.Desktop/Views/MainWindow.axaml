@@ -29,6 +29,9 @@
                 <ui:NavigationViewItem x:Name="NavFinanceWorkbook" Content="Tài chính dự án" Tag="FinanceWorkbook">
                     <ui:NavigationViewItem.IconSource><ui:SymbolIconSource Symbol="{x:Static ui:Symbol.Calculator}"/></ui:NavigationViewItem.IconSource>
                 </ui:NavigationViewItem>
+                <ui:NavigationViewItem Content="Tổng hợp" Tag="WorkbookSummary">
+                    <ui:NavigationViewItem.IconSource><ui:SymbolIconSource Symbol="{x:Static ui:Symbol.ViewAll}"/></ui:NavigationViewItem.IconSource>
+                </ui:NavigationViewItem>
                 <ui:NavigationViewItem Content="Thông tri" Tag="ThongTri">
                     <ui:NavigationViewItem.IconSource><ui:SymbolIconSource Symbol="{x:Static ui:Symbol.Mail}"/></ui:NavigationViewItem.IconSource>
                 </ui:NavigationViewItem>

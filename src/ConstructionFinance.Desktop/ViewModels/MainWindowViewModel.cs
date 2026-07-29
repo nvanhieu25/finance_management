@@ -85,6 +85,12 @@ public partial class MainWindowViewModel : ViewModelBase
                 _nav.NavigateTo(fwvm);
                 await fwvm.LoadAsync();
                 break;
+            case "WorkbookSummary":
+                var wsvm = _services.GetRequiredService<ViewModels.Finance.WorkbookSummaryViewModel>();
+                _nav.Reset();
+                _nav.NavigateTo(wsvm);
+                await wsvm.LoadAsync();
+                break;
             case "Settings":
                 var svm = _services.GetRequiredService<ViewModels.Settings.SettingsViewModel>();
                 _nav.Reset();
