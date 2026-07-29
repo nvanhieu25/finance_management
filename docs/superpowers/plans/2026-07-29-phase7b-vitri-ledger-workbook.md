@@ -30,7 +30,7 @@
 
 ---
 
-### Task 7B.1: `ReplaceTreeAsync` — persist a whole Project tree (data layer)
+### Task 1: `ReplaceTreeAsync` — persist a whole Project tree (data layer)
 
 **Files:**
 - Modify: `src/ConstructionFinance.Domain/Abstractions/IFinanceProjectRepository.cs`
@@ -47,7 +47,7 @@
 - [ ] **Step 4:** run — GREEN; then `dotnet test` full suite.
 - [ ] **Step 5:** commit `feat(data): ReplaceTreeAsync — persist whole Vị trí tree wholesale`.
 
-### Task 7B.2: `MoneyText` — "." thousand grouping format/parse
+### Task 2: `MoneyText` — "." thousand grouping format/parse
 
 **Files:** New `Desktop/Common/MoneyText.cs` (or extend `FinanceCellParsing`); Test in `tests/ConstructionFinance.Desktop.Tests/...`.
 
@@ -55,7 +55,7 @@
 
 - [ ] Failing test (table: 0, 1000, 10_000_000, "10.000.000", "  10000 ", negative, garbage) → RED → implement with `NumberFormatInfo` (group sep ".", no decimal) → GREEN → commit `feat(desktop): MoneyText "." thousand-group format/parse`.
 
-### Task 7B.3: `LedgerRowViewModel` + `RowKind` (one flattened row)
+### Task 3: `LedgerRowViewModel` + `RowKind` (one flattened row)
 
 **Files:** New `Desktop/ViewModels/Finance/LedgerRowViewModel.cs`; Test `tests/ConstructionFinance.Desktop.Tests/Finance/LedgerRowViewModelTests.cs`.
 
@@ -65,7 +65,7 @@
 
 - [ ] Failing tests: editing `AdvanceText="10.000.000"` exposes `Advance == 10_000_000m` and raises `InputChanged`; a Group row ignores money facades; `FundText` maps to `Fund` enum both ways. → RED → implement → GREEN → commit.
 
-### Task 7B.4: `VitriLedgerViewModel` — flatten, live subtotals, edit tree (headless)
+### Task 4: `VitriLedgerViewModel` — flatten, live subtotals, edit tree (headless)
 
 **Files:** New `Desktop/ViewModels/Finance/VitriLedgerViewModel.cs`; Test `tests/ConstructionFinance.Desktop.Tests/Finance/VitriLedgerViewModelTests.cs`.
 
@@ -78,7 +78,7 @@
 
 - [ ] Failing tests (headless, no rendering): build a Vị trí with 1 group/1 package/2 đợt; assert `Rows` order and kinds; assert the Package row's Số dư tạm ứng == ΣAdvance−ΣRecovered and the TOTAL row == sum; `AddEntry` then edit its `AdvanceText` updates subtotals live; `ToViTri()` round-trips the tree back (shape + values). → RED → implement → GREEN → `dotnet test` → commit.
 
-### Task 7B.5: Workbook wiring — Dự án picker + Vị trí tabs **[USER VISUAL REVIEW]**
+### Task 5: Workbook wiring — Dự án picker + Vị trí tabs **[USER VISUAL REVIEW]**
 
 **Files:** Modify `FinanceWorkbookViewModel.cs`, `ProjectPageViewModel`/`WorkbookPageViewModel`, `Views/Finance/FinanceWorkbookView.axaml`.
 
@@ -86,7 +86,7 @@
 
 - [ ] Build incrementally; **user runs the app on DISPLAY=:1** and confirms: project switch, Vị trí add/switch, dirty dot, Save-All round-trip. Headless VM-logic steps get unit tests first; rendering/interaction is user-verified. Commit after user confirms each sub-behavior.
 
-### Task 7B.6: `VitriLedgerView.axaml` — the outline grid **[USER VISUAL REVIEW]**
+### Task 6: `VitriLedgerView.axaml` — the outline grid **[USER VISUAL REVIEW]**
 
 **Files:** New `Views/Finance/VitriLedgerView.axaml(.cs)`.
 
