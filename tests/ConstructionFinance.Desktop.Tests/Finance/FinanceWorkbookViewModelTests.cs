@@ -544,14 +544,15 @@ public class FinanceWorkbookViewModelTests
     }
 
     [Fact]
-    public async Task SelectProjectById_selects_the_matching_project()
+    public async Task SelectProjectById_moves_selection_to_the_matching_project()
     {
-        var (sut, _) = CreateSutWithProjectTree(7, "DA7", new ViTri { Name = "V1" });
+        var sut = CreateSutWithProjects((1, "DA1"), (2, "DA2"));
         await sut.LoadAsync();
+        sut.SelectedProject!.Id.ShouldBe(1);   // LoadAsync auto-selects the first
 
-        sut.SelectProjectById(7);
+        sut.SelectProjectById(2);
 
-        sut.SelectedProject!.Id.ShouldBe(7);
+        sut.SelectedProject!.Id.ShouldBe(2);   // now discriminates a real move from a no-op
     }
 
     // ===== Add / rename / delete Dự án (workflow gap fix) =====
