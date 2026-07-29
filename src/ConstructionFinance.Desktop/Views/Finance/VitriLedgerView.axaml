@@ -23,17 +23,16 @@
         </ResourceDictionary>
     </UserControl.Resources>
     <UserControl.Styles>
-        <!-- Local-only: bottom gridline for every read-only/composite cell (matching
-             TextBox.gridCell's own bottom border), so Group/Package/Total rows (mostly
-             read-only cells) still show a horizontal separator per spec. The VERTICAL
-             (right-edge) line is NOT drawn per-cell anymore — see Border.colDivider /
-             the two overlay Grids below for why and how those replaced it. Still clips
-             its content to the cell's own bounds — without this, a long value in an
-             adjoining cell (or the composite Nhà thầu/TK StackPanel) can render past
-             its column into the next one. -->
+        <!-- Local-only: NO border is drawn per-cell anymore, in either direction — the
+             VERTICAL (right-edge) lines are owned by Border.colDivider / the two overlay
+             Grids below, and the HORIZONTAL (bottom-edge) lines are owned by the one
+             full-width Border appended to the end of every RowKind's Grid (see the Group/
+             Package/Entry templates below) — a per-cell bottom border left a gap under the
+             borderless/unfocused Nội dung overflow cell, which is exactly what made the
+             row separators look broken/inconsistent. Still clips its own content to the
+             cell's bounds — without this, a long value in an adjoining cell (or the
+             composite Nhà thầu/TK StackPanel) can render past its column into the next. -->
         <Style Selector="Border.gridCellBorder">
-            <Setter Property="BorderBrush" Value="{DynamicResource LedgerGridLineBrush}"/>
-            <Setter Property="BorderThickness" Value="0,0,0,1"/>
             <Setter Property="ClipToBounds" Value="True"/>
         </Style>
         <!-- The single, continuous set of column-boundary lines (fixes the "ragged"
@@ -66,16 +65,15 @@
              Grid's column wider than its declared pixel value. Explicit Stretch so the
              box exactly fills its column, never sizing to its own content. The box
              still scrolls its own text horizontally on focus (never resizes/shifts).
-             BorderThickness drops the right edge (0,0,0,1, bottom only) for the same
-             "one continuous overlay owns all vertical lines" reason as gridCellBorder
-             above — the overlay Grids draw every column boundary instead. -->
+             BorderThickness=0 (no border at all, any edge) for the same "the overlay/
+             row-bottom-bar owns every line, cells draw none" reason as gridCellBorder
+             above. -->
         <Style Selector="TextBox.gridCell">
             <Setter Property="ClipToBounds" Value="True"/>
             <Setter Property="TextWrapping" Value="NoWrap"/>
             <Setter Property="MinWidth" Value="0"/>
             <Setter Property="HorizontalAlignment" Value="Stretch"/>
-            <Setter Property="BorderThickness" Value="0,0,0,1"/>
-            <Setter Property="BorderBrush" Value="{DynamicResource LedgerGridLineBrush}"/>
+            <Setter Property="BorderThickness" Value="0"/>
         </Style>
         <!-- Excel-style overflow for the "content" column (Nội dung / Group·Package
              Name): UNFOCUSED, the box goes borderless/transparent, left-aligned, and
@@ -98,7 +96,7 @@
             <Setter Property="HorizontalAlignment" Value="Stretch"/>
             <Setter Property="ClipToBounds" Value="True"/>
             <Setter Property="Background" Value="{DynamicResource CardBackgroundBrush}"/>
-            <Setter Property="BorderThickness" Value="0,0,0,1"/>
+            <Setter Property="BorderThickness" Value="0"/>
         </Style>
         <!-- Wrap-toggle ("Xuống dòng trong ô"): wraps within the column instead of
              overflowing sideways — wrapping still respects the column's own width
@@ -447,6 +445,12 @@
                                                 <Border Grid.Column="13" Classes="gridCellBorder">
                                                     <TextBlock Classes="gridCellRO num" FontWeight="Bold" Text="{Binding TotalDisbursedText}"/>
                                                 </Border>
+                                                <!-- Full-width horizontal row separator (replaces the old per-cell
+                                                     bottom borders, which left a gap under the borderless/unfocused
+                                                     Nội dung overflow cell and looked broken) — one continuous 1px
+                                                     bar under the ENTIRE row, same technique as the vertical overlay. -->
+                                                <Border Grid.Column="0" Grid.ColumnSpan="14" VerticalAlignment="Bottom" Height="1"
+                                                        Background="{DynamicResource LedgerGridLineBrush}" IsHitTestVisible="False"/>
                                             </Grid>
                                         </DataTemplate>
                                     </local:LedgerRowTemplateSelector.Group>
@@ -518,6 +522,9 @@
                                                 <Border Grid.Column="13" Classes="gridCellBorder">
                                                     <TextBlock Classes="gridCellRO num" FontWeight="SemiBold" Text="{Binding TotalDisbursedText}"/>
                                                 </Border>
+                                                <!-- Full-width horizontal row separator — see the Group template above. -->
+                                                <Border Grid.Column="0" Grid.ColumnSpan="14" VerticalAlignment="Bottom" Height="1"
+                                                        Background="{DynamicResource LedgerGridLineBrush}" IsHitTestVisible="False"/>
                                             </Grid>
                                         </DataTemplate>
                                     </local:LedgerRowTemplateSelector.Package>
@@ -565,6 +572,9 @@
                                                 <Border Grid.Column="11" Classes="gridCellBorder"/>
                                                 <Border Grid.Column="12" Classes="gridCellBorder"/>
                                                 <Border Grid.Column="13" Classes="gridCellBorder"/>
+                                                <!-- Full-width horizontal row separator — see the Group template above. -->
+                                                <Border Grid.Column="0" Grid.ColumnSpan="14" VerticalAlignment="Bottom" Height="1"
+                                                        Background="{DynamicResource LedgerGridLineBrush}" IsHitTestVisible="False"/>
                                             </Grid>
                                         </DataTemplate>
                                     </local:LedgerRowTemplateSelector.Entry>
