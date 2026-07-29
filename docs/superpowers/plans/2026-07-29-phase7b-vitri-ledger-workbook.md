@@ -51,7 +51,7 @@
 
 **Files:** New `Desktop/Common/MoneyText.cs` (or extend `FinanceCellParsing`); Test in `tests/ConstructionFinance.Desktop.Tests/...`.
 
-**Interfaces produced:** `string MoneyText.Format(decimal)` → "10.000.000" (no decimals for đồng; 0 → "0" or "" per **[UX — confirm: blank vs 0 for empty cells]**); `bool MoneyText.TryParse(string?, out decimal)` stripping "." and spaces; round-trips with `FinanceCellParsing` conventions.
+**Interfaces produced:** `string MoneyText.Format(decimal)` → "10.000.000" (no decimals for đồng; **`0m` → "" (blank)** — user-confirmed, Excel-like); `bool MoneyText.TryParse(string?, out decimal)` stripping "." and spaces, empty/whitespace → `0m`; round-trips with `FinanceCellParsing` conventions.
 
 - [ ] Failing test (table: 0, 1000, 10_000_000, "10.000.000", "  10000 ", negative, garbage) → RED → implement with `NumberFormatInfo` (group sep ".", no decimal) → GREEN → commit `feat(desktop): MoneyText "." thousand-group format/parse`.
 
@@ -74,7 +74,7 @@
 - Commands: `AddGroup`, `AddPackage(group)`, `AddEntry(package)`, `DeleteSelected` — mutate the flattened rows AND keep an internal parent/child map so `ToViTri()` can rebuild the tree.
 - `RecomputeSubtotals()`: rebuild a transient `ViTri` from rows, call `TreeCalculator.AggregateViTri` / per-group `AggregateGroup` / per-package `AggregatePackageEntity`, and push the computed columns (GN NSNN, GN Ngoại hối, Số dư tạm ứng, Tổng đã GN, Quyết toán năm) onto the TOTAL/Group/Package rows. Reacts to any row's `InputChanged`.
 - `ViTri ToViTri()` for save; `bool IsDirty`; `event DirtyChanged`.
-- **[UX — confirm: can a Package live under no Group? Spec says every Package sits under a Chi phí group — enforce ≥1 group before adding a package.]**
+- **Decided (user-confirmed):** every Package sits under a Chi phí group — `AddPackage` requires a target group; if the Vị trí has no group yet, `AddPackage`/`AddEntry` is a no-op (or the UI disables the button). Tests assert this guard.
 
 - [ ] Failing tests (headless, no rendering): build a Vị trí with 1 group/1 package/2 đợt; assert `Rows` order and kinds; assert the Package row's Số dư tạm ứng == ΣAdvance−ΣRecovered and the TOTAL row == sum; `AddEntry` then edit its `AdvanceText` updates subtotals live; `ToViTri()` round-trips the tree back (shape + values). → RED → implement → GREEN → `dotnet test` → commit.
 
