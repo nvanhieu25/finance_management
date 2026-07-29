@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using ConstructionFinance.Application.Import;
 using ConstructionFinance.Application.Services.Interfaces;
 using ConstructionFinance.Desktop.Common;
 using ConstructionFinance.Desktop.Services;
@@ -25,6 +26,12 @@ public partial class FinanceWorkbookViewModel : ViewModelBase
     // Set by AddViTri/DeleteViTri: those structural edits have no single ledger to
     // flag dirty, so IsDirty tracks them separately until the next successful save.
     private bool _viTriStructureDirty;
+
+    // AddProject builds a new project's ledger tabs directly in-memory and then sets
+    // SelectedProject to it — but the normal OnSelectedProjectChanged path would try to
+    // GetTreeAsync a project that was never saved (Id 0), find nothing, and wipe out the
+    // tabs we just built. This tells that one transition to skip the DB reload.
+    private bool _skipNextSelectionReload;
 
     public FinanceWorkbookViewModel(
         IFinanceProjectService service,
@@ -53,6 +60,54 @@ public partial class FinanceWorkbookViewModel : ViewModelBase
     public ObservableCollection<Project> Projects { get; } = new();
 
     [ObservableProperty] private Project? _selectedProject;
+
+    /// Read/write facade over SelectedProject.Name for the "Tên dự án" rename field.
+    /// Project is a plain domain entity (not observable), so two things need explicit
+    /// handling that a normal [ObservableProperty] would give for free: (1) the Dự án
+    /// ComboBox's displayed text for the selected item won't refresh on its own —
+    /// RefreshSelectedProjectDisplay() forces that; (2) SelectedProject (from Projects,
+    /// loaded via the lightweight ListAsync) and _selectedProjectTree (loaded separately
+    /// via GetTreeAsync, used by Save-All) are two DIFFERENT object instances for the
+    /// same DB row once a project is selected, so both must be updated or Save-All would
+    /// silently persist the pre-rename name.
+    public string SelectedProjectName
+    {
+        get => SelectedProject?.Name ?? "";
+        set
+        {
+            if (SelectedProject is null) return;
+            var trimmed = value ?? "";
+            if (SelectedProject.Name == trimmed) return;
+
+            SelectedProject.Name = trimmed;
+            if (_selectedProjectTree is not null) _selectedProjectTree.Name = trimmed;
+
+            OnPropertyChanged(nameof(SelectedProjectName));
+            RefreshSelectedProjectDisplay();
+            _viTriStructureDirty = true;
+            OnPropertyChanged(nameof(IsDirty));
+        }
+    }
+
+    /// Read/write facade over SelectedProject.Code ("Mã dự án") — same dual-instance
+    /// reasoning as SelectedProjectName, minus the ComboBox refresh (Code isn't shown
+    /// there).
+    public string? SelectedProjectCode
+    {
+        get => SelectedProject?.Code;
+        set
+        {
+            if (SelectedProject is null) return;
+            if (SelectedProject.Code == value) return;
+
+            SelectedProject.Code = value;
+            if (_selectedProjectTree is not null) _selectedProjectTree.Code = value;
+
+            OnPropertyChanged(nameof(SelectedProjectCode));
+            _viTriStructureDirty = true;
+            OnPropertyChanged(nameof(IsDirty));
+        }
+    }
 
     /// One tab per Vị trí of the currently-selected project.
     public ObservableCollection<ViTriPageViewModel> ViTriPages { get; } = new();
@@ -112,8 +167,21 @@ public partial class FinanceWorkbookViewModel : ViewModelBase
     /// Loads the selected project's Vị trí tree and rebuilds one tab per Vị trí.
     /// Fire-and-forget from the property-changed hook (ObservableProperty setters
     /// can't be async) — mirrors the fire-and-forget pattern already used for
-    /// SummaryPage's ProjectActivationRequested handler above.
-    partial void OnSelectedProjectChanged(Project? value) => _ = LoadSelectedProjectTreeAsync(value);
+    /// SummaryPage's ProjectActivationRequested handler above. AddProject sets
+    /// _skipNextSelectionReload first since it already built the tabs itself in-memory.
+    partial void OnSelectedProjectChanged(Project? value)
+    {
+        OnPropertyChanged(nameof(SelectedProjectName));
+        OnPropertyChanged(nameof(SelectedProjectCode));
+
+        if (_skipNextSelectionReload)
+        {
+            _skipNextSelectionReload = false;
+            return;
+        }
+
+        _ = LoadSelectedProjectTreeAsync(value);
+    }
 
     private async Task LoadSelectedProjectTreeAsync(Project? project)
     {
@@ -186,6 +254,86 @@ public partial class FinanceWorkbookViewModel : ViewModelBase
 
         _viTriStructureDirty = true;
         OnPropertyChanged(nameof(IsDirty));
+    }
+
+    /// New project for the Vị trí workbook path: Id 0, a free default name, and ONE
+    /// empty Vị trí so the ledger is ready to enter immediately. Builds the ledger tab
+    /// directly (see _skipNextSelectionReload) instead of relying on the normal
+    /// DB-backed selection-change path, since this project has nothing in the DB yet.
+    /// Unsaved until Save-All's ReplaceTreeAsync inserts it (Id 0 → insert) and it gets
+    /// a real Id.
+    [RelayCommand]
+    private void AddProject()
+    {
+        var taken = new HashSet<string>(Projects.Select(p => p.Name.Trim()), StringComparer.OrdinalIgnoreCase);
+        var name = ImportMerge.NextFreeName("Dự án mới", taken);
+
+        var viTri = new ViTri { Name = "Vị trí 1", SortOrder = 0 };
+        var project = new Project { Id = 0, Name = name, ViTris = { viTri } };
+
+        Projects.Add(project);
+
+        _selectedProjectTree = project;
+        ViTriPages.Clear();
+        AddViTriPage(new VitriLedgerViewModel(viTri));
+        SelectedViTriPage = ViTriPages.FirstOrDefault();
+
+        _skipNextSelectionReload = true;
+        SelectedProject = project;
+
+        _viTriStructureDirty = true;
+        OnPropertyChanged(nameof(IsDirty));
+    }
+
+    /// Delete the selected project (after confirming). A saved project (Id>0) is
+    /// deleted from the DB immediately, same as the old flow's ClosePageAsync — nothing
+    /// deferred to Save-All. An unsaved (Id 0) project is simply dropped from the list.
+    /// Also drops the matching old-flow Pages tab, if any, so it doesn't linger pointing
+    /// at a project that no longer exists.
+    [RelayCommand]
+    private async Task DeleteProjectAsync()
+    {
+        var project = SelectedProject;
+        if (project is null) return;
+
+        var ok = await _dialog.ConfirmAsync("Xóa dự án",
+            $"Bạn có chắc muốn xóa dự án \"{project.Name}\" và toàn bộ Vị trí/nhóm chi phí/gói thầu/đợt của nó?");
+        if (!ok) return;
+
+        if (project.Id != 0)
+        {
+            try
+            {
+                await _service.DeleteAsync(project.Id);
+            }
+            catch (Exception ex)
+            {
+                ErrorMessage = ex.Message;
+                await _dialog.ShowMessageAsync("Lỗi", ex.Message);
+                return;
+            }
+
+            var stalePage = Pages.OfType<ProjectPageViewModel>().FirstOrDefault(p => p.ProjectId == project.Id);
+            if (stalePage is not null) Pages.Remove(stalePage);
+        }
+
+        Projects.Remove(project);
+        SelectedProject = Projects.FirstOrDefault();
+
+        await SummaryPage.Summary.LoadAsync();
+    }
+
+    /// Project is a plain domain entity (not observable), so mutating its Name directly
+    /// (SelectedProjectName's setter) wouldn't make the Dự án ComboBox's displayed text
+    /// refresh on its own. Replacing the SAME instance at its own index in the
+    /// ObservableCollection raises a Replace notification, which is enough to make the
+    /// ComboBox re-evaluate/redraw that item's DataTemplate.
+    private void RefreshSelectedProjectDisplay()
+    {
+        var project = SelectedProject;
+        if (project is null) return;
+        var index = Projects.IndexOf(project);
+        if (index >= 0) Projects[index] = project;
     }
 
     /// Jump to a project's tab — used by the TH page's double-click.

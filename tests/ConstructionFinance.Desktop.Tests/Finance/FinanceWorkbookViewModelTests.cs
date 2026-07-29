@@ -533,4 +533,104 @@ public class FinanceWorkbookViewModelTests
 
         service.Verify(s => s.ReplaceTreeAsync(It.IsAny<Project>(), It.IsAny<CancellationToken>()), Times.Never);
     }
+
+    // ===== Add / rename / delete Dự án (workflow gap fix) =====
+
+    [Fact]
+    public async Task AddProject_adds_and_selects_a_new_project_with_one_empty_ViTri_and_marks_dirty()
+    {
+        var (sut, _) = CreateSutWithProjectTree(1, "DA1");
+        await sut.LoadAsync();
+        sut.IsDirty.ShouldBeFalse();
+
+        sut.AddProjectCommand.Execute(null);
+
+        sut.Projects.Count.ShouldBe(2);
+        var newProject = sut.Projects.Last();
+        newProject.Id.ShouldBe(0);
+        newProject.Name.ShouldBe("Dự án mới");
+        sut.SelectedProject.ShouldBe(newProject);
+        sut.ViTriPages.Count.ShouldBe(1);
+        sut.ViTriPages[0].Ledger.Name.ShouldBe("Vị trí 1");
+        sut.IsDirty.ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task AddProject_appends_a_number_when_the_default_name_is_taken()
+    {
+        var (sut, _) = CreateSutWithProjectTree(1, "Dự án mới");
+        await sut.LoadAsync();
+
+        sut.AddProjectCommand.Execute(null);
+
+        sut.Projects.Last().Name.ShouldBe("Dự án mới (2)");
+    }
+
+    [Fact]
+    public async Task SelectedProjectName_setter_updates_the_selected_projects_Name()
+    {
+        var (sut, _) = CreateSutWithProjectTree(1, "DA1");
+        await sut.LoadAsync();
+        sut.SelectedProject = sut.Projects.Single();
+
+        sut.SelectedProjectName = "DA1 renamed";
+
+        sut.SelectedProject!.Name.ShouldBe("DA1 renamed");
+        sut.SelectedProjectName.ShouldBe("DA1 renamed");
+        sut.IsDirty.ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task DeleteProject_after_confirm_removes_a_saved_project_and_reselects()
+    {
+        var (sut, service) = CreateSutWithConfirmingDialog((1, "DA1"), (2, "DA2"));
+        await sut.LoadAsync();
+        sut.SelectedProject = sut.Projects.Single(p => p.Id == 1);
+
+        await sut.DeleteProjectCommand.ExecuteAsync(null);
+
+        sut.Projects.Count.ShouldBe(1);
+        sut.Projects[0].Id.ShouldBe(2);
+        sut.SelectedProject!.Id.ShouldBe(2);
+        service.Verify(s => s.DeleteAsync(1, It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task DeleteProject_on_an_unsaved_new_project_just_removes_it_without_calling_DeleteAsync()
+    {
+        var (sut, service) = CreateSutWithConfirmingDialog((1, "DA1"));
+        await sut.LoadAsync();
+        sut.AddProjectCommand.Execute(null);
+        var newProject = sut.SelectedProject!;
+        newProject.Id.ShouldBe(0);
+
+        await sut.DeleteProjectCommand.ExecuteAsync(null);
+
+        sut.Projects.ShouldNotContain(newProject);
+        service.Verify(s => s.DeleteAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task SaveAll_persists_a_newly_added_and_renamed_project_via_ReplaceTreeAsync()
+    {
+        var (sut, service) = CreateSutWithProjectTree(1, "DA1");
+        await sut.LoadAsync();
+
+        sut.AddProjectCommand.Execute(null);
+        sut.SelectedProjectName = "Dự án A";
+
+        Project? saved = null;
+        service.Setup(s => s.ReplaceTreeAsync(It.IsAny<Project>(), It.IsAny<CancellationToken>()))
+               .Callback<Project, CancellationToken>((p, _) => saved = p)
+               .Returns(Task.CompletedTask);
+
+        await sut.SaveAllCommand.ExecuteAsync(null);
+
+        saved.ShouldNotBeNull();
+        saved!.Id.ShouldBe(0);
+        saved.Name.ShouldBe("Dự án A");
+        saved.ViTris.Count.ShouldBe(1);
+        saved.ViTris[0].Name.ShouldBe("Vị trí 1");
+        sut.IsDirty.ShouldBeFalse();
+    }
 }

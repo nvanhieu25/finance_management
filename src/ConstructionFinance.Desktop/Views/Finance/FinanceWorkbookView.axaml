@@ -49,25 +49,42 @@
 
         <!-- New flow (7B): Dự án picker + a Vị trí tab strip per project -->
         <Border DockPanel.Dock="Top" Classes="toolbarStrip" Margin="0,0,0,8">
-            <Grid ColumnDefinitions="Auto,Auto,*,Auto,Auto,Auto">
-                <TextBlock Grid.Column="0" Text="Dự án:" Classes="formLabel"
-                           VerticalAlignment="Center" Margin="0,0,8,0"/>
-                <ComboBox Grid.Column="1" MinWidth="220"
-                          ItemsSource="{Binding Projects}"
-                          SelectedItem="{Binding SelectedProject}">
-                    <ComboBox.ItemTemplate>
-                        <DataTemplate x:DataType="finance:Project">
-                            <TextBlock Text="{Binding Name}"/>
-                        </DataTemplate>
-                    </ComboBox.ItemTemplate>
-                </ComboBox>
-                <Button Grid.Column="3" Classes="toolbar" Command="{Binding AddViTriCommand}"
-                        Content="＋ Thêm Vị trí" Margin="12,0,0,0"/>
-                <Button Grid.Column="4" Classes="toolbar danger" Command="{Binding DeleteViTriCommand}"
-                        CommandParameter="{Binding SelectedViTriPage}" Content="Xóa Vị trí" Margin="8,0,0,0"/>
-                <Button Grid.Column="5" Classes="toolbar accent" Command="{Binding SaveAllCommand}"
-                        Content="Lưu tất cả (Ctrl+S)" Margin="8,0,0,0"/>
-            </Grid>
+            <StackPanel Spacing="8">
+                <!-- Row 1: pick / create / delete the Dự án, then the Vị trí actions + Save-All -->
+                <Grid ColumnDefinitions="Auto,Auto,Auto,Auto,*,Auto,Auto,Auto">
+                    <TextBlock Grid.Column="0" Text="Dự án:" Classes="formLabel"
+                               VerticalAlignment="Center" Margin="0,0,8,0"/>
+                    <ComboBox Grid.Column="1" MinWidth="220"
+                              ItemsSource="{Binding Projects}"
+                              SelectedItem="{Binding SelectedProject}">
+                        <ComboBox.ItemTemplate>
+                            <DataTemplate x:DataType="finance:Project">
+                                <TextBlock Text="{Binding Name}"/>
+                            </DataTemplate>
+                        </ComboBox.ItemTemplate>
+                    </ComboBox>
+                    <Button Grid.Column="2" Classes="toolbar" Command="{Binding AddProjectCommand}"
+                            Content="＋ Thêm dự án" Margin="8,0,0,0"/>
+                    <Button Grid.Column="3" Classes="toolbar danger" Command="{Binding DeleteProjectCommand}"
+                            Content="Xóa dự án" Margin="8,0,0,0"/>
+                    <Button Grid.Column="5" Classes="toolbar" Command="{Binding AddViTriCommand}"
+                            Content="＋ Thêm Vị trí" Margin="12,0,0,0"/>
+                    <Button Grid.Column="6" Classes="toolbar danger" Command="{Binding DeleteViTriCommand}"
+                            CommandParameter="{Binding SelectedViTriPage}" Content="Xóa Vị trí" Margin="8,0,0,0"/>
+                    <Button Grid.Column="7" Classes="toolbar accent" Command="{Binding SaveAllCommand}"
+                            Content="Lưu tất cả (Ctrl+S)" Margin="8,0,0,0"/>
+                </Grid>
+
+                <!-- Row 2: rename the selected Dự án inline (same style as Vị trí's "Tên vị trí" field) -->
+                <Grid ColumnDefinitions="Auto,2*,Auto,Auto,*">
+                    <TextBlock Grid.Column="0" Text="Tên dự án:" Classes="formLabel"
+                               VerticalAlignment="Center" Margin="0,0,8,0"/>
+                    <TextBox Grid.Column="1" Text="{Binding SelectedProjectName}"/>
+                    <TextBlock Grid.Column="2" Text="Mã dự án:" Classes="formLabel"
+                               VerticalAlignment="Center" Margin="16,0,8,0"/>
+                    <TextBox Grid.Column="3" MinWidth="120" Text="{Binding SelectedProjectCode}"/>
+                </Grid>
+            </StackPanel>
         </Border>
 
         <TabControl x:Name="ViTriTabs"
