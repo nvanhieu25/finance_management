@@ -1,5 +1,6 @@
 using Avalonia.Controls;
 using Avalonia.Controls.Presenters;
+using Avalonia.Controls.Primitives;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
@@ -11,6 +12,11 @@ namespace ConstructionFinance.Desktop.Views.Finance;
 
 public partial class VitriLedgerView : UserControl
 {
+    // Tracked so OnUnloaded can detach — Thumbs are re-templated per Vị trí tab
+    // instance but this View instance itself is reused as tabs are switched away
+    // from and back to, so handlers must not pile up across (re)loads.
+    private readonly List<Thumb> _wiredGrips = new();
+
     public VitriLedgerView() => AvaloniaXamlLoader.Load(this);
 
     protected override void OnLoaded(RoutedEventArgs e)
@@ -18,6 +24,44 @@ public partial class VitriLedgerView : UserControl
         base.OnLoaded(e);
         // Tunnel so we react before the TextBox/ComboBox consumes the key.
         AddHandler(KeyDownEvent, OnGridKeyDown, RoutingStrategies.Tunnel);
+
+        WireColumnGrips();
+    }
+
+    protected override void OnUnloaded(RoutedEventArgs e)
+    {
+        foreach (var thumb in _wiredGrips)
+            thumb.DragDelta -= OnColumnGripDragDelta;
+        _wiredGrips.Clear();
+
+        base.OnUnloaded(e);
+    }
+
+    /// Part A (Excel-style manual column resize): every header cell has a thin Thumb
+    /// grip (Classes="colGrip", Tag="<column index 0..13>") on its right edge. Dragging
+    /// one adds the horizontal delta to that column's pixel width in the shared
+    /// VitriLedgerViewModel.ColumnWidths model — since the header, TỔNG CỘNG row, and
+    /// every RowKind row template all bind their ColumnDefinitions to that SAME model,
+    /// they resize together automatically; no per-grid code needed here beyond this.
+    private void WireColumnGrips()
+    {
+        var headerGrid = this.FindControl<Grid>("HeaderColumnsGrid");
+        if (headerGrid is null) return;
+
+        foreach (var thumb in headerGrid.GetVisualDescendants().OfType<Thumb>())
+        {
+            thumb.DragDelta += OnColumnGripDragDelta;
+            _wiredGrips.Add(thumb);
+        }
+    }
+
+    private void OnColumnGripDragDelta(object? sender, VectorEventArgs e)
+    {
+        if (sender is not Thumb thumb) return;
+        if (DataContext is not VitriLedgerViewModel vm) return;
+        if (thumb.Tag is not string tagText || !int.TryParse(tagText, out var columnIndex)) return;
+
+        vm.ColumnWidths.Resize(columnIndex, e.Vector.X);
     }
 
     private async void OnGridKeyDown(object? sender, KeyEventArgs e)

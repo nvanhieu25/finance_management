@@ -33,6 +33,37 @@
             <Setter Property="MinWidth" Value="0"/>
             <Setter Property="HorizontalAlignment" Value="Stretch"/>
         </Style>
+        <!-- Excel-style overflow for the "content" column (Nội dung / Group·Package
+             Name): UNFOCUSED, the box goes borderless/transparent, left-aligned, and
+             unclipped — so long text just draws past its column at its own natural
+             width (MinWidth, bound in the DataTemplate to the live column width, keeps
+             it filling the column normally when text is short). Columns to the right
+             are declared AFTER this one in the row Grid, so an occupied neighbor
+             (TextBox/ComboBox — both opaque by default) paints over the overflow;
+             an empty placeholder Border (no Background) lets it show through, exactly
+             like Excel. FOCUSED (editing), it snaps back to a normal bordered, clipped,
+             column-Stretched box. The column's own declared Width never changes either
+             way — this is purely a per-control render trick. -->
+        <Style Selector="TextBox.overflowCell">
+            <Setter Property="HorizontalAlignment" Value="Left"/>
+            <Setter Property="ClipToBounds" Value="False"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+        </Style>
+        <Style Selector="TextBox.overflowCell:focus">
+            <Setter Property="HorizontalAlignment" Value="Stretch"/>
+            <Setter Property="ClipToBounds" Value="True"/>
+            <Setter Property="Background" Value="{DynamicResource CardBackgroundBrush}"/>
+            <Setter Property="BorderThickness" Value="0,0,1,1"/>
+        </Style>
+        <!-- Wrap-toggle ("Xuống dòng trong ô"): wraps within the column instead of
+             overflowing sideways — wrapping still respects the column's own width
+             during measure regardless of Left/Stretch alignment, so this alone is
+             enough to turn overflow off; paired with the row Height switching to
+             Auto (see the *Row/*Row.wrap styles below) so the row grows to fit. -->
+        <Style Selector="TextBox.overflowCell.wrap">
+            <Setter Property="TextWrapping" Value="Wrap"/>
+        </Style>
         <!-- Normalize the Fund ComboBox cell to the same padding/height rhythm as the
              TextBox cells beside it — its own FluentAvalonia theme padding otherwise
              makes it look taller/shorter and inconsistently inset — and, same reasoning
@@ -56,6 +87,47 @@
             <Setter Property="Margin" Value="0"/>
             <Setter Property="HorizontalContentAlignment" Value="Left"/>
             <Setter Property="HorizontalAlignment" Value="Left"/>
+        </Style>
+        <!-- Row heights: fixed single-line by default; switch to Auto (+ a MinHeight
+             floor) when Xuống dòng trong ô is on, so a wrapped multi-line cell can grow
+             the row instead of being clipped. A plain XAML attribute on the Grid would
+             always beat these Style setters, so the row Grids below carry NO inline
+             Height — only these Classes-driven ones. -->
+        <Style Selector="Grid.groupRow">
+            <Setter Property="Height" Value="34"/>
+        </Style>
+        <Style Selector="Grid.groupRow.wrap">
+            <Setter Property="Height" Value="NaN"/>
+            <Setter Property="MinHeight" Value="34"/>
+        </Style>
+        <Style Selector="Grid.packageRow">
+            <Setter Property="Height" Value="52"/>
+        </Style>
+        <Style Selector="Grid.packageRow.wrap">
+            <Setter Property="Height" Value="NaN"/>
+            <Setter Property="MinHeight" Value="52"/>
+        </Style>
+        <Style Selector="Grid.entryRow">
+            <Setter Property="Height" Value="34"/>
+        </Style>
+        <Style Selector="Grid.entryRow.wrap">
+            <Setter Property="Height" Value="NaN"/>
+            <Setter Property="MinHeight" Value="34"/>
+        </Style>
+        <!-- Column-resize grips in the header (Excel-style drag-to-resize, Part A).
+             A thin transparent strip on the right edge of every header cell; DragDelta
+             is wired up in code-behind (VitriLedgerView.axaml.cs) against each Thumb's
+             Tag (the 0..13 column index), which calls ColumnWidths.Resize(index, dx). -->
+        <Style Selector="Thumb.colGrip">
+            <Setter Property="Width" Value="6"/>
+            <Setter Property="MinWidth" Value="6"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Cursor" Value="SizeWestEast"/>
+            <Setter Property="HorizontalAlignment" Value="Right"/>
+            <Setter Property="VerticalAlignment" Value="Stretch"/>
+        </Style>
+        <Style Selector="Thumb.colGrip:pointerover">
+            <Setter Property="Background" Value="{DynamicResource BrandPrimaryBrush}"/>
         </Style>
     </UserControl.Styles>
 
@@ -109,63 +181,68 @@
                         <TextBlock Text="Xóa dòng đang chọn"/>
                     </StackPanel>
                 </Button>
-                <TextBlock Text="Mẹo: chọn 1 dòng đợt rồi Ctrl+V để dán khối từ Excel"
+                <ToggleButton Classes="toolbar" IsChecked="{Binding WrapText}"
+                              ToolTip.Tip="Bật: văn bản dài xuống dòng trong ô (dòng tự giãn cao). Tắt: văn bản dài tràn sang ô trống bên phải như Excel.">
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <ui:SymbolIcon Symbol="{x:Static ui:Symbol.AlignLeft}"/>
+                        <TextBlock Text="Xuống dòng trong ô"/>
+                    </StackPanel>
+                </ToggleButton>
+                <TextBlock Text="Mẹo: chọn 1 dòng đợt rồi Ctrl+V để dán khối từ Excel. Kéo mép cột trong tiêu đề để đổi độ rộng."
                            Classes="muted" VerticalAlignment="Center" Margin="8,0,0,0"/>
             </StackPanel>
         </Border>
 
         <!-- The grid: frozen header + frozen TỔNG CỘNG row (top), scrollable rows below.
-             All 14 columns are IDENTICAL, ABSOLUTE FIXED PIXEL widths (no "*", no "Auto",
-             no SharedSizeGroup) repeated literally in the header Grid, the TỔNG CỘNG Grid,
-             and every RowKind template below — a fixed pixel column's width can never
-             depend on its content, so a long "Nội dung" or a huge money value can never
-             grow/shift a column: the overflow just clips (ClipToBounds on every row Grid +
-             cell) instead of resizing anything. (SharedSizeGroup was tried first and was
-             ITSELF the bug — it explicitly sizes a column to the WIDEST content across
-             every row sharing that group, so typing one long value widened that column
-             everywhere. Plain identical fixed widths already line up by construction and
-             need no such mechanism.) MinWidth on the DockPanel below just forces the whole
-             table to its constant ~1880px width so the single outer horizontal ScrollViewer
-             can reveal the off-screen right-hand computed columns, scrolling the header/
-             TỔNG CỘNG bars in sync with the body (only the rows ScrollViewer scrolls
-             vertically). -->
+             All 14 columns are fixed-pixel widths bound to ONE shared ColumnWidths model
+             (VitriLedgerViewModel.ColumnWidths) — repeated identically in the header Grid,
+             the TỔNG CỘNG Grid, and every RowKind template below, so they stay aligned and
+             resize together the instant a header grip is dragged (Part A). Columns are
+             STILL never Auto/*/SharedSizeGroup — only the shared model's pixel VALUES
+             change (via a drag), never anything content-driven, so a long "Nội dung" or a
+             huge money value still can never grow/shift a column on its own; only the
+             user's drag can. MinWidth on the DockPanel is just the initial-default floor;
+             widening a column via drag naturally grows the table past it. The whole table
+             stays in ONE outer horizontal ScrollViewer, so a wider table scrolls, and the
+             header/TỔNG CỘNG bars scroll in sync with the body (only the rows ScrollViewer
+             scrolls vertically). -->
         <Border Classes="tableCard" x:Name="GridRoot" Focusable="True">
             <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
                 <DockPanel MinWidth="1880">
                     <!-- Frozen column header -->
                     <Border DockPanel.Dock="Top" Background="{DynamicResource GridHeaderBrush}"
                             BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="0,0,0,1">
-                        <Grid ClipToBounds="True">
+                        <Grid x:Name="HeaderColumnsGrid" ClipToBounds="True">
                             <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="100"/>
-                                <ColumnDefinition Width="340"/>
-                                <ColumnDefinition Width="170"/>
-                                <ColumnDefinition Width="130"/>
-                                <ColumnDefinition Width="110"/>
-                                <ColumnDefinition Width="90"/>
-                                <ColumnDefinition Width="120"/>
-                                <ColumnDefinition Width="120"/>
-                                <ColumnDefinition Width="110"/>
-                                <ColumnDefinition Width="110"/>
-                                <ColumnDefinition Width="120"/>
-                                <ColumnDefinition Width="120"/>
-                                <ColumnDefinition Width="120"/>
-                                <ColumnDefinition Width="120"/>
+                                <ColumnDefinition Width="{Binding ColumnWidths.NgayWidth}"/>
+                                <ColumnDefinition Width="{Binding ColumnWidths.NoiDung}"/>
+                                <ColumnDefinition Width="{Binding ColumnWidths.NhaThauTk}"/>
+                                <ColumnDefinition Width="{Binding ColumnWidths.GiaTriHd}"/>
+                                <ColumnDefinition Width="{Binding ColumnWidths.PhuLuc}"/>
+                                <ColumnDefinition Width="{Binding ColumnWidths.SoCt}"/>
+                                <ColumnDefinition Width="{Binding ColumnWidths.TamUng}"/>
+                                <ColumnDefinition Width="{Binding ColumnWidths.Klht}"/>
+                                <ColumnDefinition Width="{Binding ColumnWidths.ThuHoi}"/>
+                                <ColumnDefinition Width="{Binding ColumnWidths.Nguon}"/>
+                                <ColumnDefinition Width="{Binding ColumnWidths.GnNsnn}"/>
+                                <ColumnDefinition Width="{Binding ColumnWidths.GnNgoaiHoi}"/>
+                                <ColumnDefinition Width="{Binding ColumnWidths.SoDuTu}"/>
+                                <ColumnDefinition Width="{Binding ColumnWidths.TongDaGn}"/>
                             </Grid.ColumnDefinitions>
-                            <TextBlock Grid.Column="0" Text="Ngày" Classes="gridHeaderCell"/>
-                            <TextBlock Grid.Column="1" Text="Nội dung" Classes="gridHeaderCell"/>
-                            <TextBlock Grid.Column="2" Text="Nhà thầu / TK" Classes="gridHeaderCell"/>
-                            <TextBlock Grid.Column="3" Text="Giá trị HĐ" Classes="gridHeaderCell" TextAlignment="Right"/>
-                            <TextBlock Grid.Column="4" Text="Phụ lục" Classes="gridHeaderCell" TextAlignment="Right"/>
-                            <TextBlock Grid.Column="5" Text="Số CT" Classes="gridHeaderCell"/>
-                            <TextBlock Grid.Column="6" Text="Tạm ứng" Classes="gridHeaderCell" TextAlignment="Right"/>
-                            <TextBlock Grid.Column="7" Text="KLHT" Classes="gridHeaderCell" TextAlignment="Right"/>
-                            <TextBlock Grid.Column="8" Text="Thu hồi" Classes="gridHeaderCell" TextAlignment="Right"/>
-                            <TextBlock Grid.Column="9" Text="Nguồn" Classes="gridHeaderCell"/>
-                            <TextBlock Grid.Column="10" Text="GN NSNN" Classes="gridHeaderCell" TextAlignment="Right"/>
-                            <TextBlock Grid.Column="11" Text="GN Ngoại hối" Classes="gridHeaderCell" TextAlignment="Right"/>
-                            <TextBlock Grid.Column="12" Text="Số dư TU" Classes="gridHeaderCell" TextAlignment="Right"/>
-                            <TextBlock Grid.Column="13" Text="Tổng đã GN" Classes="gridHeaderCell" TextAlignment="Right"/>
+                            <Grid Grid.Column="0"><TextBlock Text="Ngày" Classes="gridHeaderCell"/><Thumb Tag="0" Classes="colGrip"/></Grid>
+                            <Grid Grid.Column="1"><TextBlock Text="Nội dung" Classes="gridHeaderCell"/><Thumb Tag="1" Classes="colGrip"/></Grid>
+                            <Grid Grid.Column="2"><TextBlock Text="Nhà thầu / TK" Classes="gridHeaderCell"/><Thumb Tag="2" Classes="colGrip"/></Grid>
+                            <Grid Grid.Column="3"><TextBlock Text="Giá trị HĐ" Classes="gridHeaderCell" TextAlignment="Right"/><Thumb Tag="3" Classes="colGrip"/></Grid>
+                            <Grid Grid.Column="4"><TextBlock Text="Phụ lục" Classes="gridHeaderCell" TextAlignment="Right"/><Thumb Tag="4" Classes="colGrip"/></Grid>
+                            <Grid Grid.Column="5"><TextBlock Text="Số CT" Classes="gridHeaderCell"/><Thumb Tag="5" Classes="colGrip"/></Grid>
+                            <Grid Grid.Column="6"><TextBlock Text="Tạm ứng" Classes="gridHeaderCell" TextAlignment="Right"/><Thumb Tag="6" Classes="colGrip"/></Grid>
+                            <Grid Grid.Column="7"><TextBlock Text="KLHT" Classes="gridHeaderCell" TextAlignment="Right"/><Thumb Tag="7" Classes="colGrip"/></Grid>
+                            <Grid Grid.Column="8"><TextBlock Text="Thu hồi" Classes="gridHeaderCell" TextAlignment="Right"/><Thumb Tag="8" Classes="colGrip"/></Grid>
+                            <Grid Grid.Column="9"><TextBlock Text="Nguồn" Classes="gridHeaderCell"/><Thumb Tag="9" Classes="colGrip"/></Grid>
+                            <Grid Grid.Column="10"><TextBlock Text="GN NSNN" Classes="gridHeaderCell" TextAlignment="Right"/><Thumb Tag="10" Classes="colGrip"/></Grid>
+                            <Grid Grid.Column="11"><TextBlock Text="GN Ngoại hối" Classes="gridHeaderCell" TextAlignment="Right"/><Thumb Tag="11" Classes="colGrip"/></Grid>
+                            <Grid Grid.Column="12"><TextBlock Text="Số dư TU" Classes="gridHeaderCell" TextAlignment="Right"/><Thumb Tag="12" Classes="colGrip"/></Grid>
+                            <Grid Grid.Column="13"><TextBlock Text="Tổng đã GN" Classes="gridHeaderCell" TextAlignment="Right"/><Thumb Tag="13" Classes="colGrip"/></Grid>
                         </Grid>
                     </Border>
 
@@ -175,20 +252,20 @@
                             DataContext="{Binding TotalRow}">
                         <Grid x:DataType="vm:LedgerRowViewModel" ClipToBounds="True">
                             <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="100"/>
-                                <ColumnDefinition Width="340"/>
-                                <ColumnDefinition Width="170"/>
-                                <ColumnDefinition Width="130"/>
-                                <ColumnDefinition Width="110"/>
-                                <ColumnDefinition Width="90"/>
-                                <ColumnDefinition Width="120"/>
-                                <ColumnDefinition Width="120"/>
-                                <ColumnDefinition Width="110"/>
-                                <ColumnDefinition Width="110"/>
-                                <ColumnDefinition Width="120"/>
-                                <ColumnDefinition Width="120"/>
-                                <ColumnDefinition Width="120"/>
-                                <ColumnDefinition Width="120"/>
+                                <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.NgayWidth}"/>
+                                <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.NoiDung}"/>
+                                <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.NhaThauTk}"/>
+                                <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.GiaTriHd}"/>
+                                <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.PhuLuc}"/>
+                                <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.SoCt}"/>
+                                <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.TamUng}"/>
+                                <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.Klht}"/>
+                                <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.ThuHoi}"/>
+                                <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.Nguon}"/>
+                                <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.GnNsnn}"/>
+                                <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.GnNgoaiHoi}"/>
+                                <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.SoDuTu}"/>
+                                <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.TongDaGn}"/>
                             </Grid.ColumnDefinitions>
                             <TextBlock Grid.Column="1" Text="TỔNG CỘNG" Classes="gridTotalCell"/>
                             <TextBlock Grid.Column="10" Text="{Binding DisbursedNsnnText}" Classes="gridTotalCell" TextAlignment="Right"/>
@@ -218,23 +295,24 @@
                                     <!-- Group: bold Name + computed subtotals -->
                                     <local:LedgerRowTemplateSelector.Group>
                                         <DataTemplate x:DataType="vm:LedgerRowViewModel">
-                                            <Grid Classes="gridRow" Height="34" ClipToBounds="True"
-                                                  Background="{DynamicResource AccentSoftBrush}">
+                                            <Grid Classes="gridRow groupRow"
+                                                  Classes.wrap="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).WrapText}"
+                                                  ClipToBounds="True" Background="{DynamicResource AccentSoftBrush}">
                                                 <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="100"/>
-                                                    <ColumnDefinition Width="340"/>
-                                                    <ColumnDefinition Width="170"/>
-                                                    <ColumnDefinition Width="130"/>
-                                                    <ColumnDefinition Width="110"/>
-                                                    <ColumnDefinition Width="90"/>
-                                                    <ColumnDefinition Width="120"/>
-                                                    <ColumnDefinition Width="120"/>
-                                                    <ColumnDefinition Width="110"/>
-                                                    <ColumnDefinition Width="110"/>
-                                                    <ColumnDefinition Width="120"/>
-                                                    <ColumnDefinition Width="120"/>
-                                                    <ColumnDefinition Width="120"/>
-                                                    <ColumnDefinition Width="120"/>
+                                                    <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.NgayWidth}"/>
+                                                    <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.NoiDung}"/>
+                                                    <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.NhaThauTk}"/>
+                                                    <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.GiaTriHd}"/>
+                                                    <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.PhuLuc}"/>
+                                                    <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.SoCt}"/>
+                                                    <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.TamUng}"/>
+                                                    <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.Klht}"/>
+                                                    <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.ThuHoi}"/>
+                                                    <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.Nguon}"/>
+                                                    <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.GnNsnn}"/>
+                                                    <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.GnNgoaiHoi}"/>
+                                                    <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.SoDuTu}"/>
+                                                    <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.TongDaGn}"/>
                                                 </Grid.ColumnDefinitions>
                                                 <!-- Inline discoverable affordance: add a Gói directly under THIS group
                                                      without needing to pre-select anything on the toolbar. -->
@@ -245,7 +323,9 @@
                                                             Command="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).AddPackageCommand}"
                                                             CommandParameter="{Binding}"/>
                                                 </Border>
-                                                <TextBox Grid.Column="1" Classes="gridCell" FontWeight="Bold"
+                                                <TextBox Grid.Column="1" Classes="gridCell overflowCell" FontWeight="Bold"
+                                                         Classes.wrap="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).WrapText}"
+                                                         MinWidth="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.NoiDung.Value}"
                                                          Margin="4,0,0,0" Text="{Binding Name}"/>
                                                 <Border Grid.Column="2" Classes="gridCellBorder"/>
                                                 <Border Grid.Column="3" Classes="gridCellBorder"/>
@@ -274,22 +354,24 @@
                                     <!-- Package: Name + Nhà thầu/TK + contract fields + computed subtotals -->
                                     <local:LedgerRowTemplateSelector.Package>
                                         <DataTemplate x:DataType="vm:LedgerRowViewModel">
-                                            <Grid Classes="gridRow" Height="52" ClipToBounds="True">
+                                            <Grid Classes="gridRow packageRow"
+                                                  Classes.wrap="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).WrapText}"
+                                                  ClipToBounds="True">
                                                 <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="100"/>
-                                                    <ColumnDefinition Width="340"/>
-                                                    <ColumnDefinition Width="170"/>
-                                                    <ColumnDefinition Width="130"/>
-                                                    <ColumnDefinition Width="110"/>
-                                                    <ColumnDefinition Width="90"/>
-                                                    <ColumnDefinition Width="120"/>
-                                                    <ColumnDefinition Width="120"/>
-                                                    <ColumnDefinition Width="110"/>
-                                                    <ColumnDefinition Width="110"/>
-                                                    <ColumnDefinition Width="120"/>
-                                                    <ColumnDefinition Width="120"/>
-                                                    <ColumnDefinition Width="120"/>
-                                                    <ColumnDefinition Width="120"/>
+                                                    <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.NgayWidth}"/>
+                                                    <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.NoiDung}"/>
+                                                    <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.NhaThauTk}"/>
+                                                    <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.GiaTriHd}"/>
+                                                    <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.PhuLuc}"/>
+                                                    <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.SoCt}"/>
+                                                    <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.TamUng}"/>
+                                                    <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.Klht}"/>
+                                                    <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.ThuHoi}"/>
+                                                    <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.Nguon}"/>
+                                                    <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.GnNsnn}"/>
+                                                    <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.GnNgoaiHoi}"/>
+                                                    <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.SoDuTu}"/>
+                                                    <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.TongDaGn}"/>
                                                 </Grid.ColumnDefinitions>
                                                 <!-- Inline discoverable affordance: add an Đợt directly under THIS
                                                      package without needing to pre-select anything on the toolbar. -->
@@ -300,7 +382,9 @@
                                                             Command="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).AddEntryCommand}"
                                                             CommandParameter="{Binding}"/>
                                                 </Border>
-                                                <TextBox Grid.Column="1" Classes="gridCell" FontWeight="SemiBold"
+                                                <TextBox Grid.Column="1" Classes="gridCell overflowCell" FontWeight="SemiBold"
+                                                         Classes.wrap="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).WrapText}"
+                                                         MinWidth="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.NoiDung.Value}"
                                                          Margin="20,0,0,0" Text="{Binding Name}"/>
                                                 <Border Grid.Column="2" Classes="gridCellBorder">
                                                     <StackPanel Spacing="0" Margin="6,2" ClipToBounds="True">
@@ -341,25 +425,30 @@
                                     <!-- Entry: editable transaction cells + Fund dropdown -->
                                     <local:LedgerRowTemplateSelector.Entry>
                                         <DataTemplate x:DataType="vm:LedgerRowViewModel">
-                                            <Grid Classes="gridRow" Height="34" ClipToBounds="True">
+                                            <Grid Classes="gridRow entryRow"
+                                                  Classes.wrap="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).WrapText}"
+                                                  ClipToBounds="True">
                                                 <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="100"/>
-                                                    <ColumnDefinition Width="340"/>
-                                                    <ColumnDefinition Width="170"/>
-                                                    <ColumnDefinition Width="130"/>
-                                                    <ColumnDefinition Width="110"/>
-                                                    <ColumnDefinition Width="90"/>
-                                                    <ColumnDefinition Width="120"/>
-                                                    <ColumnDefinition Width="120"/>
-                                                    <ColumnDefinition Width="110"/>
-                                                    <ColumnDefinition Width="110"/>
-                                                    <ColumnDefinition Width="120"/>
-                                                    <ColumnDefinition Width="120"/>
-                                                    <ColumnDefinition Width="120"/>
-                                                    <ColumnDefinition Width="120"/>
+                                                    <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.NgayWidth}"/>
+                                                    <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.NoiDung}"/>
+                                                    <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.NhaThauTk}"/>
+                                                    <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.GiaTriHd}"/>
+                                                    <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.PhuLuc}"/>
+                                                    <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.SoCt}"/>
+                                                    <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.TamUng}"/>
+                                                    <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.Klht}"/>
+                                                    <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.ThuHoi}"/>
+                                                    <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.Nguon}"/>
+                                                    <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.GnNsnn}"/>
+                                                    <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.GnNgoaiHoi}"/>
+                                                    <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.SoDuTu}"/>
+                                                    <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.TongDaGn}"/>
                                                 </Grid.ColumnDefinitions>
                                                 <TextBox Grid.Column="0" Classes="gridCell" Text="{Binding DateText}"/>
-                                                <TextBox Grid.Column="1" Classes="gridCell" Margin="36,0,0,0" Text="{Binding Content}"/>
+                                                <TextBox Grid.Column="1" Classes="gridCell overflowCell"
+                                                         Classes.wrap="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).WrapText}"
+                                                         MinWidth="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.NoiDung.Value}"
+                                                         Margin="36,0,0,0" Text="{Binding Content}"/>
                                                 <Border Grid.Column="2" Classes="gridCellBorder"/>
                                                 <Border Grid.Column="3" Classes="gridCellBorder"/>
                                                 <Border Grid.Column="4" Classes="gridCellBorder"/>
