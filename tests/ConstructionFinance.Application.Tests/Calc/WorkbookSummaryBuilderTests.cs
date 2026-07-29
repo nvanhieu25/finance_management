@@ -101,4 +101,116 @@ public class WorkbookSummaryBuilderTests
         rows[0].Kind.ShouldBe(SummaryRowKind.GrandTotal);
         rows[0].Aggregate.TotalDisbursed.ShouldBe(0m);
     }
+
+    [Fact]
+    public void BuildViTriRows_includes_ContractAnnexValue_in_contract_value_sum()
+    {
+        // Fixture with one package having both ContractValue and ContractAnnexValue
+        var viTri = new ViTri
+        {
+            Name = "Vị trí with annex",
+            SortOrder = 0,
+            CostGroups =
+            {
+                new CostGroup
+                {
+                    Name = "CHI PHÍ XÂY DỰNG",
+                    SortOrder = 0,
+                    Packages =
+                    {
+                        new Package
+                        {
+                            Name = "Gói A",
+                            ContractorName = "Cty A",
+                            ContractValue = 50_000_000_000m,
+                            ContractAnnexValue = 2_000_000_000m,
+                            SortOrder = 0,
+                            Dots =
+                            {
+                                new Dot
+                                {
+                                    Date = new DateOnly(2026, 3, 1),
+                                    Fund = Fund.NSNN,
+                                    Advance = 10_000_000m,
+                                    PaymentKLHT = 0m,
+                                    RecoveredAdvance = 0m,
+                                    SortOrder = 0
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        };
+
+        var (rows, _) = WorkbookSummaryBuilder.BuildViTriRows(new[] { viTri });
+
+        rows[0].ContractValue.ShouldBe(52_000_000_000m);
+    }
+
+    [Fact]
+    public void FirstContractor_skips_blank_and_picks_next_non_blank_contractor()
+    {
+        // Two packages in the same cost group, ordered by SortOrder
+        // First package has blank contractor, second has "Cty B"
+        var viTri = new ViTri
+        {
+            Name = "Vị trí multi-contractor",
+            SortOrder = 0,
+            CostGroups =
+            {
+                new CostGroup
+                {
+                    Name = "CHI PHÍ XÂY DỰNG",
+                    SortOrder = 0,
+                    Packages =
+                    {
+                        new Package
+                        {
+                            Name = "Gói A",
+                            ContractorName = "",  // blank
+                            ContractValue = 0m,
+                            ContractAnnexValue = 0m,
+                            SortOrder = 0,
+                            Dots = { }
+                        },
+                        new Package
+                        {
+                            Name = "Gói B",
+                            ContractorName = "Cty B",  // first non-blank
+                            ContractValue = 0m,
+                            ContractAnnexValue = 0m,
+                            SortOrder = 1,
+                            Dots = { }
+                        }
+                    }
+                }
+            }
+        };
+
+        var (rows, _) = WorkbookSummaryBuilder.BuildViTriRows(new[] { viTri });
+
+        rows[0].Contractor.ShouldBe("Cty B");
+    }
+
+    [Fact]
+    public void BuildAll_generates_roman_numerals_including_subtractive_cases()
+    {
+        // Build with 4 projects to generate IV (subtractive case: 5 - 1 = IV)
+        var projects = new[]
+        {
+            new Project { Id = 1, Name = "P1", ViTris = { ViTriWithAdvance("V1", 0, 1_000_000m, 0m) } },
+            new Project { Id = 2, Name = "P2", ViTris = { ViTriWithAdvance("V1", 0, 1_000_000m, 0m) } },
+            new Project { Id = 3, Name = "P3", ViTris = { ViTriWithAdvance("V1", 0, 1_000_000m, 0m) } },
+            new Project { Id = 4, Name = "P4", ViTris = { ViTriWithAdvance("V1", 0, 1_000_000m, 0m) } }
+        };
+
+        var rows = WorkbookSummaryBuilder.BuildAll(projects);
+
+        // Find project rows and verify roman ordinals
+        rows[0].Ordinal.ShouldBe("I");
+        rows[2].Ordinal.ShouldBe("II");
+        rows[4].Ordinal.ShouldBe("III");
+        rows[6].Ordinal.ShouldBe("IV");  // subtractive case: 5-1
+    }
 }
