@@ -13,6 +13,16 @@
             <Setter Property="BorderBrush" Value="{DynamicResource GridLineBrush}"/>
             <Setter Property="BorderThickness" Value="0,0,1,1"/>
         </Style>
+        <!-- Zero out the ItemsControl item container's own padding/margin so a row's
+             Grid starts at the exact same x-offset as the header/TỔNG CỘNG Grids —
+             otherwise a ContentPresenter's own theme padding silently shifts every
+             row a few px right of the frozen bars above it. -->
+        <Style Selector="ItemsControl#RowsHost ContentPresenter">
+            <Setter Property="Padding" Value="0"/>
+            <Setter Property="Margin" Value="0"/>
+            <Setter Property="HorizontalContentAlignment" Value="Left"/>
+            <Setter Property="HorizontalAlignment" Value="Left"/>
+        </Style>
     </UserControl.Styles>
 
     <DockPanel>
@@ -68,163 +78,253 @@
             </StackPanel>
         </Border>
 
-        <!-- The grid: frozen header + frozen TỔNG CỘNG row (top), scrollable rows below -->
+        <!-- The grid: frozen header + frozen TỔNG CỘNG row (top), scrollable rows below.
+             All 14 columns are FIXED pixel widths (no "*") and share a SharedSizeGroup
+             per column across every Grid below (header, TỔNG CỘNG, and each per-Kind row
+             template) so they line up exactly regardless of which container measures
+             them — a "*" column sizes differently between a full-width header Border and
+             an ItemsControl item measured inside a scrolling container, which is what
+             caused the column drift. MinWidth on the shared-size scope forces the whole
+             table to its natural ~1750px width so the single outer horizontal
+             ScrollViewer below can reveal the off-screen right-hand computed columns,
+             scrolling the header/TỔNG CỘNG bars in sync with the body (only the rows
+             ScrollViewer scrolls vertically). -->
         <Border Classes="tableCard" x:Name="GridRoot" Focusable="True">
-            <DockPanel>
-                <!-- Frozen column header -->
-                <Border DockPanel.Dock="Top" Background="{DynamicResource GridHeaderBrush}"
-                        BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="0,0,0,1">
-                    <Grid ColumnDefinitions="100,*,160,120,100,90,110,100,100,100,110,110,110,120">
-                        <TextBlock Grid.Column="0" Text="Ngày" Classes="gridHeaderCell"/>
-                        <TextBlock Grid.Column="1" Text="Nội dung" Classes="gridHeaderCell"/>
-                        <TextBlock Grid.Column="2" Text="Nhà thầu / TK" Classes="gridHeaderCell"/>
-                        <TextBlock Grid.Column="3" Text="Giá trị HĐ" Classes="gridHeaderCell" TextAlignment="Right"/>
-                        <TextBlock Grid.Column="4" Text="Phụ lục" Classes="gridHeaderCell" TextAlignment="Right"/>
-                        <TextBlock Grid.Column="5" Text="Số CT" Classes="gridHeaderCell"/>
-                        <TextBlock Grid.Column="6" Text="Tạm ứng" Classes="gridHeaderCell" TextAlignment="Right"/>
-                        <TextBlock Grid.Column="7" Text="KLHT" Classes="gridHeaderCell" TextAlignment="Right"/>
-                        <TextBlock Grid.Column="8" Text="Thu hồi" Classes="gridHeaderCell" TextAlignment="Right"/>
-                        <TextBlock Grid.Column="9" Text="Nguồn" Classes="gridHeaderCell"/>
-                        <TextBlock Grid.Column="10" Text="GN NSNN" Classes="gridHeaderCell" TextAlignment="Right"/>
-                        <TextBlock Grid.Column="11" Text="GN Ngoại hối" Classes="gridHeaderCell" TextAlignment="Right"/>
-                        <TextBlock Grid.Column="12" Text="Số dư TU" Classes="gridHeaderCell" TextAlignment="Right"/>
-                        <TextBlock Grid.Column="13" Text="Tổng đã GN" Classes="gridHeaderCell" TextAlignment="Right"/>
-                    </Grid>
-                </Border>
+            <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
+                <DockPanel Grid.IsSharedSizeScope="True" MinWidth="1750">
+                    <!-- Frozen column header -->
+                    <Border DockPanel.Dock="Top" Background="{DynamicResource GridHeaderBrush}"
+                            BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="0,0,0,1">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="100" SharedSizeGroup="colDate"/>
+                                <ColumnDefinition Width="320" SharedSizeGroup="colContent"/>
+                                <ColumnDefinition Width="160" SharedSizeGroup="colContractor"/>
+                                <ColumnDefinition Width="120" SharedSizeGroup="colContractValue"/>
+                                <ColumnDefinition Width="100" SharedSizeGroup="colAnnex"/>
+                                <ColumnDefinition Width="90" SharedSizeGroup="colDocNo"/>
+                                <ColumnDefinition Width="110" SharedSizeGroup="colAdvance"/>
+                                <ColumnDefinition Width="100" SharedSizeGroup="colKlht"/>
+                                <ColumnDefinition Width="100" SharedSizeGroup="colRecovered"/>
+                                <ColumnDefinition Width="100" SharedSizeGroup="colFund"/>
+                                <ColumnDefinition Width="110" SharedSizeGroup="colNsnn"/>
+                                <ColumnDefinition Width="110" SharedSizeGroup="colNgoaiHoi"/>
+                                <ColumnDefinition Width="110" SharedSizeGroup="colUnrecovered"/>
+                                <ColumnDefinition Width="120" SharedSizeGroup="colTotal"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Text="Ngày" Classes="gridHeaderCell"/>
+                            <TextBlock Grid.Column="1" Text="Nội dung" Classes="gridHeaderCell"/>
+                            <TextBlock Grid.Column="2" Text="Nhà thầu / TK" Classes="gridHeaderCell"/>
+                            <TextBlock Grid.Column="3" Text="Giá trị HĐ" Classes="gridHeaderCell" TextAlignment="Right"/>
+                            <TextBlock Grid.Column="4" Text="Phụ lục" Classes="gridHeaderCell" TextAlignment="Right"/>
+                            <TextBlock Grid.Column="5" Text="Số CT" Classes="gridHeaderCell"/>
+                            <TextBlock Grid.Column="6" Text="Tạm ứng" Classes="gridHeaderCell" TextAlignment="Right"/>
+                            <TextBlock Grid.Column="7" Text="KLHT" Classes="gridHeaderCell" TextAlignment="Right"/>
+                            <TextBlock Grid.Column="8" Text="Thu hồi" Classes="gridHeaderCell" TextAlignment="Right"/>
+                            <TextBlock Grid.Column="9" Text="Nguồn" Classes="gridHeaderCell"/>
+                            <TextBlock Grid.Column="10" Text="GN NSNN" Classes="gridHeaderCell" TextAlignment="Right"/>
+                            <TextBlock Grid.Column="11" Text="GN Ngoại hối" Classes="gridHeaderCell" TextAlignment="Right"/>
+                            <TextBlock Grid.Column="12" Text="Số dư TU" Classes="gridHeaderCell" TextAlignment="Right"/>
+                            <TextBlock Grid.Column="13" Text="Tổng đã GN" Classes="gridHeaderCell" TextAlignment="Right"/>
+                        </Grid>
+                    </Border>
 
-                <!-- Frozen TỔNG CỘNG row -->
-                <Border DockPanel.Dock="Top" Background="{DynamicResource GridHeaderBrush}"
-                        BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="0,0,0,1"
-                        DataContext="{Binding TotalRow}">
-                    <Grid ColumnDefinitions="100,*,160,120,100,90,110,100,100,100,110,110,110,120"
-                          x:DataType="vm:LedgerRowViewModel">
-                        <TextBlock Grid.Column="1" Text="TỔNG CỘNG" Classes="gridTotalCell"/>
-                        <TextBlock Grid.Column="10" Text="{Binding DisbursedNsnnText}" Classes="gridTotalCell" TextAlignment="Right"/>
-                        <TextBlock Grid.Column="11" Text="{Binding DisbursedNgoaiHoiText}" Classes="gridTotalCell" TextAlignment="Right"/>
-                        <TextBlock Grid.Column="12" Text="{Binding UnrecoveredAdvanceText}" Classes="gridTotalCell" TextAlignment="Right"/>
-                        <TextBlock Grid.Column="13" Text="{Binding TotalDisbursedText}" Classes="gridTotalCell" TextAlignment="Right"/>
-                    </Grid>
-                </Border>
+                    <!-- Frozen TỔNG CỘNG row -->
+                    <Border DockPanel.Dock="Top" Background="{DynamicResource GridHeaderBrush}"
+                            BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="0,0,0,1"
+                            DataContext="{Binding TotalRow}">
+                        <Grid x:DataType="vm:LedgerRowViewModel">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="100" SharedSizeGroup="colDate"/>
+                                <ColumnDefinition Width="320" SharedSizeGroup="colContent"/>
+                                <ColumnDefinition Width="160" SharedSizeGroup="colContractor"/>
+                                <ColumnDefinition Width="120" SharedSizeGroup="colContractValue"/>
+                                <ColumnDefinition Width="100" SharedSizeGroup="colAnnex"/>
+                                <ColumnDefinition Width="90" SharedSizeGroup="colDocNo"/>
+                                <ColumnDefinition Width="110" SharedSizeGroup="colAdvance"/>
+                                <ColumnDefinition Width="100" SharedSizeGroup="colKlht"/>
+                                <ColumnDefinition Width="100" SharedSizeGroup="colRecovered"/>
+                                <ColumnDefinition Width="100" SharedSizeGroup="colFund"/>
+                                <ColumnDefinition Width="110" SharedSizeGroup="colNsnn"/>
+                                <ColumnDefinition Width="110" SharedSizeGroup="colNgoaiHoi"/>
+                                <ColumnDefinition Width="110" SharedSizeGroup="colUnrecovered"/>
+                                <ColumnDefinition Width="120" SharedSizeGroup="colTotal"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="1" Text="TỔNG CỘNG" Classes="gridTotalCell"/>
+                            <TextBlock Grid.Column="10" Text="{Binding DisbursedNsnnText}" Classes="gridTotalCell" TextAlignment="Right"/>
+                            <TextBlock Grid.Column="11" Text="{Binding DisbursedNgoaiHoiText}" Classes="gridTotalCell" TextAlignment="Right"/>
+                            <TextBlock Grid.Column="12" Text="{Binding UnrecoveredAdvanceText}" Classes="gridTotalCell" TextAlignment="Right"/>
+                            <TextBlock Grid.Column="13" Text="{Binding TotalDisbursedText}" Classes="gridTotalCell" TextAlignment="Right"/>
+                        </Grid>
+                    </Border>
 
-                <!-- Scrollable rows: Total/Group/Package/Entry, templated by Kind.
-                     Rows[0] IS the Total row (already frozen above) — its inline
-                     template below is a zero-height placeholder so it isn't shown twice. -->
-                <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
-                    <ItemsControl x:Name="RowsHost" ItemsSource="{Binding Rows}">
-                        <ItemsControl.ItemTemplate>
-                            <local:LedgerRowTemplateSelector>
+                    <!-- Scrollable rows: Total/Group/Package/Entry, templated by Kind.
+                         Rows[0] IS the Total row (already frozen above) — its inline
+                         template below is a zero-height placeholder so it isn't shown twice.
+                         Only vertical scrolling here — horizontal is the outer ScrollViewer,
+                         shared with the frozen header/TỔNG CỘNG bars above. -->
+                    <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+                        <ItemsControl x:Name="RowsHost" ItemsSource="{Binding Rows}">
+                            <ItemsControl.ItemTemplate>
+                                <local:LedgerRowTemplateSelector>
 
-                                <!-- Total (inline placeholder — real display is the frozen bar above) -->
-                                <local:LedgerRowTemplateSelector.Total>
-                                    <DataTemplate x:DataType="vm:LedgerRowViewModel">
-                                        <Grid Height="0"/>
-                                    </DataTemplate>
-                                </local:LedgerRowTemplateSelector.Total>
+                                    <!-- Total (inline placeholder — real display is the frozen bar above) -->
+                                    <local:LedgerRowTemplateSelector.Total>
+                                        <DataTemplate x:DataType="vm:LedgerRowViewModel">
+                                            <Grid Height="0"/>
+                                        </DataTemplate>
+                                    </local:LedgerRowTemplateSelector.Total>
 
-                                <!-- Group: bold Name + computed subtotals -->
-                                <local:LedgerRowTemplateSelector.Group>
-                                    <DataTemplate x:DataType="vm:LedgerRowViewModel">
-                                        <Grid ColumnDefinitions="100,*,160,120,100,90,110,100,100,100,110,110,110,120"
-                                              Classes="gridRow" Background="{DynamicResource AccentSoftBrush}">
-                                            <Border Grid.Column="0" Classes="gridCellBorder"/>
-                                            <TextBox Grid.Column="1" Classes="gridCell" FontWeight="Bold"
-                                                     Margin="4,0,0,0" Text="{Binding Name}"/>
-                                            <Border Grid.Column="2" Classes="gridCellBorder"/>
-                                            <Border Grid.Column="3" Classes="gridCellBorder"/>
-                                            <Border Grid.Column="4" Classes="gridCellBorder"/>
-                                            <Border Grid.Column="5" Classes="gridCellBorder"/>
-                                            <Border Grid.Column="6" Classes="gridCellBorder"/>
-                                            <Border Grid.Column="7" Classes="gridCellBorder"/>
-                                            <Border Grid.Column="8" Classes="gridCellBorder"/>
-                                            <Border Grid.Column="9" Classes="gridCellBorder"/>
-                                            <Border Grid.Column="10" Classes="gridCellBorder">
-                                                <TextBlock Classes="gridCellRO num" FontWeight="Bold" Text="{Binding DisbursedNsnnText}"/>
-                                            </Border>
-                                            <Border Grid.Column="11" Classes="gridCellBorder">
-                                                <TextBlock Classes="gridCellRO num" FontWeight="Bold" Text="{Binding DisbursedNgoaiHoiText}"/>
-                                            </Border>
-                                            <Border Grid.Column="12" Classes="gridCellBorder">
-                                                <TextBlock Classes="gridCellRO num" FontWeight="Bold" Text="{Binding UnrecoveredAdvanceText}"/>
-                                            </Border>
-                                            <Border Grid.Column="13" Classes="gridCellBorder">
-                                                <TextBlock Classes="gridCellRO num" FontWeight="Bold" Text="{Binding TotalDisbursedText}"/>
-                                            </Border>
-                                        </Grid>
-                                    </DataTemplate>
-                                </local:LedgerRowTemplateSelector.Group>
+                                    <!-- Group: bold Name + computed subtotals -->
+                                    <local:LedgerRowTemplateSelector.Group>
+                                        <DataTemplate x:DataType="vm:LedgerRowViewModel">
+                                            <Grid Classes="gridRow" Background="{DynamicResource AccentSoftBrush}">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="100" SharedSizeGroup="colDate"/>
+                                                    <ColumnDefinition Width="320" SharedSizeGroup="colContent"/>
+                                                    <ColumnDefinition Width="160" SharedSizeGroup="colContractor"/>
+                                                    <ColumnDefinition Width="120" SharedSizeGroup="colContractValue"/>
+                                                    <ColumnDefinition Width="100" SharedSizeGroup="colAnnex"/>
+                                                    <ColumnDefinition Width="90" SharedSizeGroup="colDocNo"/>
+                                                    <ColumnDefinition Width="110" SharedSizeGroup="colAdvance"/>
+                                                    <ColumnDefinition Width="100" SharedSizeGroup="colKlht"/>
+                                                    <ColumnDefinition Width="100" SharedSizeGroup="colRecovered"/>
+                                                    <ColumnDefinition Width="100" SharedSizeGroup="colFund"/>
+                                                    <ColumnDefinition Width="110" SharedSizeGroup="colNsnn"/>
+                                                    <ColumnDefinition Width="110" SharedSizeGroup="colNgoaiHoi"/>
+                                                    <ColumnDefinition Width="110" SharedSizeGroup="colUnrecovered"/>
+                                                    <ColumnDefinition Width="120" SharedSizeGroup="colTotal"/>
+                                                </Grid.ColumnDefinitions>
+                                                <Border Grid.Column="0" Classes="gridCellBorder"/>
+                                                <TextBox Grid.Column="1" Classes="gridCell" FontWeight="Bold"
+                                                         Margin="4,0,0,0" Text="{Binding Name}"/>
+                                                <Border Grid.Column="2" Classes="gridCellBorder"/>
+                                                <Border Grid.Column="3" Classes="gridCellBorder"/>
+                                                <Border Grid.Column="4" Classes="gridCellBorder"/>
+                                                <Border Grid.Column="5" Classes="gridCellBorder"/>
+                                                <Border Grid.Column="6" Classes="gridCellBorder"/>
+                                                <Border Grid.Column="7" Classes="gridCellBorder"/>
+                                                <Border Grid.Column="8" Classes="gridCellBorder"/>
+                                                <Border Grid.Column="9" Classes="gridCellBorder"/>
+                                                <Border Grid.Column="10" Classes="gridCellBorder">
+                                                    <TextBlock Classes="gridCellRO num" FontWeight="Bold" Text="{Binding DisbursedNsnnText}"/>
+                                                </Border>
+                                                <Border Grid.Column="11" Classes="gridCellBorder">
+                                                    <TextBlock Classes="gridCellRO num" FontWeight="Bold" Text="{Binding DisbursedNgoaiHoiText}"/>
+                                                </Border>
+                                                <Border Grid.Column="12" Classes="gridCellBorder">
+                                                    <TextBlock Classes="gridCellRO num" FontWeight="Bold" Text="{Binding UnrecoveredAdvanceText}"/>
+                                                </Border>
+                                                <Border Grid.Column="13" Classes="gridCellBorder">
+                                                    <TextBlock Classes="gridCellRO num" FontWeight="Bold" Text="{Binding TotalDisbursedText}"/>
+                                                </Border>
+                                            </Grid>
+                                        </DataTemplate>
+                                    </local:LedgerRowTemplateSelector.Group>
 
-                                <!-- Package: Name + Nhà thầu/TK + contract fields + computed subtotals -->
-                                <local:LedgerRowTemplateSelector.Package>
-                                    <DataTemplate x:DataType="vm:LedgerRowViewModel">
-                                        <Grid ColumnDefinitions="100,*,160,120,100,90,110,100,100,100,110,110,110,120"
-                                              Classes="gridRow">
-                                            <Border Grid.Column="0" Classes="gridCellBorder"/>
-                                            <TextBox Grid.Column="1" Classes="gridCell" FontWeight="SemiBold"
-                                                     Margin="20,0,0,0" Text="{Binding Name}"/>
-                                            <Border Grid.Column="2" Classes="gridCellBorder">
-                                                <StackPanel Spacing="0" Margin="6,2">
-                                                    <TextBox BorderThickness="0" Padding="0" FontSize="12"
-                                                             Watermark="Nhà thầu" Text="{Binding ContractorName}"/>
-                                                    <TextBox BorderThickness="0" Padding="0" FontSize="11"
-                                                             Foreground="{DynamicResource TextMutedBrush}"
-                                                             Watermark="Số TK" Text="{Binding BankAccount}"/>
-                                                </StackPanel>
-                                            </Border>
-                                            <TextBox Grid.Column="3" Classes="gridCell num" Text="{Binding ContractValueText}"/>
-                                            <TextBox Grid.Column="4" Classes="gridCell num" Text="{Binding ContractAnnexText}"/>
-                                            <Border Grid.Column="5" Classes="gridCellBorder"/>
-                                            <Border Grid.Column="6" Classes="gridCellBorder"/>
-                                            <Border Grid.Column="7" Classes="gridCellBorder"/>
-                                            <Border Grid.Column="8" Classes="gridCellBorder"/>
-                                            <Border Grid.Column="9" Classes="gridCellBorder"/>
-                                            <Border Grid.Column="10" Classes="gridCellBorder">
-                                                <TextBlock Classes="gridCellRO num" FontWeight="SemiBold" Text="{Binding DisbursedNsnnText}"/>
-                                            </Border>
-                                            <Border Grid.Column="11" Classes="gridCellBorder">
-                                                <TextBlock Classes="gridCellRO num" FontWeight="SemiBold" Text="{Binding DisbursedNgoaiHoiText}"/>
-                                            </Border>
-                                            <Border Grid.Column="12" Classes="gridCellBorder">
-                                                <TextBlock Classes="gridCellRO num" FontWeight="SemiBold" Text="{Binding UnrecoveredAdvanceText}"/>
-                                            </Border>
-                                            <Border Grid.Column="13" Classes="gridCellBorder">
-                                                <TextBlock Classes="gridCellRO num" FontWeight="SemiBold" Text="{Binding TotalDisbursedText}"/>
-                                            </Border>
-                                        </Grid>
-                                    </DataTemplate>
-                                </local:LedgerRowTemplateSelector.Package>
+                                    <!-- Package: Name + Nhà thầu/TK + contract fields + computed subtotals -->
+                                    <local:LedgerRowTemplateSelector.Package>
+                                        <DataTemplate x:DataType="vm:LedgerRowViewModel">
+                                            <Grid Classes="gridRow">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="100" SharedSizeGroup="colDate"/>
+                                                    <ColumnDefinition Width="320" SharedSizeGroup="colContent"/>
+                                                    <ColumnDefinition Width="160" SharedSizeGroup="colContractor"/>
+                                                    <ColumnDefinition Width="120" SharedSizeGroup="colContractValue"/>
+                                                    <ColumnDefinition Width="100" SharedSizeGroup="colAnnex"/>
+                                                    <ColumnDefinition Width="90" SharedSizeGroup="colDocNo"/>
+                                                    <ColumnDefinition Width="110" SharedSizeGroup="colAdvance"/>
+                                                    <ColumnDefinition Width="100" SharedSizeGroup="colKlht"/>
+                                                    <ColumnDefinition Width="100" SharedSizeGroup="colRecovered"/>
+                                                    <ColumnDefinition Width="100" SharedSizeGroup="colFund"/>
+                                                    <ColumnDefinition Width="110" SharedSizeGroup="colNsnn"/>
+                                                    <ColumnDefinition Width="110" SharedSizeGroup="colNgoaiHoi"/>
+                                                    <ColumnDefinition Width="110" SharedSizeGroup="colUnrecovered"/>
+                                                    <ColumnDefinition Width="120" SharedSizeGroup="colTotal"/>
+                                                </Grid.ColumnDefinitions>
+                                                <Border Grid.Column="0" Classes="gridCellBorder"/>
+                                                <TextBox Grid.Column="1" Classes="gridCell" FontWeight="SemiBold"
+                                                         Margin="20,0,0,0" Text="{Binding Name}"/>
+                                                <Border Grid.Column="2" Classes="gridCellBorder">
+                                                    <StackPanel Spacing="0" Margin="6,2">
+                                                        <TextBox BorderThickness="0" Padding="0" FontSize="12"
+                                                                 Watermark="Nhà thầu" Text="{Binding ContractorName}"/>
+                                                        <TextBox BorderThickness="0" Padding="0" FontSize="11"
+                                                                 Foreground="{DynamicResource TextMutedBrush}"
+                                                                 Watermark="Số TK" Text="{Binding BankAccount}"/>
+                                                    </StackPanel>
+                                                </Border>
+                                                <TextBox Grid.Column="3" Classes="gridCell num" Text="{Binding ContractValueText}"/>
+                                                <TextBox Grid.Column="4" Classes="gridCell num" Text="{Binding ContractAnnexText}"/>
+                                                <Border Grid.Column="5" Classes="gridCellBorder"/>
+                                                <Border Grid.Column="6" Classes="gridCellBorder"/>
+                                                <Border Grid.Column="7" Classes="gridCellBorder"/>
+                                                <Border Grid.Column="8" Classes="gridCellBorder"/>
+                                                <Border Grid.Column="9" Classes="gridCellBorder"/>
+                                                <Border Grid.Column="10" Classes="gridCellBorder">
+                                                    <TextBlock Classes="gridCellRO num" FontWeight="SemiBold" Text="{Binding DisbursedNsnnText}"/>
+                                                </Border>
+                                                <Border Grid.Column="11" Classes="gridCellBorder">
+                                                    <TextBlock Classes="gridCellRO num" FontWeight="SemiBold" Text="{Binding DisbursedNgoaiHoiText}"/>
+                                                </Border>
+                                                <Border Grid.Column="12" Classes="gridCellBorder">
+                                                    <TextBlock Classes="gridCellRO num" FontWeight="SemiBold" Text="{Binding UnrecoveredAdvanceText}"/>
+                                                </Border>
+                                                <Border Grid.Column="13" Classes="gridCellBorder">
+                                                    <TextBlock Classes="gridCellRO num" FontWeight="SemiBold" Text="{Binding TotalDisbursedText}"/>
+                                                </Border>
+                                            </Grid>
+                                        </DataTemplate>
+                                    </local:LedgerRowTemplateSelector.Package>
 
-                                <!-- Entry: editable transaction cells + Fund dropdown -->
-                                <local:LedgerRowTemplateSelector.Entry>
-                                    <DataTemplate x:DataType="vm:LedgerRowViewModel">
-                                        <Grid ColumnDefinitions="100,*,160,120,100,90,110,100,100,100,110,110,110,120"
-                                              Classes="gridRow">
-                                            <TextBox Grid.Column="0" Classes="gridCell" Text="{Binding DateText}"/>
-                                            <TextBox Grid.Column="1" Classes="gridCell" Margin="36,0,0,0" Text="{Binding Content}"/>
-                                            <Border Grid.Column="2" Classes="gridCellBorder"/>
-                                            <Border Grid.Column="3" Classes="gridCellBorder"/>
-                                            <Border Grid.Column="4" Classes="gridCellBorder"/>
-                                            <TextBox Grid.Column="5" Classes="gridCell" Text="{Binding DocumentNo}"/>
-                                            <TextBox Grid.Column="6" Classes="gridCell num" Text="{Binding AdvanceText}"/>
-                                            <TextBox Grid.Column="7" Classes="gridCell num" Text="{Binding KlhtText}"/>
-                                            <TextBox Grid.Column="8" Classes="gridCell num" Text="{Binding RecoveredText}"/>
-                                            <Border Grid.Column="9" Classes="gridCellBorder">
-                                                <ComboBox HorizontalAlignment="Stretch" BorderThickness="0"
-                                                          ItemsSource="{x:Static local:FundOptions.Names}"
-                                                          SelectedItem="{Binding FundText}"/>
-                                            </Border>
-                                            <Border Grid.Column="10" Classes="gridCellBorder"/>
-                                            <Border Grid.Column="11" Classes="gridCellBorder"/>
-                                            <Border Grid.Column="12" Classes="gridCellBorder"/>
-                                            <Border Grid.Column="13" Classes="gridCellBorder"/>
-                                        </Grid>
-                                    </DataTemplate>
-                                </local:LedgerRowTemplateSelector.Entry>
+                                    <!-- Entry: editable transaction cells + Fund dropdown -->
+                                    <local:LedgerRowTemplateSelector.Entry>
+                                        <DataTemplate x:DataType="vm:LedgerRowViewModel">
+                                            <Grid Classes="gridRow">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="100" SharedSizeGroup="colDate"/>
+                                                    <ColumnDefinition Width="320" SharedSizeGroup="colContent"/>
+                                                    <ColumnDefinition Width="160" SharedSizeGroup="colContractor"/>
+                                                    <ColumnDefinition Width="120" SharedSizeGroup="colContractValue"/>
+                                                    <ColumnDefinition Width="100" SharedSizeGroup="colAnnex"/>
+                                                    <ColumnDefinition Width="90" SharedSizeGroup="colDocNo"/>
+                                                    <ColumnDefinition Width="110" SharedSizeGroup="colAdvance"/>
+                                                    <ColumnDefinition Width="100" SharedSizeGroup="colKlht"/>
+                                                    <ColumnDefinition Width="100" SharedSizeGroup="colRecovered"/>
+                                                    <ColumnDefinition Width="100" SharedSizeGroup="colFund"/>
+                                                    <ColumnDefinition Width="110" SharedSizeGroup="colNsnn"/>
+                                                    <ColumnDefinition Width="110" SharedSizeGroup="colNgoaiHoi"/>
+                                                    <ColumnDefinition Width="110" SharedSizeGroup="colUnrecovered"/>
+                                                    <ColumnDefinition Width="120" SharedSizeGroup="colTotal"/>
+                                                </Grid.ColumnDefinitions>
+                                                <TextBox Grid.Column="0" Classes="gridCell" Text="{Binding DateText}"/>
+                                                <TextBox Grid.Column="1" Classes="gridCell" Margin="36,0,0,0" Text="{Binding Content}"/>
+                                                <Border Grid.Column="2" Classes="gridCellBorder"/>
+                                                <Border Grid.Column="3" Classes="gridCellBorder"/>
+                                                <Border Grid.Column="4" Classes="gridCellBorder"/>
+                                                <TextBox Grid.Column="5" Classes="gridCell" Text="{Binding DocumentNo}"/>
+                                                <TextBox Grid.Column="6" Classes="gridCell num" Text="{Binding AdvanceText}"/>
+                                                <TextBox Grid.Column="7" Classes="gridCell num" Text="{Binding KlhtText}"/>
+                                                <TextBox Grid.Column="8" Classes="gridCell num" Text="{Binding RecoveredText}"/>
+                                                <Border Grid.Column="9" Classes="gridCellBorder">
+                                                    <ComboBox HorizontalAlignment="Stretch" BorderThickness="0"
+                                                              ItemsSource="{x:Static local:FundOptions.Names}"
+                                                              SelectedItem="{Binding FundText}"/>
+                                                </Border>
+                                                <Border Grid.Column="10" Classes="gridCellBorder"/>
+                                                <Border Grid.Column="11" Classes="gridCellBorder"/>
+                                                <Border Grid.Column="12" Classes="gridCellBorder"/>
+                                                <Border Grid.Column="13" Classes="gridCellBorder"/>
+                                            </Grid>
+                                        </DataTemplate>
+                                    </local:LedgerRowTemplateSelector.Entry>
 
-                            </local:LedgerRowTemplateSelector>
-                        </ItemsControl.ItemTemplate>
-                    </ItemsControl>
-                </ScrollViewer>
-            </DockPanel>
+                                </local:LedgerRowTemplateSelector>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+                </DockPanel>
+            </ScrollViewer>
         </Border>
     </DockPanel>
 </UserControl>
