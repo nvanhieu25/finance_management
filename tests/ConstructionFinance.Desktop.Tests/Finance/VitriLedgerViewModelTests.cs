@@ -180,4 +180,67 @@ public class VitriLedgerViewModelTests
 
         vm.Rows.Count.ShouldBe(2); // Total, Group only
     }
+
+    [Fact]
+    public void TotalRow_is_the_same_instance_as_Rows_zero()
+    {
+        var vm = new VitriLedgerViewModel(BuildOneGroupOnePackageTwoDots());
+
+        vm.TotalRow.ShouldBeSameAs(vm.Rows[0]);
+    }
+
+    [Fact]
+    public void ApplyPaste_writes_into_existing_entries_of_the_same_package()
+    {
+        var vm = new VitriLedgerViewModel(BuildOneGroupOnePackageTwoDots());
+        var firstEntry = vm.Rows[3]; // first Dot under the package
+        firstEntry.Kind.ShouldBe(RowKind.Entry);
+
+        // col 0=Date, 1=Content, 5=DocumentNo, 6=Advance, 7=KLHT, 8=Recovered, 9=Fund
+        var block = new[]
+        {
+            new[] { "05/05/2026", "Dán 1", "", "", "", "", "700.000" },
+            new[] { "06/05/2026", "Dán 2", "", "", "", "", "800.000" }
+        };
+
+        vm.ApplyPaste(firstEntry, 0, block);
+
+        vm.Rows[3].Content.ShouldBe("Dán 1");
+        vm.Rows[3].AdvanceText.ShouldBe("700.000");
+        vm.Rows[4].Content.ShouldBe("Dán 2");
+        vm.Rows[4].AdvanceText.ShouldBe("800.000");
+        vm.IsDirty.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void ApplyPaste_appends_new_entries_when_the_block_extends_past_the_last_row()
+    {
+        var vm = new VitriLedgerViewModel(BuildOneGroupOnePackageTwoDots());
+        var lastEntry = vm.Rows[4]; // second (last) Dot under the package
+
+        var block = new[]
+        {
+            new[] { "01/06/2026" },  // overwrites the last existing entry's date
+            new[] { "10/06/2026" }   // extends past the last row -> appends a new Entry
+        };
+
+        vm.ApplyPaste(lastEntry, 0, block);
+
+        vm.Rows.Count.ShouldBe(6); // Total, Group, Package, Entry, Entry, new Entry
+        vm.Rows[4].DateText.ShouldBe("01/06/2026");
+        vm.Rows[5].Kind.ShouldBe(RowKind.Entry);
+        vm.Rows[5].DateText.ShouldBe("10/06/2026");
+    }
+
+    [Fact]
+    public void ApplyPaste_on_a_non_entry_row_is_a_no_op()
+    {
+        var vm = new VitriLedgerViewModel(BuildOneGroupOnePackageTwoDots());
+        var groupRow = vm.Rows[1];
+
+        vm.ApplyPaste(groupRow, 0, new[] { new[] { "x" } });
+
+        vm.Rows.Count.ShouldBe(5);
+        vm.IsDirty.ShouldBeFalse();
+    }
 }

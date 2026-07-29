@@ -37,6 +37,10 @@ public partial class VitriLedgerViewModel : ViewModelBase
 
     public ObservableCollection<LedgerRowViewModel> Rows { get; } = new();
 
+    /// The frozen TỔNG CỘNG row (also Rows[0] — exposed directly so the View can bind
+    /// the frozen top bar without an indexer path). The reference never changes.
+    public LedgerRowViewModel TotalRow => _totalRow;
+
     [ObservableProperty] private string _name = "";
     [ObservableProperty] private string? _nguonVon;
     [ObservableProperty] private int _sortOrder;
@@ -241,6 +245,67 @@ public partial class VitriLedgerViewModel : ViewModelBase
             if (p is not null) return (g, p);
         }
         return (null, null);
+    }
+
+    /// Finds the Package node that owns a given Entry row (used by ApplyPaste).
+    private PackageNode? FindPackageContainingEntry(LedgerRowViewModel entryRow)
+    {
+        foreach (var g in _groups)
+            foreach (var p in g.Packages)
+                if (p.Entries.Contains(entryRow))
+                    return p;
+        return null;
+    }
+
+    /// Paste a TSV block (rows of cells) starting at the given Entry row/column.
+    /// Only Entry rows accept paste — no-op if startRow isn't a tracked Entry row.
+    /// New Entry rows are appended to the SAME package as needed when the block
+    /// extends past the existing entries. Column indices follow the grid's visible
+    /// order: 0 Ngày, 1 Nội dung, 5 Số CT, 6 Tạm ứng, 7 KLHT, 8 Thu hồi, 9 Nguồn.
+    /// Columns 2–4 (Nhà thầu/TK, Giá trị HĐ, Phụ lục) and 10–13 (computed) are
+    /// Package/Total-only or read-only and are silently ignored.
+    public void ApplyPaste(LedgerRowViewModel startRow, int startCol, string[][] block)
+    {
+        if (startRow.Kind != RowKind.Entry) return;
+        var packageNode = FindPackageContainingEntry(startRow);
+        if (packageNode is null) return;
+
+        var startIndex = packageNode.Entries.IndexOf(startRow);
+        if (startIndex < 0) return;
+
+        for (var r = 0; r < block.Length; r++)
+        {
+            var targetIndex = startIndex + r;
+            while (packageNode.Entries.Count <= targetIndex)
+            {
+                var newRow = new LedgerRowViewModel(RowKind.Entry) { Depth = 2 };
+                Track(newRow);
+                packageNode.Entries.Add(newRow);
+            }
+
+            var row = packageNode.Entries[targetIndex];
+            var cells = block[r];
+            for (var c = 0; c < cells.Length; c++)
+                SetEntryCell(row, startCol + c, cells[c]);
+        }
+
+        RebuildRows();
+        RecomputeSubtotals();
+        MarkDirty();
+    }
+
+    private static void SetEntryCell(LedgerRowViewModel row, int col, string value)
+    {
+        switch (col)
+        {
+            case 0: row.DateText = value; break;
+            case 1: row.Content = value; break;
+            case 5: row.DocumentNo = value; break;
+            case 6: row.AdvanceText = value; break;
+            case 7: row.KlhtText = value; break;
+            case 8: row.RecoveredText = value; break;
+            case 9: row.FundText = value; break;
+        }
     }
 
     private void RebuildRows()
