@@ -23,6 +23,7 @@ public class FinanceProjectServiceTreeTests
         public Task<IReadOnlyList<Project>> ListTreesAsync(CancellationToken ct = default) => throw new NotImplementedException();
         public Task DeleteAsync(int id, CancellationToken ct = default) => throw new NotImplementedException();
         public Task UpdateAsync(Project p, CancellationToken ct = default) => throw new NotImplementedException();
+        public Task ReplaceTreeAsync(Project p, CancellationToken ct = default) => throw new NotImplementedException();
     }
 
     [Fact]

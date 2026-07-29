@@ -13,6 +13,7 @@ public interface IFinanceProjectService
     Task<IReadOnlyList<Project>> ListAsync(CancellationToken ct = default);
     Task<Project?> GetWithLinesAsync(int id, CancellationToken ct = default);
     Task UpdateAsync(Project project, CancellationToken ct = default);
+    Task ReplaceTreeAsync(Project project, CancellationToken ct = default);
     Task DeleteAsync(int id, CancellationToken ct = default);
     Task<int> SaveImportedAsync(IReadOnlyList<Project> projects, CancellationToken ct = default);
     Task<int> SaveMergedAsync(IReadOnlyList<ImportCandidate> candidates, CancellationToken ct = default);

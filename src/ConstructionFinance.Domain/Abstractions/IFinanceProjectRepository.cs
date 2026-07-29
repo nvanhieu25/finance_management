@@ -12,4 +12,5 @@ public interface IFinanceProjectRepository
     Task<IReadOnlyList<Project>> ListTreesAsync(CancellationToken ct = default);
     Task DeleteAsync(int id, CancellationToken ct = default);
     Task UpdateAsync(Project project, CancellationToken ct = default);
+    Task ReplaceTreeAsync(Project project, CancellationToken ct = default);
 }

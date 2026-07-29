@@ -80,6 +80,82 @@ public class FinanceProjectRepository : IFinanceProjectRepository
             .OrderBy(p => p.Name)
             .ToListAsync(ct);
 
+    public async Task ReplaceTreeAsync(Project project, CancellationToken ct = default)
+    {
+        if (project.Id == 0)
+        {
+            await _context.FinanceProjects.AddAsync(project, ct);
+            await _context.SaveChangesAsync(ct);
+            return;
+        }
+
+        var existing = await _context.FinanceProjects
+            .Include(p => p.ViTris).ThenInclude(v => v.CostGroups)
+                .ThenInclude(g => g.Packages).ThenInclude(pk => pk.Dots)
+            .FirstOrDefaultAsync(p => p.Id == project.Id, ct);
+        if (existing is null) return;
+
+        existing.Code = project.Code;
+        existing.Name = project.Name;
+        existing.Notes = project.Notes;
+
+        // Replace strategy (mirrors UpdateAsync for flat lines): drop the whole
+        // existing tree — SQLite's ON DELETE CASCADE takes the CostGroups/Packages/
+        // Dots with it — and re-add the incoming ViTris as fresh entities so EF
+        // inserts them rather than reusing/duplicating tracked instances.
+        _context.ViTris.RemoveRange(existing.ViTris);
+        existing.ViTris.Clear();
+
+        foreach (var viTri in project.ViTris)
+        {
+            var newViTri = new ViTri
+            {
+                Name = viTri.Name,
+                NguonVon = viTri.NguonVon,
+                SortOrder = viTri.SortOrder
+            };
+            foreach (var group in viTri.CostGroups)
+            {
+                var newGroup = new CostGroup
+                {
+                    Name = group.Name,
+                    SortOrder = group.SortOrder
+                };
+                foreach (var package in group.Packages)
+                {
+                    var newPackage = new Package
+                    {
+                        Name = package.Name,
+                        ContractorName = package.ContractorName,
+                        BankAccount = package.BankAccount,
+                        ContractValue = package.ContractValue,
+                        ContractAnnexValue = package.ContractAnnexValue,
+                        SortOrder = package.SortOrder
+                    };
+                    foreach (var dot in package.Dots)
+                    {
+                        newPackage.Dots.Add(new Dot
+                        {
+                            SortOrder = dot.SortOrder,
+                            Date = dot.Date,
+                            Content = dot.Content,
+                            DocumentNo = dot.DocumentNo,
+                            Fund = dot.Fund,
+                            Advance = dot.Advance,
+                            PaymentKLHT = dot.PaymentKLHT,
+                            RecoveredAdvance = dot.RecoveredAdvance
+                        });
+                    }
+                    newGroup.Packages.Add(newPackage);
+                }
+                newViTri.CostGroups.Add(newGroup);
+            }
+            existing.ViTris.Add(newViTri);
+        }
+
+        await _context.SaveChangesAsync(ct);
+    }
+
     public async Task DeleteAsync(int id, CancellationToken ct = default)
     {
         var p = await _context.FinanceProjects.FindAsync(new object[] { id }, ct);

@@ -58,6 +58,9 @@ public class FinanceProjectService : IFinanceProjectService
     public Task UpdateAsync(Project project, CancellationToken ct = default) =>
         _repo.UpdateAsync(project, ct);
 
+    public Task ReplaceTreeAsync(Project project, CancellationToken ct = default) =>
+        _repo.ReplaceTreeAsync(project, ct);
+
     public Task DeleteAsync(int id, CancellationToken ct = default) =>
         _repo.DeleteAsync(id, ct);
 
