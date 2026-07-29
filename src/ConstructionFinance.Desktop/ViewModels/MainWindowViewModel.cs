@@ -87,6 +87,12 @@ public partial class MainWindowViewModel : ViewModelBase
                 break;
             case "WorkbookSummary":
                 var wsvm = _services.GetRequiredService<ViewModels.Finance.WorkbookSummaryViewModel>();
+                wsvm.ProjectActivationRequested += async (_, projectId) =>
+                {
+                    await NavigateToAsync("FinanceWorkbook");
+                    if (_nav.CurrentContent is ViewModels.Finance.FinanceWorkbookViewModel fw)
+                        fw.SelectProjectById(projectId);
+                };
                 _nav.Reset();
                 _nav.NavigateTo(wsvm);
                 await wsvm.LoadAsync();

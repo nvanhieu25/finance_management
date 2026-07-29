@@ -543,6 +543,17 @@ public class FinanceWorkbookViewModelTests
         service.Verify(s => s.ReplaceTreeAsync(It.IsAny<Project>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
+    [Fact]
+    public async Task SelectProjectById_selects_the_matching_project()
+    {
+        var (sut, _) = CreateSutWithProjectTree(7, "DA7", new ViTri { Name = "V1" });
+        await sut.LoadAsync();
+
+        sut.SelectProjectById(7);
+
+        sut.SelectedProject!.Id.ShouldBe(7);
+    }
+
     // ===== Add / rename / delete Dự án (workflow gap fix) =====
 
     [Fact]

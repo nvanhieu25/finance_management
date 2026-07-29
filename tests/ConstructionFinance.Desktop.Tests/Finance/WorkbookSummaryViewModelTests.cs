@@ -66,7 +66,7 @@ public class WorkbookSummaryViewModelTests
     }
 
     [Fact]
-    public async Task Activate_raises_the_event_with_the_project_id()
+    public void Activate_raises_the_event_with_the_project_id()
     {
         var sut = CreateSut();
         int? activated = null;

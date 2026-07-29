@@ -398,6 +398,14 @@ public partial class FinanceWorkbookViewModel : ViewModelBase
         return Task.CompletedTask;
     }
 
+    /// Select a project in the Dự án picker by id (used when jumping in from the
+    /// all-projects Tổng hợp screen). No-op if the id isn't loaded.
+    public void SelectProjectById(int projectId)
+    {
+        var match = Projects.FirstOrDefault(p => p.Id == projectId);
+        if (match is not null) SelectedProject = match;
+    }
+
     /// New blank project page. It is unsaved until Save-All writes it.
     [RelayCommand]
     private void AddPage()
