@@ -163,13 +163,19 @@
              are 8px wide (the grab/hit area — an explicit Background="Transparent" on the
              template root keeps the whole 8px hit-testable, not just the 1px line) but its
              ControlTemplate draws a PERSISTENT 1px divider line (LedgerGridLineBrush — the
-             same color already used for every cell's gridline, so header dividers line up
-             visually with the body's existing cell borders) centered within it, so the
-             column boundary is obvious even at rest — this was the discoverability gap:
-             previously the grip was fully transparent until hovered, so there was nothing
-             to see or aim for. On pointer-over, the line thickens to 2px and turns the
-             brand accent color (in addition to the Cursor already switching to the
-             west-east resize arrow), making "this is draggable" unambiguous. -->
+             same color already used for every cell's gridline) at its RIGHT edge — same as
+             Border.colDivider's own Width="1" HorizontalAlignment="Right" — so the visible
+             line's right edge sits EXACTLY on the column boundary, matching the TỔNG CỘNG/
+             body overlay dividers pixel-for-pixel. (This used to be HorizontalAlignment=
+             "Center" within the 8px grab box, which put the visible line ~3-4px to the LEFT
+             of the true boundary — an 8px-wide box centered around a 1px line sits (8-1)/2
+             = 3.5px in from each edge, so the header's dividers rendered noticeably left of
+             the TỔNG CỘNG/body ones even though the underlying ColumnWidths were identical.
+             That mismatch, not any padding/margin/scrollbar difference, was the "header
+             columns don't line up with the body" bug.) On pointer-over, the line thickens
+             to 2px (growing further left, since it's still right-anchored) and turns the
+             brand accent color, on top of the Cursor already switching to the west-east
+             resize arrow. -->
         <Style Selector="Thumb.colGrip">
             <Setter Property="Width" Value="8"/>
             <Setter Property="MinWidth" Value="8"/>
@@ -179,7 +185,7 @@
             <Setter Property="Template">
                 <ControlTemplate>
                     <Grid Background="Transparent">
-                        <Border x:Name="GripLine" Width="1" HorizontalAlignment="Center"
+                        <Border x:Name="GripLine" Width="1" HorizontalAlignment="Right"
                                 Background="{DynamicResource LedgerGridLineBrush}"/>
                     </Grid>
                 </ControlTemplate>
@@ -267,7 +273,7 @@
              header/TỔNG CỘNG bars scroll in sync with the body (only the rows ScrollViewer
              scrolls vertically). -->
         <Border Classes="tableCard" x:Name="GridRoot" Focusable="True">
-            <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
+            <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled" Padding="0">
                 <DockPanel MinWidth="1880">
                     <!-- Frozen column header -->
                     <Border DockPanel.Dock="Top" Background="{DynamicResource GridHeaderBrush}"
@@ -377,7 +383,7 @@
                          template below is a zero-height placeholder so it isn't shown twice.
                          Only vertical scrolling here — horizontal is the outer ScrollViewer,
                          shared with the frozen header/TỔNG CỘNG bars above. -->
-                    <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+                    <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto" Padding="0">
                       <Grid>
                         <ItemsControl x:Name="RowsHost" ItemsSource="{Binding Rows}">
                             <ItemsControl.ItemTemplate>
