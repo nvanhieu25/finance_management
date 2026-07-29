@@ -243,4 +243,118 @@ public class VitriLedgerViewModelTests
         vm.Rows.Count.ShouldBe(5);
         vm.IsDirty.ShouldBeFalse();
     }
+
+    // ===== Smart Thêm gói / Thêm đợt resolution (toolbar + inline ＋ buttons) =====
+
+    [Fact]
+    public void AddEntry_resolves_the_owning_package_from_a_selected_Entry_row()
+    {
+        var vm = new VitriLedgerViewModel(BuildOneGroupOnePackageTwoDots());
+        var entryRow = vm.Rows[3]; // an existing Entry under the sole package
+
+        vm.AddEntryCommand.Execute(entryRow); // as if bound to SelectedRow via the toolbar
+
+        vm.Rows.Count.ShouldBe(6);
+        vm.Rows[5].Kind.ShouldBe(RowKind.Entry);
+        vm.SelectedRow.ShouldBe(vm.Rows[5]); // newly-added row is selected
+    }
+
+    [Fact]
+    public void AddEntry_resolves_the_package_directly_from_a_selected_Package_row()
+    {
+        var vm = new VitriLedgerViewModel(BuildOneGroupOnePackageTwoDots());
+        var packageRow = vm.Rows[2];
+
+        vm.AddEntryCommand.Execute(packageRow); // as if the inline "＋ đợt" on this Package row
+
+        vm.Rows.Count.ShouldBe(6);
+        vm.Rows[5].Kind.ShouldBe(RowKind.Entry);
+    }
+
+    [Fact]
+    public void AddEntry_auto_uses_the_sole_package_when_the_hint_is_not_a_package_or_entry()
+    {
+        var vm = new VitriLedgerViewModel(BuildOneGroupOnePackageTwoDots());
+        var groupRow = vm.Rows[1]; // a Group row is not a package/entry hint
+
+        vm.AddEntryCommand.Execute(groupRow);
+
+        vm.Rows.Count.ShouldBe(6); // fell back to the sole package in the Vị trí
+        vm.Rows[5].Kind.ShouldBe(RowKind.Entry);
+    }
+
+    [Fact]
+    public void AddEntry_with_no_hint_at_all_auto_uses_the_sole_package()
+    {
+        var vm = new VitriLedgerViewModel(BuildOneGroupOnePackageTwoDots());
+
+        vm.AddEntryCommand.Execute(null);
+
+        vm.Rows.Count.ShouldBe(6);
+        vm.Rows[5].Kind.ShouldBe(RowKind.Entry);
+    }
+
+    [Fact]
+    public void AddEntry_is_a_no_op_when_ambiguous_between_two_packages()
+    {
+        var viTri = BuildOneGroupOnePackageTwoDots();
+        viTri.CostGroups[0].Packages.Add(new Package { Name = "Gói thầu B", SortOrder = 1 });
+        var vm = new VitriLedgerViewModel(viTri);
+        var before = vm.Rows.Count;
+
+        vm.AddEntryCommand.Execute(null); // no hint + 2 packages -> genuinely ambiguous
+
+        vm.Rows.Count.ShouldBe(before);
+        vm.IsDirty.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void AddPackage_resolves_the_owning_group_from_a_selected_Entry_row()
+    {
+        var vm = new VitriLedgerViewModel(BuildOneGroupOnePackageTwoDots());
+        var entryRow = vm.Rows[3];
+
+        vm.AddPackageCommand.Execute(entryRow);
+
+        vm.Rows.Count.ShouldBe(6);
+        vm.Rows[5].Kind.ShouldBe(RowKind.Package);
+        vm.SelectedRow.ShouldBe(vm.Rows[5]);
+    }
+
+    [Fact]
+    public void AddPackage_resolves_the_group_directly_from_a_selected_Group_row()
+    {
+        var vm = new VitriLedgerViewModel(BuildOneGroupOnePackageTwoDots());
+        var groupRow = vm.Rows[1];
+
+        vm.AddPackageCommand.Execute(groupRow); // as if the inline "＋ gói" on this Group row
+
+        vm.Rows.Count.ShouldBe(6);
+        vm.Rows[5].Kind.ShouldBe(RowKind.Package);
+    }
+
+    [Fact]
+    public void AddPackage_auto_uses_the_sole_group_when_nothing_useful_is_selected()
+    {
+        var vm = new VitriLedgerViewModel(BuildOneGroupOnePackageTwoDots());
+
+        vm.AddPackageCommand.Execute(null);
+
+        vm.Rows.Count.ShouldBe(6);
+        vm.Rows[5].Kind.ShouldBe(RowKind.Package);
+    }
+
+    [Fact]
+    public void AddPackage_is_a_no_op_when_ambiguous_between_two_groups()
+    {
+        var viTri = BuildOneGroupOnePackageTwoDots();
+        viTri.CostGroups.Add(new CostGroup { Name = "Nhóm 2", SortOrder = 1 });
+        var vm = new VitriLedgerViewModel(viTri);
+        var before = vm.Rows.Count;
+
+        vm.AddPackageCommand.Execute(null); // no hint + 2 groups -> genuinely ambiguous
+
+        vm.Rows.Count.ShouldBe(before);
+        vm.IsDirty.ShouldBeFalse();
+    }
 }

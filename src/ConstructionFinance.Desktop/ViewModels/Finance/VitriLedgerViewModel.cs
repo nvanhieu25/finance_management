@@ -149,13 +149,14 @@ public partial class VitriLedgerViewModel : ViewModelBase
         MarkDirty();
     }
 
-    /// Adds a Package under the given Group row. No-op if groupRow doesn't resolve to a
-    /// tracked Group (including "there is no group yet") — a Package must live under a Group.
+    /// Adds a Package under the Group resolved from `hint` — typically SelectedRow (from
+    /// the toolbar button) or the specific Group row an inline "＋ gói" button was clicked
+    /// on. See ResolveTargetGroup for the resolution rule. No-op (nothing added) if no
+    /// Group can be resolved — a Package must live under a Group.
     [RelayCommand]
-    private void AddPackage(LedgerRowViewModel? groupRow)
+    private void AddPackage(LedgerRowViewModel? hint)
     {
-        if (groupRow is null) return;
-        var groupNode = _groups.FirstOrDefault(g => ReferenceEquals(g.Row, groupRow));
+        var groupNode = ResolveTargetGroup(hint);
         if (groupNode is null) return;
 
         var row = new LedgerRowViewModel(RowKind.Package) { Name = "Gói thầu mới", Depth = 1 };
@@ -164,16 +165,18 @@ public partial class VitriLedgerViewModel : ViewModelBase
 
         RebuildRows();
         RecomputeSubtotals();
+        SelectedRow = row;
         MarkDirty();
     }
 
-    /// Adds an Entry (Dot) under the given Package row. No-op if packageRow doesn't resolve
-    /// to a tracked Package (including "there is no package yet").
+    /// Adds an Entry (Dot) under the Package resolved from `hint` — typically SelectedRow
+    /// (from the toolbar button) or the specific Package row an inline "＋ đợt" button was
+    /// clicked on. See ResolveTargetPackage for the resolution rule. No-op (nothing added)
+    /// if no Package can be resolved.
     [RelayCommand]
-    private void AddEntry(LedgerRowViewModel? packageRow)
+    private void AddEntry(LedgerRowViewModel? hint)
     {
-        if (packageRow is null) return;
-        var packageNode = FindPackage(packageRow).package;
+        var packageNode = ResolveTargetPackage(hint);
         if (packageNode is null) return;
 
         var row = new LedgerRowViewModel(RowKind.Entry) { Depth = 2 };
@@ -182,7 +185,73 @@ public partial class VitriLedgerViewModel : ViewModelBase
 
         RebuildRows();
         RecomputeSubtotals();
+        SelectedRow = row;
         MarkDirty();
+    }
+
+    /// Resolves which Group a "Thêm gói" action should target: a Group hint resolves
+    /// directly; a Package/Entry hint resolves to its owning Group; anything else (no
+    /// hint, a Total hint, or a hint this VM doesn't recognize) falls back to the SOLE
+    /// group in the Vị trí when there is exactly one — otherwise the action is genuinely
+    /// ambiguous (or there's nothing to attach to yet) and this returns null (no-op).
+    private GroupNode? ResolveTargetGroup(LedgerRowViewModel? hint)
+    {
+        if (hint is not null)
+        {
+            if (hint.Kind == RowKind.Group)
+            {
+                var direct = _groups.FirstOrDefault(g => ReferenceEquals(g.Row, hint));
+                if (direct is not null) return direct;
+            }
+            else if (hint.Kind is RowKind.Package or RowKind.Entry)
+            {
+                var owner = FindOwningGroup(hint);
+                if (owner is not null) return owner;
+            }
+        }
+
+        return _groups.Count == 1 ? _groups[0] : null;
+    }
+
+    /// Resolves which Package a "Thêm đợt" action should target: a Package hint resolves
+    /// directly; an Entry hint resolves to its owning Package; anything else falls back to
+    /// the SOLE package across the whole Vị trí when there is exactly one — otherwise null.
+    private PackageNode? ResolveTargetPackage(LedgerRowViewModel? hint)
+    {
+        if (hint is not null)
+        {
+            if (hint.Kind == RowKind.Package)
+            {
+                var direct = FindPackage(hint).package;
+                if (direct is not null) return direct;
+            }
+            else if (hint.Kind == RowKind.Entry)
+            {
+                var owner = FindPackageContainingEntry(hint);
+                if (owner is not null) return owner;
+            }
+        }
+
+        var allPackages = _groups.SelectMany(g => g.Packages).ToList();
+        return allPackages.Count == 1 ? allPackages[0] : null;
+    }
+
+    /// Finds the Group that owns a Package or Entry row (Package → its group directly;
+    /// Entry → the group of its owning Package). Null for anything else / not found.
+    private GroupNode? FindOwningGroup(LedgerRowViewModel row)
+    {
+        if (row.Kind == RowKind.Package)
+            return FindPackage(row).group;
+
+        if (row.Kind == RowKind.Entry)
+        {
+            foreach (var g in _groups)
+                foreach (var p in g.Packages)
+                    if (p.Entries.Contains(row))
+                        return g;
+        }
+
+        return null;
     }
 
     [RelayCommand]

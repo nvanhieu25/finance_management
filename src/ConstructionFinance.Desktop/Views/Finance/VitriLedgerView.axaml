@@ -4,14 +4,39 @@
              xmlns:vm="using:ConstructionFinance.Desktop.ViewModels.Finance"
              xmlns:local="using:ConstructionFinance.Desktop.Views.Finance"
              x:Class="ConstructionFinance.Desktop.Views.Finance.VitriLedgerView"
-             x:DataType="vm:VitriLedgerViewModel">
+             x:DataType="vm:VitriLedgerViewModel"
+             x:Name="Root">
     <UserControl.Styles>
         <!-- Local-only: gives every read-only/composite cell the same right+bottom
              gridline that TextBox.gridCell already draws for itself, so Group/Package/
-             Total rows (mostly read-only cells) still show "full gridlines" per spec. -->
+             Total rows (mostly read-only cells) still show "full gridlines" per spec.
+             Also clips its content to the cell's own bounds — without this, a long
+             value in an adjoining cell (or the composite Nhà thầu/TK StackPanel) can
+             render past its column into the next one. -->
         <Style Selector="Border.gridCellBorder">
             <Setter Property="BorderBrush" Value="{DynamicResource GridLineBrush}"/>
             <Setter Property="BorderThickness" Value="0,0,1,1"/>
+            <Setter Property="ClipToBounds" Value="True"/>
+        </Style>
+        <!-- Local-only addition to the shared TextBox.gridCell style (defined in
+             Theme.axaml and also used by FinanceProjectGridView — NOT modified there,
+             this only applies within this View's own visual tree): clip long text
+             (e.g. a long Nội dung) to the cell's column instead of spilling into the
+             next column. The box still scrolls its own text horizontally on focus. -->
+        <Style Selector="TextBox.gridCell">
+            <Setter Property="ClipToBounds" Value="True"/>
+            <Setter Property="TextWrapping" Value="NoWrap"/>
+        </Style>
+        <!-- Normalize the Fund ComboBox cell to the same padding/height rhythm as the
+             TextBox cells beside it — its own FluentAvalonia theme padding otherwise
+             makes it look taller/shorter and inconsistently inset. -->
+        <Style Selector="ComboBox.gridCell">
+            <Setter Property="Padding" Value="6,4"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="VerticalAlignment" Value="Stretch"/>
+            <Setter Property="MinHeight" Value="0"/>
+            <Setter Property="ClipToBounds" Value="True"/>
         </Style>
         <!-- Zero out the ItemsControl item container's own padding/margin so a row's
              Grid starts at the exact same x-offset as the header/TỔNG CỘNG Grids —
@@ -55,13 +80,15 @@
                         <TextBlock Text="Thêm nhóm"/>
                     </StackPanel>
                 </Button>
-                <Button Classes="toolbar" Command="{Binding AddPackageCommand}" CommandParameter="{Binding SelectedRow}">
+                <Button Classes="toolbar" Command="{Binding AddPackageCommand}" CommandParameter="{Binding SelectedRow}"
+                        ToolTip.Tip="Chọn 1 nhóm/gói/đợt rồi bấm để thêm gói vào đúng nhóm đó, hoặc bấm thẳng nếu Vị trí chỉ có 1 nhóm. Cũng có thể dùng nút ＋ gói trên từng dòng nhóm.">
                     <StackPanel Orientation="Horizontal" Spacing="6">
                         <ui:SymbolIcon Symbol="{x:Static ui:Symbol.Add}"/>
                         <TextBlock Text="Thêm gói"/>
                     </StackPanel>
                 </Button>
-                <Button Classes="toolbar" Command="{Binding AddEntryCommand}" CommandParameter="{Binding SelectedRow}">
+                <Button Classes="toolbar" Command="{Binding AddEntryCommand}" CommandParameter="{Binding SelectedRow}"
+                        ToolTip.Tip="Chọn 1 gói/đợt rồi bấm để thêm đợt vào đúng gói đó, hoặc bấm thẳng nếu Vị trí chỉ có 1 gói. Cũng có thể dùng nút ＋ đợt trên từng dòng gói.">
                     <StackPanel Orientation="Horizontal" Spacing="6">
                         <ui:SymbolIcon Symbol="{x:Static ui:Symbol.Add}"/>
                         <TextBlock Text="Thêm đợt"/>
@@ -95,7 +122,7 @@
                     <!-- Frozen column header -->
                     <Border DockPanel.Dock="Top" Background="{DynamicResource GridHeaderBrush}"
                             BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="0,0,0,1">
-                        <Grid>
+                        <Grid ClipToBounds="True">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="100" SharedSizeGroup="colDate"/>
                                 <ColumnDefinition Width="320" SharedSizeGroup="colContent"/>
@@ -133,7 +160,7 @@
                     <Border DockPanel.Dock="Top" Background="{DynamicResource GridHeaderBrush}"
                             BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="0,0,0,1"
                             DataContext="{Binding TotalRow}">
-                        <Grid x:DataType="vm:LedgerRowViewModel">
+                        <Grid x:DataType="vm:LedgerRowViewModel" ClipToBounds="True">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="100" SharedSizeGroup="colDate"/>
                                 <ColumnDefinition Width="320" SharedSizeGroup="colContent"/>
@@ -178,7 +205,8 @@
                                     <!-- Group: bold Name + computed subtotals -->
                                     <local:LedgerRowTemplateSelector.Group>
                                         <DataTemplate x:DataType="vm:LedgerRowViewModel">
-                                            <Grid Classes="gridRow" Background="{DynamicResource AccentSoftBrush}">
+                                            <Grid Classes="gridRow" Height="34" ClipToBounds="True"
+                                                  Background="{DynamicResource AccentSoftBrush}">
                                                 <Grid.ColumnDefinitions>
                                                     <ColumnDefinition Width="100" SharedSizeGroup="colDate"/>
                                                     <ColumnDefinition Width="320" SharedSizeGroup="colContent"/>
@@ -195,7 +223,15 @@
                                                     <ColumnDefinition Width="110" SharedSizeGroup="colUnrecovered"/>
                                                     <ColumnDefinition Width="120" SharedSizeGroup="colTotal"/>
                                                 </Grid.ColumnDefinitions>
-                                                <Border Grid.Column="0" Classes="gridCellBorder"/>
+                                                <!-- Inline discoverable affordance: add a Gói directly under THIS group
+                                                     without needing to pre-select anything on the toolbar. -->
+                                                <Border Grid.Column="0" Classes="gridCellBorder">
+                                                    <Button Classes="toolbar" Padding="4,2" FontSize="11"
+                                                            HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+                                                            Content="＋ gói" ToolTip.Tip="Thêm gói thầu vào nhóm này"
+                                                            Command="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).AddPackageCommand}"
+                                                            CommandParameter="{Binding}"/>
+                                                </Border>
                                                 <TextBox Grid.Column="1" Classes="gridCell" FontWeight="Bold"
                                                          Margin="4,0,0,0" Text="{Binding Name}"/>
                                                 <Border Grid.Column="2" Classes="gridCellBorder"/>
@@ -225,7 +261,7 @@
                                     <!-- Package: Name + Nhà thầu/TK + contract fields + computed subtotals -->
                                     <local:LedgerRowTemplateSelector.Package>
                                         <DataTemplate x:DataType="vm:LedgerRowViewModel">
-                                            <Grid Classes="gridRow">
+                                            <Grid Classes="gridRow" Height="52" ClipToBounds="True">
                                                 <Grid.ColumnDefinitions>
                                                     <ColumnDefinition Width="100" SharedSizeGroup="colDate"/>
                                                     <ColumnDefinition Width="320" SharedSizeGroup="colContent"/>
@@ -242,14 +278,24 @@
                                                     <ColumnDefinition Width="110" SharedSizeGroup="colUnrecovered"/>
                                                     <ColumnDefinition Width="120" SharedSizeGroup="colTotal"/>
                                                 </Grid.ColumnDefinitions>
-                                                <Border Grid.Column="0" Classes="gridCellBorder"/>
+                                                <!-- Inline discoverable affordance: add an Đợt directly under THIS
+                                                     package without needing to pre-select anything on the toolbar. -->
+                                                <Border Grid.Column="0" Classes="gridCellBorder">
+                                                    <Button Classes="toolbar" Padding="4,2" FontSize="11"
+                                                            HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+                                                            Content="＋ đợt" ToolTip.Tip="Thêm đợt vào gói này"
+                                                            Command="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).AddEntryCommand}"
+                                                            CommandParameter="{Binding}"/>
+                                                </Border>
                                                 <TextBox Grid.Column="1" Classes="gridCell" FontWeight="SemiBold"
                                                          Margin="20,0,0,0" Text="{Binding Name}"/>
                                                 <Border Grid.Column="2" Classes="gridCellBorder">
-                                                    <StackPanel Spacing="0" Margin="6,2">
+                                                    <StackPanel Spacing="0" Margin="6,2" ClipToBounds="True">
                                                         <TextBox BorderThickness="0" Padding="0" FontSize="12"
+                                                                 ClipToBounds="True" TextWrapping="NoWrap"
                                                                  Watermark="Nhà thầu" Text="{Binding ContractorName}"/>
                                                         <TextBox BorderThickness="0" Padding="0" FontSize="11"
+                                                                 ClipToBounds="True" TextWrapping="NoWrap"
                                                                  Foreground="{DynamicResource TextMutedBrush}"
                                                                  Watermark="Số TK" Text="{Binding BankAccount}"/>
                                                     </StackPanel>
@@ -280,7 +326,7 @@
                                     <!-- Entry: editable transaction cells + Fund dropdown -->
                                     <local:LedgerRowTemplateSelector.Entry>
                                         <DataTemplate x:DataType="vm:LedgerRowViewModel">
-                                            <Grid Classes="gridRow">
+                                            <Grid Classes="gridRow" Height="34" ClipToBounds="True">
                                                 <Grid.ColumnDefinitions>
                                                     <ColumnDefinition Width="100" SharedSizeGroup="colDate"/>
                                                     <ColumnDefinition Width="320" SharedSizeGroup="colContent"/>
@@ -307,7 +353,7 @@
                                                 <TextBox Grid.Column="7" Classes="gridCell num" Text="{Binding KlhtText}"/>
                                                 <TextBox Grid.Column="8" Classes="gridCell num" Text="{Binding RecoveredText}"/>
                                                 <Border Grid.Column="9" Classes="gridCellBorder">
-                                                    <ComboBox HorizontalAlignment="Stretch" BorderThickness="0"
+                                                    <ComboBox Classes="gridCell" HorizontalAlignment="Stretch" BorderThickness="0"
                                                               ItemsSource="{x:Static local:FundOptions.Names}"
                                                               SelectedItem="{Binding FundText}"/>
                                                 </Border>
