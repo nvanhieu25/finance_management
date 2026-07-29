@@ -22,20 +22,29 @@
              Theme.axaml and also used by FinanceProjectGridView — NOT modified there,
              this only applies within this View's own visual tree): clip long text
              (e.g. a long Nội dung) to the cell's column instead of spilling into the
-             next column. The box still scrolls its own text horizontally on focus. -->
+             next column, and — critically — MinWidth=0 so the FluentAvalonia default
+             TextBox MinWidth can never fight the fixed column width and force the
+             Grid's column wider than its declared pixel value. Explicit Stretch so the
+             box exactly fills its column, never sizing to its own content. The box
+             still scrolls its own text horizontally on focus (never resizes/shifts). -->
         <Style Selector="TextBox.gridCell">
             <Setter Property="ClipToBounds" Value="True"/>
             <Setter Property="TextWrapping" Value="NoWrap"/>
+            <Setter Property="MinWidth" Value="0"/>
+            <Setter Property="HorizontalAlignment" Value="Stretch"/>
         </Style>
         <!-- Normalize the Fund ComboBox cell to the same padding/height rhythm as the
              TextBox cells beside it — its own FluentAvalonia theme padding otherwise
-             makes it look taller/shorter and inconsistently inset. -->
+             makes it look taller/shorter and inconsistently inset — and, same reasoning
+             as TextBox.gridCell above, MinWidth=0 so it can never widen its column. -->
         <Style Selector="ComboBox.gridCell">
             <Setter Property="Padding" Value="6,4"/>
             <Setter Property="FontSize" Value="13"/>
             <Setter Property="VerticalContentAlignment" Value="Center"/>
             <Setter Property="VerticalAlignment" Value="Stretch"/>
+            <Setter Property="HorizontalAlignment" Value="Stretch"/>
             <Setter Property="MinHeight" Value="0"/>
+            <Setter Property="MinWidth" Value="0"/>
             <Setter Property="ClipToBounds" Value="True"/>
         </Style>
         <!-- Zero out the ItemsControl item container's own padding/margin so a row's
@@ -106,38 +115,42 @@
         </Border>
 
         <!-- The grid: frozen header + frozen TỔNG CỘNG row (top), scrollable rows below.
-             All 14 columns are FIXED pixel widths (no "*") and share a SharedSizeGroup
-             per column across every Grid below (header, TỔNG CỘNG, and each per-Kind row
-             template) so they line up exactly regardless of which container measures
-             them — a "*" column sizes differently between a full-width header Border and
-             an ItemsControl item measured inside a scrolling container, which is what
-             caused the column drift. MinWidth on the shared-size scope forces the whole
-             table to its natural ~1750px width so the single outer horizontal
-             ScrollViewer below can reveal the off-screen right-hand computed columns,
-             scrolling the header/TỔNG CỘNG bars in sync with the body (only the rows
-             ScrollViewer scrolls vertically). -->
+             All 14 columns are IDENTICAL, ABSOLUTE FIXED PIXEL widths (no "*", no "Auto",
+             no SharedSizeGroup) repeated literally in the header Grid, the TỔNG CỘNG Grid,
+             and every RowKind template below — a fixed pixel column's width can never
+             depend on its content, so a long "Nội dung" or a huge money value can never
+             grow/shift a column: the overflow just clips (ClipToBounds on every row Grid +
+             cell) instead of resizing anything. (SharedSizeGroup was tried first and was
+             ITSELF the bug — it explicitly sizes a column to the WIDEST content across
+             every row sharing that group, so typing one long value widened that column
+             everywhere. Plain identical fixed widths already line up by construction and
+             need no such mechanism.) MinWidth on the DockPanel below just forces the whole
+             table to its constant ~1880px width so the single outer horizontal ScrollViewer
+             can reveal the off-screen right-hand computed columns, scrolling the header/
+             TỔNG CỘNG bars in sync with the body (only the rows ScrollViewer scrolls
+             vertically). -->
         <Border Classes="tableCard" x:Name="GridRoot" Focusable="True">
             <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
-                <DockPanel Grid.IsSharedSizeScope="True" MinWidth="1750">
+                <DockPanel MinWidth="1880">
                     <!-- Frozen column header -->
                     <Border DockPanel.Dock="Top" Background="{DynamicResource GridHeaderBrush}"
                             BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="0,0,0,1">
                         <Grid ClipToBounds="True">
                             <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="100" SharedSizeGroup="colDate"/>
-                                <ColumnDefinition Width="320" SharedSizeGroup="colContent"/>
-                                <ColumnDefinition Width="160" SharedSizeGroup="colContractor"/>
-                                <ColumnDefinition Width="120" SharedSizeGroup="colContractValue"/>
-                                <ColumnDefinition Width="100" SharedSizeGroup="colAnnex"/>
-                                <ColumnDefinition Width="90" SharedSizeGroup="colDocNo"/>
-                                <ColumnDefinition Width="110" SharedSizeGroup="colAdvance"/>
-                                <ColumnDefinition Width="100" SharedSizeGroup="colKlht"/>
-                                <ColumnDefinition Width="100" SharedSizeGroup="colRecovered"/>
-                                <ColumnDefinition Width="100" SharedSizeGroup="colFund"/>
-                                <ColumnDefinition Width="110" SharedSizeGroup="colNsnn"/>
-                                <ColumnDefinition Width="110" SharedSizeGroup="colNgoaiHoi"/>
-                                <ColumnDefinition Width="110" SharedSizeGroup="colUnrecovered"/>
-                                <ColumnDefinition Width="120" SharedSizeGroup="colTotal"/>
+                                <ColumnDefinition Width="100"/>
+                                <ColumnDefinition Width="340"/>
+                                <ColumnDefinition Width="170"/>
+                                <ColumnDefinition Width="130"/>
+                                <ColumnDefinition Width="110"/>
+                                <ColumnDefinition Width="90"/>
+                                <ColumnDefinition Width="120"/>
+                                <ColumnDefinition Width="120"/>
+                                <ColumnDefinition Width="110"/>
+                                <ColumnDefinition Width="110"/>
+                                <ColumnDefinition Width="120"/>
+                                <ColumnDefinition Width="120"/>
+                                <ColumnDefinition Width="120"/>
+                                <ColumnDefinition Width="120"/>
                             </Grid.ColumnDefinitions>
                             <TextBlock Grid.Column="0" Text="Ngày" Classes="gridHeaderCell"/>
                             <TextBlock Grid.Column="1" Text="Nội dung" Classes="gridHeaderCell"/>
@@ -162,20 +175,20 @@
                             DataContext="{Binding TotalRow}">
                         <Grid x:DataType="vm:LedgerRowViewModel" ClipToBounds="True">
                             <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="100" SharedSizeGroup="colDate"/>
-                                <ColumnDefinition Width="320" SharedSizeGroup="colContent"/>
-                                <ColumnDefinition Width="160" SharedSizeGroup="colContractor"/>
-                                <ColumnDefinition Width="120" SharedSizeGroup="colContractValue"/>
-                                <ColumnDefinition Width="100" SharedSizeGroup="colAnnex"/>
-                                <ColumnDefinition Width="90" SharedSizeGroup="colDocNo"/>
-                                <ColumnDefinition Width="110" SharedSizeGroup="colAdvance"/>
-                                <ColumnDefinition Width="100" SharedSizeGroup="colKlht"/>
-                                <ColumnDefinition Width="100" SharedSizeGroup="colRecovered"/>
-                                <ColumnDefinition Width="100" SharedSizeGroup="colFund"/>
-                                <ColumnDefinition Width="110" SharedSizeGroup="colNsnn"/>
-                                <ColumnDefinition Width="110" SharedSizeGroup="colNgoaiHoi"/>
-                                <ColumnDefinition Width="110" SharedSizeGroup="colUnrecovered"/>
-                                <ColumnDefinition Width="120" SharedSizeGroup="colTotal"/>
+                                <ColumnDefinition Width="100"/>
+                                <ColumnDefinition Width="340"/>
+                                <ColumnDefinition Width="170"/>
+                                <ColumnDefinition Width="130"/>
+                                <ColumnDefinition Width="110"/>
+                                <ColumnDefinition Width="90"/>
+                                <ColumnDefinition Width="120"/>
+                                <ColumnDefinition Width="120"/>
+                                <ColumnDefinition Width="110"/>
+                                <ColumnDefinition Width="110"/>
+                                <ColumnDefinition Width="120"/>
+                                <ColumnDefinition Width="120"/>
+                                <ColumnDefinition Width="120"/>
+                                <ColumnDefinition Width="120"/>
                             </Grid.ColumnDefinitions>
                             <TextBlock Grid.Column="1" Text="TỔNG CỘNG" Classes="gridTotalCell"/>
                             <TextBlock Grid.Column="10" Text="{Binding DisbursedNsnnText}" Classes="gridTotalCell" TextAlignment="Right"/>
@@ -208,25 +221,25 @@
                                             <Grid Classes="gridRow" Height="34" ClipToBounds="True"
                                                   Background="{DynamicResource AccentSoftBrush}">
                                                 <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="100" SharedSizeGroup="colDate"/>
-                                                    <ColumnDefinition Width="320" SharedSizeGroup="colContent"/>
-                                                    <ColumnDefinition Width="160" SharedSizeGroup="colContractor"/>
-                                                    <ColumnDefinition Width="120" SharedSizeGroup="colContractValue"/>
-                                                    <ColumnDefinition Width="100" SharedSizeGroup="colAnnex"/>
-                                                    <ColumnDefinition Width="90" SharedSizeGroup="colDocNo"/>
-                                                    <ColumnDefinition Width="110" SharedSizeGroup="colAdvance"/>
-                                                    <ColumnDefinition Width="100" SharedSizeGroup="colKlht"/>
-                                                    <ColumnDefinition Width="100" SharedSizeGroup="colRecovered"/>
-                                                    <ColumnDefinition Width="100" SharedSizeGroup="colFund"/>
-                                                    <ColumnDefinition Width="110" SharedSizeGroup="colNsnn"/>
-                                                    <ColumnDefinition Width="110" SharedSizeGroup="colNgoaiHoi"/>
-                                                    <ColumnDefinition Width="110" SharedSizeGroup="colUnrecovered"/>
-                                                    <ColumnDefinition Width="120" SharedSizeGroup="colTotal"/>
+                                                    <ColumnDefinition Width="100"/>
+                                                    <ColumnDefinition Width="340"/>
+                                                    <ColumnDefinition Width="170"/>
+                                                    <ColumnDefinition Width="130"/>
+                                                    <ColumnDefinition Width="110"/>
+                                                    <ColumnDefinition Width="90"/>
+                                                    <ColumnDefinition Width="120"/>
+                                                    <ColumnDefinition Width="120"/>
+                                                    <ColumnDefinition Width="110"/>
+                                                    <ColumnDefinition Width="110"/>
+                                                    <ColumnDefinition Width="120"/>
+                                                    <ColumnDefinition Width="120"/>
+                                                    <ColumnDefinition Width="120"/>
+                                                    <ColumnDefinition Width="120"/>
                                                 </Grid.ColumnDefinitions>
                                                 <!-- Inline discoverable affordance: add a Gói directly under THIS group
                                                      without needing to pre-select anything on the toolbar. -->
                                                 <Border Grid.Column="0" Classes="gridCellBorder">
-                                                    <Button Classes="toolbar" Padding="4,2" FontSize="11"
+                                                    <Button Classes="toolbar" Padding="4,2" FontSize="11" MinWidth="0"
                                                             HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
                                                             Content="＋ gói" ToolTip.Tip="Thêm gói thầu vào nhóm này"
                                                             Command="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).AddPackageCommand}"
@@ -263,25 +276,25 @@
                                         <DataTemplate x:DataType="vm:LedgerRowViewModel">
                                             <Grid Classes="gridRow" Height="52" ClipToBounds="True">
                                                 <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="100" SharedSizeGroup="colDate"/>
-                                                    <ColumnDefinition Width="320" SharedSizeGroup="colContent"/>
-                                                    <ColumnDefinition Width="160" SharedSizeGroup="colContractor"/>
-                                                    <ColumnDefinition Width="120" SharedSizeGroup="colContractValue"/>
-                                                    <ColumnDefinition Width="100" SharedSizeGroup="colAnnex"/>
-                                                    <ColumnDefinition Width="90" SharedSizeGroup="colDocNo"/>
-                                                    <ColumnDefinition Width="110" SharedSizeGroup="colAdvance"/>
-                                                    <ColumnDefinition Width="100" SharedSizeGroup="colKlht"/>
-                                                    <ColumnDefinition Width="100" SharedSizeGroup="colRecovered"/>
-                                                    <ColumnDefinition Width="100" SharedSizeGroup="colFund"/>
-                                                    <ColumnDefinition Width="110" SharedSizeGroup="colNsnn"/>
-                                                    <ColumnDefinition Width="110" SharedSizeGroup="colNgoaiHoi"/>
-                                                    <ColumnDefinition Width="110" SharedSizeGroup="colUnrecovered"/>
-                                                    <ColumnDefinition Width="120" SharedSizeGroup="colTotal"/>
+                                                    <ColumnDefinition Width="100"/>
+                                                    <ColumnDefinition Width="340"/>
+                                                    <ColumnDefinition Width="170"/>
+                                                    <ColumnDefinition Width="130"/>
+                                                    <ColumnDefinition Width="110"/>
+                                                    <ColumnDefinition Width="90"/>
+                                                    <ColumnDefinition Width="120"/>
+                                                    <ColumnDefinition Width="120"/>
+                                                    <ColumnDefinition Width="110"/>
+                                                    <ColumnDefinition Width="110"/>
+                                                    <ColumnDefinition Width="120"/>
+                                                    <ColumnDefinition Width="120"/>
+                                                    <ColumnDefinition Width="120"/>
+                                                    <ColumnDefinition Width="120"/>
                                                 </Grid.ColumnDefinitions>
                                                 <!-- Inline discoverable affordance: add an Đợt directly under THIS
                                                      package without needing to pre-select anything on the toolbar. -->
                                                 <Border Grid.Column="0" Classes="gridCellBorder">
-                                                    <Button Classes="toolbar" Padding="4,2" FontSize="11"
+                                                    <Button Classes="toolbar" Padding="4,2" FontSize="11" MinWidth="0"
                                                             HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
                                                             Content="＋ đợt" ToolTip.Tip="Thêm đợt vào gói này"
                                                             Command="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).AddEntryCommand}"
@@ -293,9 +306,11 @@
                                                     <StackPanel Spacing="0" Margin="6,2" ClipToBounds="True">
                                                         <TextBox BorderThickness="0" Padding="0" FontSize="12"
                                                                  ClipToBounds="True" TextWrapping="NoWrap"
+                                                                 MinWidth="0" HorizontalAlignment="Stretch"
                                                                  Watermark="Nhà thầu" Text="{Binding ContractorName}"/>
                                                         <TextBox BorderThickness="0" Padding="0" FontSize="11"
                                                                  ClipToBounds="True" TextWrapping="NoWrap"
+                                                                 MinWidth="0" HorizontalAlignment="Stretch"
                                                                  Foreground="{DynamicResource TextMutedBrush}"
                                                                  Watermark="Số TK" Text="{Binding BankAccount}"/>
                                                     </StackPanel>
@@ -328,20 +343,20 @@
                                         <DataTemplate x:DataType="vm:LedgerRowViewModel">
                                             <Grid Classes="gridRow" Height="34" ClipToBounds="True">
                                                 <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="100" SharedSizeGroup="colDate"/>
-                                                    <ColumnDefinition Width="320" SharedSizeGroup="colContent"/>
-                                                    <ColumnDefinition Width="160" SharedSizeGroup="colContractor"/>
-                                                    <ColumnDefinition Width="120" SharedSizeGroup="colContractValue"/>
-                                                    <ColumnDefinition Width="100" SharedSizeGroup="colAnnex"/>
-                                                    <ColumnDefinition Width="90" SharedSizeGroup="colDocNo"/>
-                                                    <ColumnDefinition Width="110" SharedSizeGroup="colAdvance"/>
-                                                    <ColumnDefinition Width="100" SharedSizeGroup="colKlht"/>
-                                                    <ColumnDefinition Width="100" SharedSizeGroup="colRecovered"/>
-                                                    <ColumnDefinition Width="100" SharedSizeGroup="colFund"/>
-                                                    <ColumnDefinition Width="110" SharedSizeGroup="colNsnn"/>
-                                                    <ColumnDefinition Width="110" SharedSizeGroup="colNgoaiHoi"/>
-                                                    <ColumnDefinition Width="110" SharedSizeGroup="colUnrecovered"/>
-                                                    <ColumnDefinition Width="120" SharedSizeGroup="colTotal"/>
+                                                    <ColumnDefinition Width="100"/>
+                                                    <ColumnDefinition Width="340"/>
+                                                    <ColumnDefinition Width="170"/>
+                                                    <ColumnDefinition Width="130"/>
+                                                    <ColumnDefinition Width="110"/>
+                                                    <ColumnDefinition Width="90"/>
+                                                    <ColumnDefinition Width="120"/>
+                                                    <ColumnDefinition Width="120"/>
+                                                    <ColumnDefinition Width="110"/>
+                                                    <ColumnDefinition Width="110"/>
+                                                    <ColumnDefinition Width="120"/>
+                                                    <ColumnDefinition Width="120"/>
+                                                    <ColumnDefinition Width="120"/>
+                                                    <ColumnDefinition Width="120"/>
                                                 </Grid.ColumnDefinitions>
                                                 <TextBox Grid.Column="0" Classes="gridCell" Text="{Binding DateText}"/>
                                                 <TextBox Grid.Column="1" Classes="gridCell" Margin="36,0,0,0" Text="{Binding Content}"/>
