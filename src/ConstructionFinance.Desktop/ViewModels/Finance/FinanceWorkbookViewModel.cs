@@ -95,8 +95,10 @@ public partial class FinanceWorkbookViewModel : ViewModelBase
             }
 
             SelectedPage = SummaryPage;
-            // Deliberately no auto-selected Dự án — the picker starts empty; the
-            // user chooses a project to see its Vị trí tabs.
+            // Auto-select the first Dự án so the Vị trí ledger renders immediately
+            // on launch instead of showing an empty picker. Safe with zero projects
+            // (FirstOrDefault is null; OnSelectedProjectChanged no-ops on null).
+            SelectedProject = Projects.FirstOrDefault();
             await SummaryPage.Summary.LoadAsync();
         }
         catch (Exception ex)

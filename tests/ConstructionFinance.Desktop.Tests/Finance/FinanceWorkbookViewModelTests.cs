@@ -368,7 +368,7 @@ public class FinanceWorkbookViewModelTests
     }
 
     [Fact]
-    public async Task LoadAsync_populates_the_Projects_picker_but_selects_none()
+    public async Task LoadAsync_populates_the_Projects_picker_and_auto_selects_the_first_project()
     {
         var (sut, _) = CreateSutWithProjectTree(1, "DA1");
 
@@ -376,6 +376,36 @@ public class FinanceWorkbookViewModelTests
 
         sut.Projects.Count.ShouldBe(1);
         sut.Projects[0].Name.ShouldBe("DA1");
+        // Auto-selected so the Vị trí ledger renders immediately on launch instead
+        // of an empty picker (no manual pick required for the common single/first
+        // project case).
+        sut.SelectedProject.ShouldBe(sut.Projects[0]);
+    }
+
+    [Fact]
+    public async Task LoadAsync_with_no_projects_leaves_the_picker_unselected()
+    {
+        var service = new Mock<IFinanceProjectService>();
+        service.Setup(s => s.GetAllSummariesAsync(It.IsAny<CancellationToken>()))
+               .ReturnsAsync(Array.Empty<FinanceProjectSummary>());
+        service.Setup(s => s.ListAsync(It.IsAny<CancellationToken>()))
+               .ReturnsAsync(Array.Empty<Project>());
+
+        var summaryVm = new FinanceSummaryViewModel(
+            service.Object,
+            Mock.Of<IFinanceImportService>(),
+            Mock.Of<IFinanceExportService>(),
+            Mock.Of<IDialogService>());
+
+        var sut = new FinanceWorkbookViewModel(
+            service.Object,
+            new SummaryPageViewModel(summaryVm),
+            Mock.Of<IDialogService>(),
+            new ServiceCollection().BuildServiceProvider());
+
+        await sut.LoadAsync();
+
+        sut.Projects.ShouldBeEmpty();
         sut.SelectedProject.ShouldBeNull();
         sut.ViTriPages.ShouldBeEmpty();
     }
@@ -430,6 +460,7 @@ public class FinanceWorkbookViewModelTests
     {
         var (sut, _) = CreateSutWithProjectTree(1, "DA1");
         await sut.LoadAsync();
+        sut.SelectedProject = null; // LoadAsync auto-selects the first project; force the no-project state
 
         sut.AddViTriCommand.Execute(null);
 
