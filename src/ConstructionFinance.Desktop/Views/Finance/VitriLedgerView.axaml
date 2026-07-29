@@ -6,6 +6,22 @@
              x:Class="ConstructionFinance.Desktop.Views.Finance.VitriLedgerView"
              x:DataType="vm:VitriLedgerViewModel"
              x:Name="Root">
+    <UserControl.Resources>
+        <!-- Local-only, crisp Excel-style gridline color for THIS grid — deliberately
+             stronger contrast than the app-wide GridLineBrush (#EAEEF4, near-invisible
+             against white cells), scoped here via UserControl.Resources so it does NOT
+             touch Theme.axaml or FinanceProjectGridView's (6A) look. -->
+        <ResourceDictionary>
+            <ResourceDictionary.ThemeDictionaries>
+                <ResourceDictionary x:Key="Light">
+                    <SolidColorBrush x:Key="LedgerGridLineBrush" Color="#C8C8C8"/>
+                </ResourceDictionary>
+                <ResourceDictionary x:Key="Dark">
+                    <SolidColorBrush x:Key="LedgerGridLineBrush" Color="#5A5A5A"/>
+                </ResourceDictionary>
+            </ResourceDictionary.ThemeDictionaries>
+        </ResourceDictionary>
+    </UserControl.Resources>
     <UserControl.Styles>
         <!-- Local-only: bottom gridline for every read-only/composite cell (matching
              TextBox.gridCell's own bottom border), so Group/Package/Total rows (mostly
@@ -16,7 +32,7 @@
              adjoining cell (or the composite Nhà thầu/TK StackPanel) can render past
              its column into the next one. -->
         <Style Selector="Border.gridCellBorder">
-            <Setter Property="BorderBrush" Value="{DynamicResource GridLineBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource LedgerGridLineBrush}"/>
             <Setter Property="BorderThickness" Value="0,0,0,1"/>
             <Setter Property="ClipToBounds" Value="True"/>
         </Style>
@@ -39,7 +55,7 @@
             <Setter Property="Width" Value="1"/>
             <Setter Property="HorizontalAlignment" Value="Right"/>
             <Setter Property="VerticalAlignment" Value="Stretch"/>
-            <Setter Property="Background" Value="{DynamicResource GridLineBrush}"/>
+            <Setter Property="Background" Value="{DynamicResource LedgerGridLineBrush}"/>
         </Style>
         <!-- Local-only addition to the shared TextBox.gridCell style (defined in
              Theme.axaml and also used by FinanceProjectGridView — NOT modified there,
@@ -59,6 +75,7 @@
             <Setter Property="MinWidth" Value="0"/>
             <Setter Property="HorizontalAlignment" Value="Stretch"/>
             <Setter Property="BorderThickness" Value="0,0,0,1"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource LedgerGridLineBrush}"/>
         </Style>
         <!-- Excel-style overflow for the "content" column (Nội dung / Group·Package
              Name): UNFOCUSED, the box goes borderless/transparent, left-aligned, and
@@ -147,8 +164,8 @@
              — none of that changed here, only how the grip LOOKS. The Thumb's own Bounds
              are 8px wide (the grab/hit area — an explicit Background="Transparent" on the
              template root keeps the whole 8px hit-testable, not just the 1px line) but its
-             ControlTemplate draws a PERSISTENT 1px divider line (GridLineBrush — the same
-             color already used for every cell's gridline, so header dividers line up
+             ControlTemplate draws a PERSISTENT 1px divider line (LedgerGridLineBrush — the
+             same color already used for every cell's gridline, so header dividers line up
              visually with the body's existing cell borders) centered within it, so the
              column boundary is obvious even at rest — this was the discoverability gap:
              previously the grip was fully transparent until hovered, so there was nothing
@@ -165,7 +182,7 @@
                 <ControlTemplate>
                     <Grid Background="Transparent">
                         <Border x:Name="GripLine" Width="1" HorizontalAlignment="Center"
-                                Background="{DynamicResource GridLineBrush}"/>
+                                Background="{DynamicResource LedgerGridLineBrush}"/>
                     </Grid>
                 </ControlTemplate>
             </Setter>
@@ -256,7 +273,7 @@
                 <DockPanel MinWidth="1880">
                     <!-- Frozen column header -->
                     <Border DockPanel.Dock="Top" Background="{DynamicResource GridHeaderBrush}"
-                            BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="0,0,0,1">
+                            BorderBrush="{DynamicResource LedgerGridLineBrush}" BorderThickness="0,0,0,1">
                         <Grid x:Name="HeaderColumnsGrid" ClipToBounds="True">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="{Binding ColumnWidths.NgayWidth}"/>
@@ -293,7 +310,7 @@
 
                     <!-- Frozen TỔNG CỘNG row -->
                     <Border DockPanel.Dock="Top" Background="{DynamicResource GridHeaderBrush}"
-                            BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="0,0,0,1"
+                            BorderBrush="{DynamicResource LedgerGridLineBrush}" BorderThickness="0,0,0,1"
                             DataContext="{Binding TotalRow}">
                         <Grid ClipToBounds="True">
                             <Grid x:DataType="vm:LedgerRowViewModel">
