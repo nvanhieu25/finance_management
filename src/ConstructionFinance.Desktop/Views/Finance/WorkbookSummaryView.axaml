@@ -1,6 +1,7 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:ConstructionFinance.Desktop.ViewModels.Finance"
+             xmlns:conv="using:ConstructionFinance.Desktop.Common"
              x:Class="ConstructionFinance.Desktop.Views.Finance.WorkbookSummaryView"
              x:DataType="vm:WorkbookSummaryViewModel">
     <DockPanel>
@@ -26,6 +27,12 @@
                   IsReadOnly="True" GridLinesVisibility="All" HeadersVisibility="All"
                   CanUserResizeColumns="True" CanUserSortColumns="False"
                   DoubleTapped="OnRowDoubleTapped">
+            <DataGrid.Styles>
+                <Style Selector="DataGridRow" x:DataType="vm:SummaryDisplayRow">
+                    <Setter Property="FontWeight"
+                            Value="{Binding IsBold, Converter={x:Static conv:BoolToFontWeightConverter.Instance}}"/>
+                </Style>
+            </DataGrid.Styles>
             <DataGrid.Columns>
                 <DataGridTextColumn Header="TT" Binding="{Binding Ordinal}" Width="48"/>
                 <DataGridTextColumn Header="Tên dự án / vị trí" Binding="{Binding Label}" Width="220"/>

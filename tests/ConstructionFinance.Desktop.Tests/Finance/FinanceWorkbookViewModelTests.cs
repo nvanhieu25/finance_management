@@ -494,6 +494,22 @@ public class FinanceWorkbookViewModelTests
     }
 
     [Fact]
+    public async Task DeleteViTri_CanExecute_is_false_on_an_aggregate_tab_and_true_on_a_ViTri_ledger_tab()
+    {
+        var (sut, _) = CreateSutWithProjectTree(1, "DA1", new ViTri { Name = "V1" });
+        await sut.LoadAsync();
+        sut.SelectedProject = sut.Projects.Single();
+
+        // LoadSelectedProjectTreeAsync lands on the Tổng hợp tab by default.
+        sut.SelectedViTriPage.ShouldBeOfType<ProjectTongHopPageViewModel>();
+        sut.DeleteViTriCommand.CanExecute(sut.SelectedViTriPage).ShouldBeFalse();
+
+        sut.SelectedViTriPage = sut.ViTriPages.OfType<ViTriPageViewModel>().First();
+
+        sut.DeleteViTriCommand.CanExecute(sut.SelectedViTriPage).ShouldBeTrue();
+    }
+
+    [Fact]
     public async Task IsDirty_is_true_when_a_ViTri_ledgers_row_edit_marks_it_dirty()
     {
         var (sut, _) = CreateSutWithProjectTree(1, "DA1", new ViTri { Name = "V1" });

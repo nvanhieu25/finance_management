@@ -1,11 +1,18 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:ConstructionFinance.Desktop.ViewModels.Finance"
+             xmlns:conv="using:ConstructionFinance.Desktop.Common"
              x:Class="ConstructionFinance.Desktop.Views.Finance.ProjectTongHopView"
              x:DataType="vm:ProjectTongHopViewModel">
     <DataGrid ItemsSource="{Binding Rows}" IsReadOnly="True"
               GridLinesVisibility="All" HeadersVisibility="All"
               CanUserResizeColumns="True" CanUserSortColumns="False">
+        <DataGrid.Styles>
+            <Style Selector="DataGridRow" x:DataType="vm:SummaryDisplayRow">
+                <Setter Property="FontWeight"
+                        Value="{Binding IsBold, Converter={x:Static conv:BoolToFontWeightConverter.Instance}}"/>
+            </Style>
+        </DataGrid.Styles>
         <DataGrid.Columns>
             <DataGridTextColumn Header="TT" Binding="{Binding Ordinal}" Width="48"/>
             <DataGridTextColumn Header="Tên vị trí" Binding="{Binding Label}" Width="200"/>

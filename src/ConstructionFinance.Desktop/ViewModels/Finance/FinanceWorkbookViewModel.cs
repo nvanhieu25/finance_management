@@ -235,7 +235,10 @@ public partial class FinanceWorkbookViewModel : ViewModelBase
             if (e.PropertyName == nameof(WorkbookPageViewModel.IsDirty))
                 OnPropertyChanged(nameof(IsDirty));
         };
-        // Any ledger edit (subtotals recompute live) should refresh the aggregate tabs.
+        // IsDirty only flips false→true once per ledger, so this catches that one
+        // dirty transition (useful when the aggregate tab is already the one showing).
+        // It is not the authoritative refresh path — that happens on selecting an
+        // aggregate tab, via OnSelectedViTriPageChanged above.
         ledger.DirtyChanged += (_, _) => RefreshAggregateTabs();
         InsertViTriPage(page);
     }
@@ -266,6 +269,8 @@ public partial class FinanceWorkbookViewModel : ViewModelBase
     {
         if (value is ProjectTongHopPageViewModel or YearSettlementPageViewModel)
             RefreshAggregateTabs();
+
+        DeleteViTriCommand.NotifyCanExecuteChanged();
     }
 
     /// New blank Vị trí tab under the selected project. No-op with no project selected.
@@ -286,7 +291,7 @@ public partial class FinanceWorkbookViewModel : ViewModelBase
 
     /// Remove a Vị trí tab (after confirming) — it is only dropped from the DB once
     /// Save-All persists the rebuilt tree.
-    [RelayCommand]
+    [RelayCommand(CanExecute = nameof(CanDeleteViTri))]
     private async Task DeleteViTriAsync(WorkbookPageViewModel? page)
     {
         if (page is not ViTriPageViewModel viTriPage) return;
@@ -303,6 +308,10 @@ public partial class FinanceWorkbookViewModel : ViewModelBase
         OnPropertyChanged(nameof(IsDirty));
         RefreshAggregateTabs();
     }
+
+    /// The "Xóa Vị trí" button only makes sense on a ledger tab — greyed out while
+    /// the read-only Tổng hợp / Quyết toán năm aggregate tabs are selected.
+    private bool CanDeleteViTri(WorkbookPageViewModel? page) => page is ViTriPageViewModel;
 
     /// New project for the Vị trí workbook path: Id 0, a free default name, and ONE
     /// empty Vị trí so the ledger is ready to enter immediately. Builds the ledger tab

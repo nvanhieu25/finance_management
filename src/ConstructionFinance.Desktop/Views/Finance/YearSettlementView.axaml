@@ -1,6 +1,7 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:ConstructionFinance.Desktop.ViewModels.Finance"
+             xmlns:conv="using:ConstructionFinance.Desktop.Common"
              x:Class="ConstructionFinance.Desktop.Views.Finance.YearSettlementView"
              x:DataType="vm:YearSettlementViewModel">
     <StackPanel Margin="0,4,0,0">
@@ -9,6 +10,12 @@
         <DataGrid ItemsSource="{Binding Rows}" IsReadOnly="True"
                   GridLinesVisibility="All" HeadersVisibility="All"
                   CanUserResizeColumns="True" CanUserSortColumns="False">
+            <DataGrid.Styles>
+                <Style Selector="DataGridRow" x:DataType="vm:YearSettlementRow">
+                    <Setter Property="FontWeight"
+                            Value="{Binding IsBold, Converter={x:Static conv:BoolToFontWeightConverter.Instance}}"/>
+                </Style>
+            </DataGrid.Styles>
             <DataGrid.Columns>
                 <DataGridTextColumn Header="Năm" Binding="{Binding YearLabel}" Width="220"/>
                 <DataGridTextColumn Header="Dự phòng NSNN" Binding="{Binding NSNN}" Width="180"/>
