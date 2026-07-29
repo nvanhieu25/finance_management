@@ -115,18 +115,36 @@
             <Setter Property="MinHeight" Value="34"/>
         </Style>
         <!-- Column-resize grips in the header (Excel-style drag-to-resize, Part A).
-             A thin transparent strip on the right edge of every header cell; DragDelta
-             is wired up in code-behind (VitriLedgerView.axaml.cs) against each Thumb's
-             Tag (the 0..13 column index), which calls ColumnWidths.Resize(index, dx). -->
+             DragDelta is wired up in code-behind (VitriLedgerView.axaml.cs) against each
+             Thumb's Tag (the 0..13 column index), which calls ColumnWidths.Resize(index, dx)
+             — none of that changed here, only how the grip LOOKS. The Thumb's own Bounds
+             are 8px wide (the grab/hit area — an explicit Background="Transparent" on the
+             template root keeps the whole 8px hit-testable, not just the 1px line) but its
+             ControlTemplate draws a PERSISTENT 1px divider line (GridLineBrush — the same
+             color already used for every cell's gridline, so header dividers line up
+             visually with the body's existing cell borders) centered within it, so the
+             column boundary is obvious even at rest — this was the discoverability gap:
+             previously the grip was fully transparent until hovered, so there was nothing
+             to see or aim for. On pointer-over, the line thickens to 2px and turns the
+             brand accent color (in addition to the Cursor already switching to the
+             west-east resize arrow), making "this is draggable" unambiguous. -->
         <Style Selector="Thumb.colGrip">
-            <Setter Property="Width" Value="6"/>
-            <Setter Property="MinWidth" Value="6"/>
-            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Width" Value="8"/>
+            <Setter Property="MinWidth" Value="8"/>
             <Setter Property="Cursor" Value="SizeWestEast"/>
             <Setter Property="HorizontalAlignment" Value="Right"/>
             <Setter Property="VerticalAlignment" Value="Stretch"/>
+            <Setter Property="Template">
+                <ControlTemplate>
+                    <Grid Background="Transparent">
+                        <Border x:Name="GripLine" Width="1" HorizontalAlignment="Center"
+                                Background="{DynamicResource GridLineBrush}"/>
+                    </Grid>
+                </ControlTemplate>
+            </Setter>
         </Style>
-        <Style Selector="Thumb.colGrip:pointerover">
+        <Style Selector="Thumb.colGrip:pointerover /template/ Border#GripLine">
+            <Setter Property="Width" Value="2"/>
             <Setter Property="Background" Value="{DynamicResource BrandPrimaryBrush}"/>
         </Style>
     </UserControl.Styles>
