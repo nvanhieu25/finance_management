@@ -7,16 +7,39 @@
              x:DataType="vm:VitriLedgerViewModel"
              x:Name="Root">
     <UserControl.Styles>
-        <!-- Local-only: gives every read-only/composite cell the same right+bottom
-             gridline that TextBox.gridCell already draws for itself, so Group/Package/
-             Total rows (mostly read-only cells) still show "full gridlines" per spec.
-             Also clips its content to the cell's own bounds — without this, a long
-             value in an adjoining cell (or the composite Nhà thầu/TK StackPanel) can
-             render past its column into the next one. -->
+        <!-- Local-only: bottom gridline for every read-only/composite cell (matching
+             TextBox.gridCell's own bottom border), so Group/Package/Total rows (mostly
+             read-only cells) still show a horizontal separator per spec. The VERTICAL
+             (right-edge) line is NOT drawn per-cell anymore — see Border.colDivider /
+             the two overlay Grids below for why and how those replaced it. Still clips
+             its content to the cell's own bounds — without this, a long value in an
+             adjoining cell (or the composite Nhà thầu/TK StackPanel) can render past
+             its column into the next one. -->
         <Style Selector="Border.gridCellBorder">
             <Setter Property="BorderBrush" Value="{DynamicResource GridLineBrush}"/>
-            <Setter Property="BorderThickness" Value="0,0,1,1"/>
+            <Setter Property="BorderThickness" Value="0,0,0,1"/>
             <Setter Property="ClipToBounds" Value="True"/>
+        </Style>
+        <!-- The single, continuous set of column-boundary lines (fixes the "ragged"
+             look): previously EVERY cell (TextBox.gridCell / Border.gridCellBorder) drew
+             its OWN right-edge border, independently, inside each RowKind's own
+             DataTemplate — Group/Package/Entry are different templates, so their right
+             borders landed at very slightly different rendering offsets from row to row
+             and never lined up into one clean vertical line. Instead, exactly ONE overlay
+             Grid (per frozen/scrollable region — see the two usages below) is layered on
+             top of the TỔNG CỘNG row and on top of the WHOLE scrollable rows area, using
+             the SAME shared ColumnWidths-bound ColumnDefinitions as everything else, with
+             one of these Border.colDivider per column. Because there is only ONE such Grid
+             per region (not one per row), its column boundaries are, by construction, a
+             single unbroken vertical line spanning every row in that region — and because
+             it uses the identical ColumnWidths source as the header/rows, it's always
+             pixel-aligned with the header's own grip dividers too. IsHitTestVisible=False
+             on the overlay lets clicks/edits reach the cells underneath. -->
+        <Style Selector="Border.colDivider">
+            <Setter Property="Width" Value="1"/>
+            <Setter Property="HorizontalAlignment" Value="Right"/>
+            <Setter Property="VerticalAlignment" Value="Stretch"/>
+            <Setter Property="Background" Value="{DynamicResource GridLineBrush}"/>
         </Style>
         <!-- Local-only addition to the shared TextBox.gridCell style (defined in
              Theme.axaml and also used by FinanceProjectGridView — NOT modified there,
@@ -26,12 +49,16 @@
              TextBox MinWidth can never fight the fixed column width and force the
              Grid's column wider than its declared pixel value. Explicit Stretch so the
              box exactly fills its column, never sizing to its own content. The box
-             still scrolls its own text horizontally on focus (never resizes/shifts). -->
+             still scrolls its own text horizontally on focus (never resizes/shifts).
+             BorderThickness drops the right edge (0,0,0,1, bottom only) for the same
+             "one continuous overlay owns all vertical lines" reason as gridCellBorder
+             above — the overlay Grids draw every column boundary instead. -->
         <Style Selector="TextBox.gridCell">
             <Setter Property="ClipToBounds" Value="True"/>
             <Setter Property="TextWrapping" Value="NoWrap"/>
             <Setter Property="MinWidth" Value="0"/>
             <Setter Property="HorizontalAlignment" Value="Stretch"/>
+            <Setter Property="BorderThickness" Value="0,0,0,1"/>
         </Style>
         <!-- Excel-style overflow for the "content" column (Nội dung / Group·Package
              Name): UNFOCUSED, the box goes borderless/transparent, left-aligned, and
@@ -54,7 +81,7 @@
             <Setter Property="HorizontalAlignment" Value="Stretch"/>
             <Setter Property="ClipToBounds" Value="True"/>
             <Setter Property="Background" Value="{DynamicResource CardBackgroundBrush}"/>
-            <Setter Property="BorderThickness" Value="0,0,1,1"/>
+            <Setter Property="BorderThickness" Value="0,0,0,1"/>
         </Style>
         <!-- Wrap-toggle ("Xuống dòng trong ô"): wraps within the column instead of
              overflowing sideways — wrapping still respects the column's own width
@@ -268,28 +295,65 @@
                     <Border DockPanel.Dock="Top" Background="{DynamicResource GridHeaderBrush}"
                             BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="0,0,0,1"
                             DataContext="{Binding TotalRow}">
-                        <Grid x:DataType="vm:LedgerRowViewModel" ClipToBounds="True">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.NgayWidth}"/>
-                                <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.NoiDung}"/>
-                                <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.NhaThauTk}"/>
-                                <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.GiaTriHd}"/>
-                                <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.PhuLuc}"/>
-                                <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.SoCt}"/>
-                                <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.TamUng}"/>
-                                <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.Klht}"/>
-                                <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.ThuHoi}"/>
-                                <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.Nguon}"/>
-                                <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.GnNsnn}"/>
-                                <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.GnNgoaiHoi}"/>
-                                <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.SoDuTu}"/>
-                                <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.TongDaGn}"/>
-                            </Grid.ColumnDefinitions>
-                            <TextBlock Grid.Column="1" Text="TỔNG CỘNG" Classes="gridTotalCell"/>
-                            <TextBlock Grid.Column="10" Text="{Binding DisbursedNsnnText}" Classes="gridTotalCell" TextAlignment="Right"/>
-                            <TextBlock Grid.Column="11" Text="{Binding DisbursedNgoaiHoiText}" Classes="gridTotalCell" TextAlignment="Right"/>
-                            <TextBlock Grid.Column="12" Text="{Binding UnrecoveredAdvanceText}" Classes="gridTotalCell" TextAlignment="Right"/>
-                            <TextBlock Grid.Column="13" Text="{Binding TotalDisbursedText}" Classes="gridTotalCell" TextAlignment="Right"/>
+                        <Grid ClipToBounds="True">
+                            <Grid x:DataType="vm:LedgerRowViewModel">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.NgayWidth}"/>
+                                    <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.NoiDung}"/>
+                                    <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.NhaThauTk}"/>
+                                    <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.GiaTriHd}"/>
+                                    <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.PhuLuc}"/>
+                                    <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.SoCt}"/>
+                                    <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.TamUng}"/>
+                                    <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.Klht}"/>
+                                    <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.ThuHoi}"/>
+                                    <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.Nguon}"/>
+                                    <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.GnNsnn}"/>
+                                    <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.GnNgoaiHoi}"/>
+                                    <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.SoDuTu}"/>
+                                    <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.TongDaGn}"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Grid.Column="1" Text="TỔNG CỘNG" Classes="gridTotalCell"/>
+                                <TextBlock Grid.Column="10" Text="{Binding DisbursedNsnnText}" Classes="gridTotalCell" TextAlignment="Right"/>
+                                <TextBlock Grid.Column="11" Text="{Binding DisbursedNgoaiHoiText}" Classes="gridTotalCell" TextAlignment="Right"/>
+                                <TextBlock Grid.Column="12" Text="{Binding UnrecoveredAdvanceText}" Classes="gridTotalCell" TextAlignment="Right"/>
+                                <TextBlock Grid.Column="13" Text="{Binding TotalDisbursedText}" Classes="gridTotalCell" TextAlignment="Right"/>
+                            </Grid>
+                            <!-- Continuous column-boundary overlay for the TỔNG CỘNG row — same
+                                 ColumnWidths source, same technique as the rows overlay below, so
+                                 the "unbroken line from TỔNG CỘNG down through the last row" holds. -->
+                            <Grid IsHitTestVisible="False">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.NgayWidth}"/>
+                                    <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.NoiDung}"/>
+                                    <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.NhaThauTk}"/>
+                                    <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.GiaTriHd}"/>
+                                    <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.PhuLuc}"/>
+                                    <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.SoCt}"/>
+                                    <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.TamUng}"/>
+                                    <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.Klht}"/>
+                                    <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.ThuHoi}"/>
+                                    <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.Nguon}"/>
+                                    <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.GnNsnn}"/>
+                                    <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.GnNgoaiHoi}"/>
+                                    <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.SoDuTu}"/>
+                                    <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.TongDaGn}"/>
+                                </Grid.ColumnDefinitions>
+                                <Border Grid.Column="0" Classes="colDivider"/>
+                                <Border Grid.Column="1" Classes="colDivider"/>
+                                <Border Grid.Column="2" Classes="colDivider"/>
+                                <Border Grid.Column="3" Classes="colDivider"/>
+                                <Border Grid.Column="4" Classes="colDivider"/>
+                                <Border Grid.Column="5" Classes="colDivider"/>
+                                <Border Grid.Column="6" Classes="colDivider"/>
+                                <Border Grid.Column="7" Classes="colDivider"/>
+                                <Border Grid.Column="8" Classes="colDivider"/>
+                                <Border Grid.Column="9" Classes="colDivider"/>
+                                <Border Grid.Column="10" Classes="colDivider"/>
+                                <Border Grid.Column="11" Classes="colDivider"/>
+                                <Border Grid.Column="12" Classes="colDivider"/>
+                                <Border Grid.Column="13" Classes="colDivider"/>
+                            </Grid>
                         </Grid>
                     </Border>
 
@@ -299,6 +363,7 @@
                          Only vertical scrolling here — horizontal is the outer ScrollViewer,
                          shared with the frozen header/TỔNG CỘNG bars above. -->
                     <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+                      <Grid>
                         <ItemsControl x:Name="RowsHost" ItemsSource="{Binding Rows}">
                             <ItemsControl.ItemTemplate>
                                 <local:LedgerRowTemplateSelector>
@@ -490,6 +555,45 @@
                                 </local:LedgerRowTemplateSelector>
                             </ItemsControl.ItemTemplate>
                         </ItemsControl>
+                        <!-- Continuous column-boundary overlay for the WHOLE scrollable body:
+                             ONE Grid (not one per row) spanning every Group/Package/Entry row's
+                             combined height, sharing this same ScrollViewer so it scrolls in
+                             lockstep with the rows. Same ColumnWidths source as everything
+                             else, so it's pixel-aligned with the header/TỔNG CỘNG overlay above
+                             and moves correctly the instant a column is resized. -->
+                        <Grid IsHitTestVisible="False" VerticalAlignment="Stretch">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="{Binding ColumnWidths.NgayWidth}"/>
+                                <ColumnDefinition Width="{Binding ColumnWidths.NoiDung}"/>
+                                <ColumnDefinition Width="{Binding ColumnWidths.NhaThauTk}"/>
+                                <ColumnDefinition Width="{Binding ColumnWidths.GiaTriHd}"/>
+                                <ColumnDefinition Width="{Binding ColumnWidths.PhuLuc}"/>
+                                <ColumnDefinition Width="{Binding ColumnWidths.SoCt}"/>
+                                <ColumnDefinition Width="{Binding ColumnWidths.TamUng}"/>
+                                <ColumnDefinition Width="{Binding ColumnWidths.Klht}"/>
+                                <ColumnDefinition Width="{Binding ColumnWidths.ThuHoi}"/>
+                                <ColumnDefinition Width="{Binding ColumnWidths.Nguon}"/>
+                                <ColumnDefinition Width="{Binding ColumnWidths.GnNsnn}"/>
+                                <ColumnDefinition Width="{Binding ColumnWidths.GnNgoaiHoi}"/>
+                                <ColumnDefinition Width="{Binding ColumnWidths.SoDuTu}"/>
+                                <ColumnDefinition Width="{Binding ColumnWidths.TongDaGn}"/>
+                            </Grid.ColumnDefinitions>
+                            <Border Grid.Column="0" Classes="colDivider"/>
+                            <Border Grid.Column="1" Classes="colDivider"/>
+                            <Border Grid.Column="2" Classes="colDivider"/>
+                            <Border Grid.Column="3" Classes="colDivider"/>
+                            <Border Grid.Column="4" Classes="colDivider"/>
+                            <Border Grid.Column="5" Classes="colDivider"/>
+                            <Border Grid.Column="6" Classes="colDivider"/>
+                            <Border Grid.Column="7" Classes="colDivider"/>
+                            <Border Grid.Column="8" Classes="colDivider"/>
+                            <Border Grid.Column="9" Classes="colDivider"/>
+                            <Border Grid.Column="10" Classes="colDivider"/>
+                            <Border Grid.Column="11" Classes="colDivider"/>
+                            <Border Grid.Column="12" Classes="colDivider"/>
+                            <Border Grid.Column="13" Classes="colDivider"/>
+                        </Grid>
+                      </Grid>
                     </ScrollViewer>
                 </DockPanel>
             </ScrollViewer>
