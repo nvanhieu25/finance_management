@@ -4,7 +4,7 @@ public class Package : BaseEntity
 {
     public int CostGroupId { get; set; }
     public CostGroup CostGroup { get; set; } = null!;
-    public string Name { get; set; } = "";
+    public required string Name { get; set; }
     public string? ContractorName { get; set; }
     public string? BankAccount { get; set; }
     public decimal ContractValue { get; set; }

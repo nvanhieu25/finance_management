@@ -22,6 +22,6 @@ public class TreeEntitiesTests
 
         project.ViTris.ShouldHaveSingleItem();
         viTri.CostGroups[0].Packages[0].Dots[0].Fund.ShouldBe(Fund.NgoaiHoi);
-        new Package().Dots.ShouldBeEmpty();
+        new Package { Name = "x" }.Dots.ShouldBeEmpty();
     }
 }
