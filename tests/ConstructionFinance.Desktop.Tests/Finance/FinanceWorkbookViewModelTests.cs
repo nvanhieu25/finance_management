@@ -328,4 +328,178 @@ public class FinanceWorkbookViewModelTests
         good.IsDirty.ShouldBeFalse();
         bad.IsDirty.ShouldBeTrue();
     }
+
+    // ===== 7B: Dự án picker + Vị trí tabs =====
+
+    /// Builds a SUT whose ListAsync/GetTreeAsync are wired for exactly one project
+    /// (with the given Vị trí tree), plus a confirming dialog (for DeleteViTri).
+    private static (FinanceWorkbookViewModel Sut, Mock<IFinanceProjectService> Service)
+        CreateSutWithProjectTree(int projectId, string projectName, params ViTri[] viTris)
+    {
+        var service = new Mock<IFinanceProjectService>();
+        service.Setup(s => s.GetAllSummariesAsync(It.IsAny<CancellationToken>()))
+               .ReturnsAsync(Array.Empty<FinanceProjectSummary>());
+        service.Setup(s => s.ListAsync(It.IsAny<CancellationToken>()))
+               .ReturnsAsync(new List<Project> { new() { Id = projectId, Name = projectName } });
+        service.Setup(s => s.GetWithLinesAsync(projectId, It.IsAny<CancellationToken>()))
+               .ReturnsAsync(new Project { Id = projectId, Name = projectName });
+        service.Setup(s => s.GetTreeAsync(projectId, It.IsAny<CancellationToken>()))
+               .ReturnsAsync(new Project { Id = projectId, Name = projectName, ViTris = viTris.ToList() });
+
+        var dialog = new Mock<IDialogService>();
+        dialog.Setup(d => d.ConfirmAsync(It.IsAny<string>(), It.IsAny<string>())).ReturnsAsync(true);
+
+        var summaryVm = new FinanceSummaryViewModel(
+            service.Object,
+            Mock.Of<IFinanceImportService>(),
+            Mock.Of<IFinanceExportService>(),
+            Mock.Of<IDialogService>());
+
+        var services = new ServiceCollection();
+        services.AddTransient(_ => new FinanceProjectGridViewModel(service.Object, Mock.Of<IDialogService>()));
+
+        var sut = new FinanceWorkbookViewModel(
+            service.Object,
+            new SummaryPageViewModel(summaryVm),
+            dialog.Object,
+            services.BuildServiceProvider());
+
+        return (sut, service);
+    }
+
+    [Fact]
+    public async Task LoadAsync_populates_the_Projects_picker_but_selects_none()
+    {
+        var (sut, _) = CreateSutWithProjectTree(1, "DA1");
+
+        await sut.LoadAsync();
+
+        sut.Projects.Count.ShouldBe(1);
+        sut.Projects[0].Name.ShouldBe("DA1");
+        sut.SelectedProject.ShouldBeNull();
+        sut.ViTriPages.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task Selecting_a_project_builds_one_ViTriPage_per_ViTri()
+    {
+        var (sut, _) = CreateSutWithProjectTree(1, "DA1",
+            new ViTri { Name = "V1", SortOrder = 0 },
+            new ViTri { Name = "V2", SortOrder = 1 });
+        await sut.LoadAsync();
+
+        sut.SelectedProject = sut.Projects.Single();
+
+        sut.ViTriPages.Count.ShouldBe(2);
+        sut.ViTriPages[0].Title.ShouldBe("V1");
+        sut.ViTriPages[1].Title.ShouldBe("V2");
+        sut.SelectedViTriPage.ShouldBe(sut.ViTriPages[0]);
+    }
+
+    [Fact]
+    public async Task Deselecting_the_project_clears_the_ViTri_tabs()
+    {
+        var (sut, _) = CreateSutWithProjectTree(1, "DA1", new ViTri { Name = "V1" });
+        await sut.LoadAsync();
+        sut.SelectedProject = sut.Projects.Single();
+        sut.ViTriPages.ShouldNotBeEmpty();
+
+        sut.SelectedProject = null;
+
+        sut.ViTriPages.ShouldBeEmpty();
+        sut.SelectedViTriPage.ShouldBeNull();
+    }
+
+    [Fact]
+    public async Task AddViTri_appends_a_new_tab_and_marks_the_workbook_dirty()
+    {
+        var (sut, _) = CreateSutWithProjectTree(1, "DA1");
+        await sut.LoadAsync();
+        sut.SelectedProject = sut.Projects.Single();
+        sut.IsDirty.ShouldBeFalse();
+
+        sut.AddViTriCommand.Execute(null);
+
+        sut.ViTriPages.Count.ShouldBe(1);
+        sut.SelectedViTriPage.ShouldBe(sut.ViTriPages[0]);
+        sut.IsDirty.ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task AddViTri_without_a_selected_project_is_a_no_op()
+    {
+        var (sut, _) = CreateSutWithProjectTree(1, "DA1");
+        await sut.LoadAsync();
+
+        sut.AddViTriCommand.Execute(null);
+
+        sut.ViTriPages.ShouldBeEmpty();
+        sut.IsDirty.ShouldBeFalse();
+    }
+
+    [Fact]
+    public async Task DeleteViTri_after_confirm_removes_the_tab_and_marks_the_workbook_dirty()
+    {
+        var (sut, _) = CreateSutWithProjectTree(1, "DA1",
+            new ViTri { Name = "V1" }, new ViTri { Name = "V2" });
+        await sut.LoadAsync();
+        sut.SelectedProject = sut.Projects.Single();
+        var toDelete = sut.ViTriPages[0];
+
+        await sut.DeleteViTriCommand.ExecuteAsync(toDelete);
+
+        sut.ViTriPages.Count.ShouldBe(1);
+        sut.ViTriPages[0].Title.ShouldBe("V2");
+        sut.IsDirty.ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task IsDirty_is_true_when_a_ViTri_ledgers_row_edit_marks_it_dirty()
+    {
+        var (sut, _) = CreateSutWithProjectTree(1, "DA1", new ViTri { Name = "V1" });
+        await sut.LoadAsync();
+        sut.SelectedProject = sut.Projects.Single();
+        sut.IsDirty.ShouldBeFalse();
+
+        sut.ViTriPages[0].Ledger.AddGroupCommand.Execute(null);
+
+        sut.IsDirty.ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task SaveAll_persists_the_selected_projects_ViTri_tree_via_ReplaceTreeAsync()
+    {
+        var (sut, service) = CreateSutWithProjectTree(7, "DA7", new ViTri { Name = "V1" });
+        await sut.LoadAsync();
+        sut.SelectedProject = sut.Projects.Single();
+        sut.ViTriPages[0].Ledger.AddGroupCommand.Execute(null); // a real edit -> dirty
+        sut.IsDirty.ShouldBeTrue();
+
+        Project? saved = null;
+        service.Setup(s => s.ReplaceTreeAsync(It.IsAny<Project>(), It.IsAny<CancellationToken>()))
+               .Callback<Project, CancellationToken>((p, _) => saved = p)
+               .Returns(Task.CompletedTask);
+
+        await sut.SaveAllCommand.ExecuteAsync(null);
+
+        saved.ShouldNotBeNull();
+        saved!.Id.ShouldBe(7);
+        saved.Name.ShouldBe("DA7");
+        saved.ViTris.Count.ShouldBe(1);
+        saved.ViTris[0].Name.ShouldBe("V1");
+        saved.ViTris[0].CostGroups.Count.ShouldBe(1);
+        sut.IsDirty.ShouldBeFalse();
+    }
+
+    [Fact]
+    public async Task SaveAll_is_a_no_op_when_nothing_is_dirty()
+    {
+        var (sut, service) = CreateSutWithProjectTree(1, "DA1", new ViTri { Name = "V1" });
+        await sut.LoadAsync();
+        sut.SelectedProject = sut.Projects.Single();
+
+        await sut.SaveAllCommand.ExecuteAsync(null);
+
+        service.Verify(s => s.ReplaceTreeAsync(It.IsAny<Project>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
 }

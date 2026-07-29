@@ -55,6 +55,12 @@ public class FinanceProjectService : IFinanceProjectService
     public Task<Project?> GetWithLinesAsync(int id, CancellationToken ct = default) =>
         _repo.GetWithLinesAsync(id, ct);
 
+    public Task<Project?> GetTreeAsync(int id, CancellationToken ct = default) =>
+        _repo.GetTreeAsync(id, ct);
+
+    public Task<IReadOnlyList<Project>> ListTreesAsync(CancellationToken ct = default) =>
+        _repo.ListTreesAsync(ct);
+
     public Task UpdateAsync(Project project, CancellationToken ct = default) =>
         _repo.UpdateAsync(project, ct);
 
