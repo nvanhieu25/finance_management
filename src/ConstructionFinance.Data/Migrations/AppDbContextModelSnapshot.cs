@@ -838,6 +838,144 @@ namespace ConstructionFinance.Data.Migrations
                     b.ToTable("finance_dots", (string)null);
                 });
 
+            modelBuilder.Entity("ConstructionFinance.Domain.Finance.GdnttDeclaration", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("CanCuGiayDeNghi")
+                        .HasMaxLength(255)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CanCuHopDong")
+                        .HasMaxLength(255)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CanCuQuyetDinh")
+                        .HasMaxLength(255)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ChuDauTu")
+                        .HasMaxLength(255)
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal>("ChuyenTienBaoHanh")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal>("ChuyenTienTamGiu")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("KinhGui")
+                        .HasMaxLength(255)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("NgayThangNam")
+                        .HasMaxLength(255)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("ProjectId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("So")
+                        .HasMaxLength(255)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("TaiNganHang")
+                        .HasMaxLength(255)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("TenDuAnCongTrinh")
+                        .HasMaxLength(255)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ThuocKeHoach")
+                        .HasMaxLength(255)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProjectId")
+                        .IsUnique();
+
+                    b.ToTable("finance_gdntt_decl", (string)null);
+                });
+
+            modelBuilder.Entity("ConstructionFinance.Domain.Finance.KsChiDeclaration", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("GhiChu")
+                        .HasMaxLength(255)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("LyDoTuChoi")
+                        .HasMaxLength(255)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("MucTieuMuc1")
+                        .HasMaxLength(255)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("MucTieuMuc2")
+                        .HasMaxLength(255)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("MucTieuMuc3")
+                        .HasMaxLength(255)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("MucTieuMuc4")
+                        .HasMaxLength(255)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("NgayNhanGiayDeNghi")
+                        .HasMaxLength(255)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("ProjectId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<decimal>("SoTuChoi")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal>("ThuHoiCacNamTruoc")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal>("ThuHoiNamNay")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal>("ThueGTGT")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProjectId")
+                        .IsUnique();
+
+                    b.ToTable("finance_kschi_decl", (string)null);
+                });
+
             modelBuilder.Entity("ConstructionFinance.Domain.Finance.Package", b =>
                 {
                     b.Property<int>("Id")
@@ -994,6 +1132,97 @@ namespace ConstructionFinance.Data.Migrations
                     b.HasIndex("ProjectId", "SortOrder");
 
                     b.ToTable("finance_project_lines", (string)null);
+                });
+
+            modelBuilder.Entity("ConstructionFinance.Domain.Finance.ThongTriDeclaration", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("DonVi1")
+                        .HasMaxLength(255)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("DonVi2")
+                        .HasMaxLength(255)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Khoan")
+                        .HasMaxLength(255)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("LoaiNganSach")
+                        .HasMaxLength(255)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("MaSo")
+                        .HasMaxLength(255)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Muc")
+                        .HasMaxLength(255)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Nganh")
+                        .HasMaxLength(255)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("NgayGhiSo")
+                        .HasMaxLength(255)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("ProjectId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("SoChungTu1")
+                        .HasMaxLength(255)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("SoChungTu2")
+                        .HasMaxLength(255)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("SoThongTri")
+                        .HasMaxLength(255)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("TaiKhoan1")
+                        .HasMaxLength(255)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("TaiKhoan2")
+                        .HasMaxLength(255)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("TenCTMT")
+                        .HasMaxLength(255)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("TietMuc")
+                        .HasMaxLength(255)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("TieuMuc")
+                        .HasMaxLength(255)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("VeThangNam")
+                        .HasMaxLength(255)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProjectId")
+                        .IsUnique();
+
+                    b.ToTable("finance_thongtri_decl", (string)null);
                 });
 
             modelBuilder.Entity("ConstructionFinance.Domain.Finance.ViTri", b =>
@@ -1171,6 +1400,28 @@ namespace ConstructionFinance.Data.Migrations
                     b.Navigation("Package");
                 });
 
+            modelBuilder.Entity("ConstructionFinance.Domain.Finance.GdnttDeclaration", b =>
+                {
+                    b.HasOne("ConstructionFinance.Domain.Finance.Project", "Project")
+                        .WithOne("Gdntt")
+                        .HasForeignKey("ConstructionFinance.Domain.Finance.GdnttDeclaration", "ProjectId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Project");
+                });
+
+            modelBuilder.Entity("ConstructionFinance.Domain.Finance.KsChiDeclaration", b =>
+                {
+                    b.HasOne("ConstructionFinance.Domain.Finance.Project", "Project")
+                        .WithOne("KsChi")
+                        .HasForeignKey("ConstructionFinance.Domain.Finance.KsChiDeclaration", "ProjectId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Project");
+                });
+
             modelBuilder.Entity("ConstructionFinance.Domain.Finance.Package", b =>
                 {
                     b.HasOne("ConstructionFinance.Domain.Finance.CostGroup", "CostGroup")
@@ -1206,6 +1457,17 @@ namespace ConstructionFinance.Data.Migrations
                     b.HasOne("ConstructionFinance.Domain.Finance.Project", "Project")
                         .WithMany("Lines")
                         .HasForeignKey("ProjectId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Project");
+                });
+
+            modelBuilder.Entity("ConstructionFinance.Domain.Finance.ThongTriDeclaration", b =>
+                {
+                    b.HasOne("ConstructionFinance.Domain.Finance.Project", "Project")
+                        .WithOne("ThongTri")
+                        .HasForeignKey("ConstructionFinance.Domain.Finance.ThongTriDeclaration", "ProjectId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
@@ -1279,7 +1541,13 @@ namespace ConstructionFinance.Data.Migrations
                 {
                     b.Navigation("Decisions");
 
+                    b.Navigation("Gdntt");
+
+                    b.Navigation("KsChi");
+
                     b.Navigation("Lines");
+
+                    b.Navigation("ThongTri");
 
                     b.Navigation("ViTris");
                 });
