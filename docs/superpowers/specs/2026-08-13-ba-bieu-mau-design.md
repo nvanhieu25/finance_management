@@ -37,7 +37,7 @@ nhập tay**.
 | Tệp | Vai trò |
 |---|---|
 | `VietnameseNumberToWords.cs` | `static string ToWords(decimal)` |
-| `FormModels.cs` | `FormDotKey`, `FormDotRow`, ba record `*Form` (dữ liệu đã tính sẵn cho bản in), ba record `*Declaration` (ô nhập tay) |
+| `FormModels.cs` | `FormDotKey`, `FormDotRow`, `FormOrgInfo`, ba record `*Form` (dữ liệu đã tính sẵn cho bản in). Ô nhập tay **không** khai lại ở đây: builder nhận thẳng ba thực thể `*Declaration` ở §5, giống cách builder hiện nhận `ViTri` |
 | `FormRowFlattener.cs` | `IReadOnlyList<ViTri>` → `IReadOnlyList<FormDotRow>` |
 | `ThongTriBuilder.cs`, `KsChiBuilder.cs`, `GdnttBuilder.cs` | `Build(all, selectedKeys, declaration)` → `*Form` |
 | `FormExcelExporter.cs` + `IFormExcelExporter` | `*Form` → tệp `.xlsx` |
