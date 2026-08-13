@@ -5,6 +5,14 @@
     <AssemblyName>ConstructionFinance</AssemblyName>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
+    <!-- Icon của .exe trên Windows (Explorer, taskbar, Start Menu). Cùng một file
+         được installer/inno-setup.iss dùng lại cho shortcut. -->
+    <ApplicationIcon>Assets\app.ico</ApplicationIcon>
+    <Version>1.0.0</Version>
+    <AssemblyVersion>1.0.0.0</AssemblyVersion>
+    <FileVersion>1.0.0.0</FileVersion>
+    <Product>Quản lý Tài chính Công trình</Product>
+    <Company>Sở Xây dựng</Company>
   </PropertyGroup>
 
   <ItemGroup>

@@ -16,6 +16,9 @@ DefaultDirName={autopf}\{#MyAppNameAscii}
 DefaultGroupName={#MyAppName}
 DisableProgramGroupPage=yes
 LicenseFile=assets\license.txt
+; Cùng một icon với ConstructionFinance.exe (nguồn: src/.../Assets/app.ico)
+SetupIconFile=assets\app.ico
+UninstallDisplayIcon={app}\{#MyAppExeName}
 OutputDir=output
 OutputBaseFilename=ConstructionFinance-Setup-{#MyAppVersion}
 Compression=lzma
@@ -29,8 +32,9 @@ ArchitecturesInstallIn64BitMode=x64
 Name: "vietnamese"; MessagesFile: "compiler:Languages\Vietnamese.isl"
 
 [Files]
-; Self-contained publish output (built before running this script)
-Source: "..\src\ConstructionFinance.Desktop\bin\Release\net8.0\win-x64\publish\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+; Self-contained publish output (built before running this script — see build-installer.md
+; step 1, which publishes to dist/win-x64 at the repo root)
+Source: "..\dist\win-x64\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 [Icons]
 Name: "{group}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"
