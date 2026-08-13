@@ -27,6 +27,10 @@ public static class GdnttBuilder
                 "hãy bỏ chọn các đợt của gói khác.");
 
         var package = packages[0];
+        // FormRowFlattener denormalizes a package's header fields (PackageName, ContractorName,
+        // BankAccount, ContractValue, ContractAnnexValue, ...) identically onto every FormDotRow
+        // of that package, and the guard above has already proven `rows` spans a single package —
+        // so reading them off the first row is safe and equivalent to reading any other row.
         var first = rows[0];
 
         // "Kỳ trước" = các đợt của CHÍNH gói này đứng trước đợt được chọn sớm nhất
