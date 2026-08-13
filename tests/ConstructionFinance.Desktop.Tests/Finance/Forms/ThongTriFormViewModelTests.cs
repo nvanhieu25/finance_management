@@ -99,6 +99,22 @@ public class ThongTriFormViewModelTests
     }
 
     [Fact]
+    public void Refresh_loading_stored_values_does_not_announce_a_change()
+    {
+        var (vm, _, _) = Create();
+        var announced = 0;
+        vm.DeclarationChanged += (_, _) => announced++;
+
+        vm.Refresh(new[] { Row(0, 10_000_000m) }, Array.Empty<LedgerRowViewModel>(),
+            new ThongTriDeclaration { SoThongTri = "9/TT", Khoan = "11" },
+            new FormOrgInfo(null, null), "Dự án A");
+
+        vm.SoThongTri.ShouldBe("9/TT");
+        vm.Khoan.ShouldBe("11");
+        announced.ShouldBe(0);
+    }
+
+    [Fact]
     public async Task Export_writes_the_file_the_user_picked()
     {
         var (vm, exporter, dialog) = Create();
