@@ -104,6 +104,28 @@ public class FinanceWorkbookFormTabsTests
     }
 
     [Fact]
+    public async Task Editing_a_form_field_shows_the_dirty_bullet_on_its_own_tab_and_clears_after_save()
+    {
+        var (vm, service) = CreateSut();
+        service.Setup(s => s.ReplaceTreeAsync(It.IsAny<Project>(), It.IsAny<CancellationToken>()))
+               .Returns(Task.CompletedTask);
+        await vm.LoadAsync();
+        var thongTriPage = vm.ViTriPages.OfType<ThongTriFormPageViewModel>().Single();
+        thongTriPage.IsDirty.ShouldBeFalse();
+        thongTriPage.Header.ShouldBe("Thông tri");
+
+        thongTriPage.Inner.SoThongTri = "12/TT";
+
+        thongTriPage.IsDirty.ShouldBeTrue();
+        thongTriPage.Header.ShouldBe("• Thông tri");
+
+        await vm.SaveAllCommand.ExecuteAsync(null);
+
+        thongTriPage.IsDirty.ShouldBeFalse();
+        thongTriPage.Header.ShouldBe("Thông tri");
+    }
+
+    [Fact]
     public async Task SaveAll_persists_the_three_declarations_with_the_tree()
     {
         var (vm, service) = CreateSut();

@@ -1,13 +1,15 @@
 namespace ConstructionFinance.Desktop.ViewModels.Finance.Forms;
 
-/// Ba tab biểu mẫu đứng cuối dải tab Vị trí. Chúng chỉ xem — không có IsDirty riêng;
-/// phần bẩn do ô nhập tay được workbook theo dõi qua sự kiện DeclarationChanged.
+/// Ba tab biểu mẫu đứng cuối dải tab Vị trí. Mỗi tab tự đánh dấu bẩn (bullet •) khi
+/// ô nhập tay của chính nó đổi qua sự kiện DeclarationChanged; workbook lưu chung
+/// cũng theo dõi cùng sự kiện đó để bật IsDirty tổng (xem OnFormDeclarationChanged).
 public sealed class ThongTriFormPageViewModel : WorkbookPageViewModel
 {
     public ThongTriFormPageViewModel(ThongTriFormViewModel inner)
     {
         Inner = inner;
         Title = "Thông tri";
+        Inner.DeclarationChanged += (_, _) => IsDirty = true;
     }
 
     public ThongTriFormViewModel Inner { get; }
@@ -20,6 +22,7 @@ public sealed class KsChiFormPageViewModel : WorkbookPageViewModel
     {
         Inner = inner;
         Title = "KS chi";
+        Inner.DeclarationChanged += (_, _) => IsDirty = true;
     }
 
     public KsChiFormViewModel Inner { get; }
@@ -32,6 +35,7 @@ public sealed class GdnttFormPageViewModel : WorkbookPageViewModel
     {
         Inner = inner;
         Title = "GĐNTT";
+        Inner.DeclarationChanged += (_, _) => IsDirty = true;
     }
 
     public GdnttFormViewModel Inner { get; }

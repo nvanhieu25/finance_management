@@ -593,6 +593,9 @@ public partial class FinanceWorkbookViewModel : ViewModelBase
             await _service.ReplaceTreeAsync(toSave);
             foreach (var page in ViTriPages.OfType<ViTriPageViewModel>())
                 page.Ledger.IsDirty = false;
+            if (_thongTriPage is not null) _thongTriPage.IsDirty = false;
+            if (_ksChiPage is not null) _ksChiPage.IsDirty = false;
+            if (_gdnttPage is not null) _gdnttPage.IsDirty = false;
             _viTriStructureDirty = false;
             _formDeclarationDirty = false;
             return true;
