@@ -1,8 +1,10 @@
 using ConstructionFinance.Application.Calc;
+using ConstructionFinance.Application.DTOs;
 using ConstructionFinance.Application.Import;
 using ConstructionFinance.Application.Services.Interfaces;
 using ConstructionFinance.Desktop.Services;
 using ConstructionFinance.Desktop.ViewModels.Finance;
+using ConstructionFinance.Desktop.ViewModels.Finance.Forms;
 using ConstructionFinance.Domain.Finance;
 using Microsoft.Extensions.DependencyInjection;
 using Moq;
@@ -27,9 +29,14 @@ public class FinanceWorkbookTongHopTabsTests
             service.Object, Mock.Of<IFinanceImportService>(),
             Mock.Of<IFinanceExportService>(), Mock.Of<IDialogService>());
 
+        var companyInfo = new Mock<ICompanyInfoService>();
+        companyInfo.Setup(c => c.GetAsync(It.IsAny<CancellationToken>()))
+                   .ReturnsAsync(new CompanyInfoDto(null, null, null, null, null, null, null, null));
+
         return new FinanceWorkbookViewModel(
             service.Object, new SummaryPageViewModel(summaryVm),
-            Mock.Of<IDialogService>(), new ServiceCollection().BuildServiceProvider());
+            Mock.Of<IDialogService>(), new ServiceCollection().BuildServiceProvider(),
+            Mock.Of<IFormExcelExporter>(), companyInfo.Object);
     }
 
     private static ViTri ViTriWithAdvance(string name, decimal advance) => new()
@@ -54,7 +61,11 @@ public class FinanceWorkbookTongHopTabsTests
         await sut.LoadAsync();
 
         sut.ViTriPages[0].ShouldBeOfType<ProjectTongHopPageViewModel>();
-        sut.ViTriPages[^1].ShouldBeOfType<YearSettlementPageViewModel>();
+        // Quyết toán năm now sits right before the three fixed form tabs (Task 13).
+        sut.ViTriPages[^4].ShouldBeOfType<YearSettlementPageViewModel>();
+        sut.ViTriPages[^3].ShouldBeOfType<ThongTriFormPageViewModel>();
+        sut.ViTriPages[^2].ShouldBeOfType<KsChiFormPageViewModel>();
+        sut.ViTriPages[^1].ShouldBeOfType<GdnttFormPageViewModel>();
     }
 
     [Fact]

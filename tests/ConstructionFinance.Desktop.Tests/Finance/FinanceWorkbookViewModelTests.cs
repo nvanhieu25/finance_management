@@ -1,7 +1,9 @@
 using ConstructionFinance.Application.Calc;
+using ConstructionFinance.Application.DTOs;
 using ConstructionFinance.Application.Services.Interfaces;
 using ConstructionFinance.Desktop.Services;
 using ConstructionFinance.Desktop.ViewModels.Finance;
+using ConstructionFinance.Desktop.ViewModels.Finance.Forms;
 using ConstructionFinance.Domain.Finance;
 using Microsoft.Extensions.DependencyInjection;
 using Moq;
@@ -12,6 +14,16 @@ namespace ConstructionFinance.Desktop.Tests.Finance;
 
 public class FinanceWorkbookViewModelTests
 {
+    /// Shared stub for the two Task 13 constructor params these pre-existing tests
+    /// don't otherwise care about.
+    private static ICompanyInfoService CreateCompanyInfo()
+    {
+        var mock = new Mock<ICompanyInfoService>();
+        mock.Setup(c => c.GetAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new CompanyInfoDto(null, null, null, null, null, null, null, null));
+        return mock.Object;
+    }
+
     private static FinanceWorkbookViewModel CreateSut(params FinanceProjectSummary[] summaries)
     {
         var service = new Mock<IFinanceProjectService>();
@@ -30,7 +42,9 @@ public class FinanceWorkbookViewModelTests
             service.Object,
             new SummaryPageViewModel(summaryVm),
             Mock.Of<IDialogService>(),
-            new ServiceCollection().BuildServiceProvider());
+            new ServiceCollection().BuildServiceProvider(),
+            Mock.Of<IFormExcelExporter>(),
+            CreateCompanyInfo());
     }
 
     [Fact]
@@ -97,7 +111,9 @@ public class FinanceWorkbookViewModelTests
             service.Object,
             new SummaryPageViewModel(summaryVm),
             Mock.Of<IDialogService>(),
-            services.BuildServiceProvider());
+            services.BuildServiceProvider(),
+            Mock.Of<IFormExcelExporter>(),
+            CreateCompanyInfo());
     }
 
     [Fact]
@@ -183,7 +199,9 @@ public class FinanceWorkbookViewModelTests
             service.Object,
             new SummaryPageViewModel(summaryVm),
             Mock.Of<IDialogService>(),
-            services.BuildServiceProvider());
+            services.BuildServiceProvider(),
+            Mock.Of<IFormExcelExporter>(),
+            CreateCompanyInfo());
 
         await sut.LoadAsync();
 
@@ -253,7 +271,9 @@ public class FinanceWorkbookViewModelTests
             service.Object,
             new SummaryPageViewModel(summaryVm),
             dialog.Object,
-            services.BuildServiceProvider());
+            services.BuildServiceProvider(),
+            Mock.Of<IFormExcelExporter>(),
+            CreateCompanyInfo());
 
         return (sut, service);
     }
@@ -362,7 +382,9 @@ public class FinanceWorkbookViewModelTests
             service.Object,
             new SummaryPageViewModel(summaryVm),
             dialog.Object,
-            services.BuildServiceProvider());
+            services.BuildServiceProvider(),
+            Mock.Of<IFormExcelExporter>(),
+            CreateCompanyInfo());
 
         return (sut, service);
     }
@@ -401,7 +423,9 @@ public class FinanceWorkbookViewModelTests
             service.Object,
             new SummaryPageViewModel(summaryVm),
             Mock.Of<IDialogService>(),
-            new ServiceCollection().BuildServiceProvider());
+            new ServiceCollection().BuildServiceProvider(),
+            Mock.Of<IFormExcelExporter>(),
+            CreateCompanyInfo());
 
         await sut.LoadAsync();
 
@@ -420,15 +444,20 @@ public class FinanceWorkbookViewModelTests
 
         sut.SelectedProject = sut.Projects.Single();
 
-        // [Tổng hợp][V1][V2][Quyết toán năm]
-        sut.ViTriPages.Count.ShouldBe(4);
+        // [Tổng hợp][V1][V2][Quyết toán năm][Thông tri][KS chi][GĐNTT] — the strip now
+        // ends with three fixed form tabs after Quyết toán năm (Task 13).
+        sut.ViTriPages.Count.ShouldBe(7);
         sut.ViTriPages[0].ShouldBeOfType<ProjectTongHopPageViewModel>();
         sut.ViTriPages[0].Title.ShouldBe("Tổng hợp");
         var ledgers = sut.ViTriPages.OfType<ViTriPageViewModel>().ToList();
+        ledgers.Count.ShouldBe(2);
         ledgers[0].Title.ShouldBe("V1");
         ledgers[1].Title.ShouldBe("V2");
-        sut.ViTriPages[^1].ShouldBeOfType<YearSettlementPageViewModel>();
-        sut.ViTriPages[^1].Title.ShouldBe("Quyết toán năm");
+        sut.ViTriPages[^4].ShouldBeOfType<YearSettlementPageViewModel>();
+        sut.ViTriPages[^4].Title.ShouldBe("Quyết toán năm");
+        sut.ViTriPages[^3].ShouldBeOfType<ThongTriFormPageViewModel>();
+        sut.ViTriPages[^2].ShouldBeOfType<KsChiFormPageViewModel>();
+        sut.ViTriPages[^1].ShouldBeOfType<GdnttFormPageViewModel>();
         sut.SelectedViTriPage.ShouldBe(sut.ViTriPages[0]);   // lands on Tổng hợp
     }
 
@@ -457,8 +486,10 @@ public class FinanceWorkbookViewModelTests
         sut.AddViTriCommand.Execute(null);
 
         sut.ViTriPages.OfType<ViTriPageViewModel>().Count().ShouldBe(1);
-        // new Vị trí sits before the trailing Quyết toán năm tab
-        sut.ViTriPages[^1].ShouldBeOfType<YearSettlementPageViewModel>();
+        // new Vị trí sits before the trailing fixed tabs (Quyết toán năm + the three
+        // form tabs from Task 13) — it is the last ViTriPageViewModel in the strip,
+        // not necessarily the last page overall.
+        sut.ViTriPages.OfType<ViTriPageViewModel>().Last().ShouldBe(sut.SelectedViTriPage);
         sut.SelectedViTriPage.ShouldBeOfType<ViTriPageViewModel>();
         sut.IsDirty.ShouldBeTrue();
     }
