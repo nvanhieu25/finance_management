@@ -212,6 +212,56 @@ public class VitriLedgerViewTests
         });
     }
 
+    // Group rows carry Background="{DynamicResource AccentSoftBrush}" already (their own
+    // styling, unrelated to selection), so they were ALREADY hit-testable through an empty
+    // gridCellBorder cell before this fix — the test above alone would keep passing even if
+    // the Background="Transparent" added to the Package/Entry row Grids were reverted. These
+    // two pin exactly that: Package/Entry rows had NO Background of their own, so without the
+    // fix a click there falls through the row entirely (verified failing — see the report).
+
+    [Fact]
+    public void Clicking_a_non_focusable_computed_cell_in_a_Package_row_still_selects_it()
+    {
+        HeadlessTestSession.Run(() =>
+        {
+            var (window, view, vm) = CreateLedger(BuildTwoGroupsTwoPackagesOneEntryFixture());
+            var packageRow = vm.Rows.Single(r => r.Kind == RowKind.Package && r.Name == "Gói A");
+
+            // "Số dư TU" — a read-only computed TextBlock wrapped in a Border, same shape as
+            // the Group case above, but on a Package row (whose own Grid had NO Background
+            // at all before this fix, unlike Group's).
+            var cell = FindCellControl(view, vm.Rows.IndexOf(packageRow), LedgerColumnWidths.SoDuTuIndex);
+            cell.Focusable.ShouldBeFalse();
+
+            Click(window, cell);
+
+            vm.SelectedRow.ShouldBeSameAs(packageRow);
+            window.Close();
+        });
+    }
+
+    [Fact]
+    public void Clicking_a_non_focusable_placeholder_cell_in_an_Entry_row_still_selects_it()
+    {
+        HeadlessTestSession.Run(() =>
+        {
+            var (window, view, vm) = CreateLedger(BuildTwoGroupsTwoPackagesOneEntryFixture());
+            var entryRow = vm.Rows.Single(r => r.Kind == RowKind.Entry);
+
+            // Entry rows don't even have a TextBlock at this column (no computed subtotal of
+            // their own) — this is a completely bare gridCellBorder placeholder, the
+            // strictest version of "non-focusable part of a row".
+            var cell = FindCellControl(view, vm.Rows.IndexOf(entryRow), LedgerColumnWidths.SoDuTuIndex);
+            cell.Focusable.ShouldBeFalse();
+            cell.GetVisualDescendants().OfType<TextBlock>().ShouldBeEmpty();
+
+            Click(window, cell);
+
+            vm.SelectedRow.ShouldBeSameAs(entryRow);
+            window.Close();
+        });
+    }
+
     // ===== FIX 2: a money cell re-formats with "." grouping once it loses focus =====
 
     [Theory]
