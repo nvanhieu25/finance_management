@@ -151,6 +151,35 @@ public class FormDotPickerViewModelTests
     }
 
     [Fact]
+    public void Token_alignment_survives_a_fund_filter_that_skips_a_row()
+    {
+        var vm = new FormDotPickerViewModel(Fund.NSNN);
+        var skipped = new LedgerRowViewModel(RowKind.Entry);
+        var first = new LedgerRowViewModel(RowKind.Entry);
+        var second = new LedgerRowViewModel(RowKind.Entry);
+        var rows = new[]
+        {
+            Row(0, Fund.NgoaiHoi, new DateOnly(2026, 1, 1)),   // bị lọc bỏ - không thuộc NSNN
+            Row(1, Fund.NSNN, new DateOnly(2026, 3, 1)),
+            Row(2, Fund.NSNN, new DateOnly(2026, 4, 1))
+        };
+        var sources = new[] { skipped, first, second };
+
+        vm.Refresh(rows, sources);
+
+        // Dòng hiển thị đầu tiên là rows[1]; token của nó phải là sources[1] (chỉ số
+        // CHƯA lọc), không phải sources[0] (chỉ số đã lọc - lỗi lệch một nếu có).
+        vm.Items[0].Token.ShouldBeSameAs(first);
+
+        vm.Items[0].IsSelected = true;
+        vm.Refresh(rows, sources);
+
+        vm.SelectedCount.ShouldBe(1);
+        vm.SelectedKeys.ShouldContain(new FormDotKey(0, 0, 0, 1));
+        vm.Items[0].IsSelected.ShouldBeTrue();
+    }
+
+    [Fact]
     public void Selection_of_a_deleted_dot_is_dropped()
     {
         var vm = new FormDotPickerViewModel(Fund.NSNN);
