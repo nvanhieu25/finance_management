@@ -20,10 +20,13 @@ public static class ThongTriBuilder
         var total = rows.Sum(r => r.Disbursed);
 
         var lines = new List<ThongTriLine> { new(0, projectName, total) };
-        // GroupBy giữ nguyên thứ tự xuất hiện, mà `all` đã theo thứ tự sổ.
-        foreach (var group in rows.GroupBy(r => r.ViTriName))
+        // GroupBy node index (ViTriIndex) ensures two Vị trí with the same name print separately.
+        // ViTri.Name has no uniqueness constraint, so grouping by name would merge distinct nodes.
+        // GroupBy preserves ledger order since `all` is already in ledger sequence.
+        foreach (var group in rows.GroupBy(r => r.Key.ViTriIndex))
         {
-            lines.Add(new ThongTriLine(1, group.Key, group.Sum(r => r.Disbursed)));
+            var viTriName = group.First().ViTriName;
+            lines.Add(new ThongTriLine(1, viTriName, group.Sum(r => r.Disbursed)));
             foreach (var row in group)
                 lines.Add(new ThongTriLine(2,
                     string.IsNullOrWhiteSpace(row.Content) ? NoContent : row.Content!,

@@ -122,4 +122,30 @@ public class ThongTriBuilderTests
 
         form.Lines[2].Content.ShouldBe("(chưa có nội dung)");
     }
+
+    [Fact]
+    public void Build_prints_distinct_vitri_separately_even_if_names_collide()
+    {
+        // Three Vị trí: first and third share the same name but are distinct nodes.
+        var rows = new[]
+        {
+            Row(new FormDotKey(0, 0, 0, 0), "Vị trí 1", Fund.NSNN, 10_000_000m, "Đợt 1 của Vị trí 1"),
+            Row(new FormDotKey(1, 0, 0, 0), "Vị trí 2", Fund.NSNN, 20_000_000m, "Đợt 1 của Vị trí 2"),
+            Row(new FormDotKey(2, 0, 0, 0), "Vị trí 1", Fund.NSNN, 15_000_000m, "Đợt 1 của Vị trí 3")
+        };
+
+        var form = ThongTriBuilder.Build(rows, All(rows), null, Org, "Dự án A");
+
+        // Expected: dự án, vị trí 1, đợt, vị trí 2, đợt, vị trí 1 (again), đợt
+        form.Lines.Select(l => (l.Level, l.Content, l.Amount)).ShouldBe(new[]
+        {
+            (0, "Dự án A", 45_000_000m),
+            (1, "Vị trí 1", 10_000_000m),
+            (2, "Đợt 1 của Vị trí 1", 10_000_000m),
+            (1, "Vị trí 2", 20_000_000m),
+            (2, "Đợt 1 của Vị trí 2", 20_000_000m),
+            (1, "Vị trí 1", 15_000_000m),
+            (2, "Đợt 1 của Vị trí 3", 15_000_000m)
+        });
+    }
 }
