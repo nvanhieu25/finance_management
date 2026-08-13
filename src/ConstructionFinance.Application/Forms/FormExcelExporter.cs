@@ -14,13 +14,6 @@ public partial class FormExcelExporter : IFormExcelExporter
     public Task ExportThongTriAsync(ThongTriForm form, string targetPath, CancellationToken ct = default) =>
         Task.Run(() => WriteThongTri(form, targetPath), ct);
 
-    // TODO(Task 8): cài sheet KS chi và GĐNTT trong một file partial khác của lớp này.
-    public Task ExportKsChiAsync(KsChiForm form, string targetPath, CancellationToken ct = default) =>
-        throw new NotImplementedException("Sheet KS chi sẽ được Task 8 cài đặt.");
-
-    public Task ExportGdnttAsync(GdnttForm form, string targetPath, CancellationToken ct = default) =>
-        throw new NotImplementedException("Sheet GĐNTT sẽ được Task 8 cài đặt.");
-
     private static void WriteThongTri(ThongTriForm form, string targetPath)
     {
         using var wb = new XLWorkbook();
