@@ -50,4 +50,20 @@ public class CompanyInfoServiceTests
         output.LogoPath.ShouldBe("C:/logos/sxd.png");
         output.DefaultSignerTitle.ShouldBe("Giám đốc Sở");
     }
+
+    [Fact]
+    public async Task SaveAsync_then_GetAsync_round_trips_the_two_form_org_names()
+    {
+        using var h = new ServiceTestHarness();
+        var svc = CreateService(h.Context);
+
+        await svc.SaveAsync(new CompanyInfoDto(
+            "Sở X", null, null, null, null, null, null, null,
+            DonViCapTren: "Sở Tài chính", DonViCoSo: "Ban QLDA số 1"));
+
+        var stored = await svc.GetAsync();
+
+        stored.DonViCapTren.ShouldBe("Sở Tài chính");
+        stored.DonViCoSo.ShouldBe("Ban QLDA số 1");
+    }
 }

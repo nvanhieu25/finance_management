@@ -36,6 +36,15 @@
                     <TextBlock Grid.Column="0" Classes="formLabel" Text="Chức vụ người ký"/>
                     <TextBox Grid.Column="1" Text="{Binding DefaultSignerTitle}"/>
                 </Grid>
+                <TextBlock Classes="sectionTitle" Text="Tên đơn vị in trên biểu mẫu"/>
+                <Grid ColumnDefinitions="220,*">
+                    <TextBlock Grid.Column="0" Classes="formLabel" Text="Đơn vị cấp trên"/>
+                    <TextBox Grid.Column="1" Text="{Binding DonViCapTren}"/>
+                </Grid>
+                <Grid ColumnDefinitions="220,*">
+                    <TextBlock Grid.Column="0" Classes="formLabel" Text="Đơn vị cơ sở"/>
+                    <TextBox Grid.Column="1" Text="{Binding DonViCoSo}"/>
+                </Grid>
                 <Grid ColumnDefinitions="220,*">
                     <TextBlock Grid.Column="0" Classes="formLabel" Text="Nơi nhận báo cáo mặc định" VerticalAlignment="Top"/>
                     <TextBox Grid.Column="1" Text="{Binding DefaultRecipients}" AcceptsReturn="True" Height="100" TextWrapping="Wrap"/>
