@@ -86,6 +86,14 @@ public partial class FormExcelExporter
         SetMoney(ws.Cell(row, 5), amounts.NgoaiHoi);
     }
 
+    /// Writes a money value into the first column of a merged span — the GĐNTT summary
+    /// table merges 4:5 / 6:7 / 8:9 on both the package row and the CỘNG row below it.
+    private static void SetMoneyMerged(IXLWorksheet ws, int row, int fromCol, int toCol, decimal value)
+    {
+        SetMoney(ws.Cell(row, fromCol), value);
+        ws.Range(row, fromCol, row, toCol).Merge();
+    }
+
     private static void WriteGdntt(GdnttForm form, string targetPath)
     {
         using var wb = new XLWorkbook();
@@ -138,18 +146,17 @@ public partial class FormExcelExporter
 
         ws.Cell(18, 1).Value = form.PackageName;
         ws.Range(18, 1, 18, 3).Merge();
-        SetMoney(ws.Cell(18, 4), form.ContractTotal);
-        ws.Range(18, 4, 18, 5).Merge();
-        SetMoney(ws.Cell(18, 6), form.CumulativeBefore);
-        ws.Range(18, 6, 18, 7).Merge();
-        SetMoney(ws.Cell(18, 8), form.RequestedThisPeriod);
-        ws.Range(18, 8, 18, 9).Merge();
+        SetMoneyMerged(ws, 18, 4, 5, form.ContractTotal);
+        SetMoneyMerged(ws, 18, 6, 7, form.CumulativeBefore);
+        SetMoneyMerged(ws, 18, 8, 9, form.RequestedThisPeriod);
 
         ws.Cell(19, 1).Value = "CỘNG";
         ws.Range(19, 1, 19, 3).Merge();
-        SetMoney(ws.Cell(19, 4), form.ContractTotal);
-        SetMoney(ws.Cell(19, 6), form.CumulativeBefore);
-        SetMoney(ws.Cell(19, 8), form.RequestedThisPeriod);
+        // Same 4:5 / 6:7 / 8:9 merge as row 18 — inside the same border block, the CỘNG
+        // row's columns must line up with the package row above it.
+        SetMoneyMerged(ws, 19, 4, 5, form.ContractTotal);
+        SetMoneyMerged(ws, 19, 6, 7, form.CumulativeBefore);
+        SetMoneyMerged(ws, 19, 8, 9, form.RequestedThisPeriod);
         ws.Row(19).Style.Font.Bold = true;
 
         ws.Range(17, 1, 19, 9).Style.Border.OutsideBorder = XLBorderStyleValues.Thin;

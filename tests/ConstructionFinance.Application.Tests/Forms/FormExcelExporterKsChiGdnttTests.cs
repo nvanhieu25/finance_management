@@ -157,6 +157,31 @@ public class FormExcelExporterKsChiGdnttTests
     }
 
     [Fact]
+    public async Task ExportGdnttAsync_merges_the_cong_row_the_same_way_as_the_package_row_above()
+    {
+        var path = TempPath("gd");
+        try
+        {
+            await new FormExcelExporter().ExportGdnttAsync(SampleGdntt(), path);
+
+            using var wb = new XLWorkbook(path);
+            var ws = wb.Worksheet("GĐNTT");
+
+            // Row 19 (CỘNG) must carry its values AND merge 4:5 / 6:7 / 8:9 exactly like
+            // row 18 (the package row) above it — otherwise the columns don't line up
+            // inside the shared border block.
+            ws.Cell(19, 4).GetValue<decimal>().ShouldBe(52_000_000_000m);
+            ws.Cell(19, 6).GetValue<decimal>().ShouldBe(210_000_000m);
+            ws.Cell(19, 8).GetValue<decimal>().ShouldBe(30_000_000m);
+
+            ws.Cell(19, 4).MergedRange()!.LastColumn().ColumnNumber().ShouldBe(5);
+            ws.Cell(19, 6).MergedRange()!.LastColumn().ColumnNumber().ShouldBe(7);
+            ws.Cell(19, 8).MergedRange()!.LastColumn().ColumnNumber().ShouldBe(9);
+        }
+        finally { File.Delete(path); }
+    }
+
+    [Fact]
     public async Task ExportGdnttAsync_prints_landscape_a4()
     {
         var path = TempPath("gd");

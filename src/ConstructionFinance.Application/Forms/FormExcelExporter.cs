@@ -23,8 +23,8 @@ public partial class FormExcelExporter : IFormExcelExporter
         ws.Cell(1, 1).Value = form.DonViCapTren ?? "";
         ws.Cell(1, 7).Value = "Mẫu số CQ06-HD";
         ws.Cell(2, 1).Value = form.DonViCoSo ?? "";
-        ws.Cell(3, 1).Value = $"Số      {form.SoThongTri ?? "............."}";
-        ws.Cell(3, 7).Value = $"Ghi sổ ngày {form.NgayGhiSo ?? "     tháng     năm"}";
+        ws.Cell(3, 1).Value = $"Số      {Blank(form.SoThongTri)}";
+        ws.Cell(3, 7).Value = $"Ghi sổ ngày {Blank(form.NgayGhiSo)}";
 
         ws.Cell(4, 1).Value = "THÔNG TRI";
         ws.Cell(5, 1).Value = "Thu hồi tạm ứng";
@@ -38,10 +38,10 @@ public partial class FormExcelExporter : IFormExcelExporter
 
         ws.Cell(8, 1).Value = "Đơn vị:";
         ws.Cell(8, 7).Value = $" TK{Blank(form.TaiKhoan1)}  Đơn vị{Blank(form.DonVi1)}  Số CT{Blank(form.SoChungTu1)}";
-        ws.Cell(9, 1).Value = $"Về {form.VeThangNam ?? "tháng      năm"}";
+        ws.Cell(9, 1).Value = $"Về {Blank(form.VeThangNam)}";
         ws.Cell(9, 7).Value = $" TK{Blank(form.TaiKhoan2)}  Đơn vị{Blank(form.DonVi2)}  Số CT{Blank(form.SoChungTu2)}";
         ws.Cell(10, 1).Value =
-            $"Tên CTMT, DA: {form.TenCTMT ?? "................."}    Mã số: {form.MaSo ?? "............."}";
+            $"Tên CTMT, DA: {Blank(form.TenCTMT)}    Mã số: {Blank(form.MaSo)}";
         ws.Cell(11, 7).Value = "Đơn vị tính: Đồng";
 
         // Đầu bảng: hai dòng 12–13 gộp dọc, dòng 14 là dòng chữ cái A..G như Mẫu.
@@ -84,7 +84,9 @@ public partial class FormExcelExporter : IFormExcelExporter
             ws.Cell(row, 7).Value = line.Content;
             ws.Cell(row, 7).Style.Alignment.Indent = line.Level;
             SetMoney(ws.Cell(row, 8), line.Amount);
-            if (line.Level == 0) ws.Row(row).Style.Font.Bold = true;
+            // Bold only the Nội dung/Số tiền cells, not the whole row — row 15 also
+            // carries the Mục lục ngân sách values in columns 1–6, which must stay plain.
+            if (line.Level == 0) ws.Range(row, 7, row, 8).Style.Font.Bold = true;
             row++;
         }
 
