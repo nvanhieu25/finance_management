@@ -16,6 +16,11 @@
     <PackageReference Include="Shouldly" />
     <PackageReference Include="Moq" />
     <PackageReference Include="coverlet.collector" />
+    <!-- Test-only: drives the real VitriLedgerView + VitriLedgerViewModel through Avalonia's
+         headless platform (no Avalonia.Headless.XUnit — session is started/dispatched by hand,
+         see Finance/HeadlessTestSupport.cs) so the View<->ViewModel wiring itself is covered,
+         not just the view-model in isolation. -->
+    <PackageReference Include="Avalonia.Headless" />
   </ItemGroup>
 
   <ItemGroup>
