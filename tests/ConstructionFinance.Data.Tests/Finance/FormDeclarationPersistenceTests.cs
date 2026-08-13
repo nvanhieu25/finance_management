@@ -24,6 +24,10 @@ public class FormDeclarationPersistenceTests
             Gdntt = new GdnttDeclaration { TaiNganHang = "Vietcombank Hải Phòng", ChuyenTienBaoHanh = 1_000m }
         });
 
+        // GetTreeAsync is now AsNoTracking; without Clear() the identity map would hand
+        // back the very same tracked instances ReplaceTreeAsync just wrote through,
+        // which would satisfy these asserts even if the DB round-trip were broken.
+        ctx.ChangeTracker.Clear();
         var tree = await repo.GetTreeAsync(id);
 
         tree!.ThongTri!.SoThongTri.ShouldBe("12/TT");
@@ -53,6 +57,10 @@ public class FormDeclarationPersistenceTests
             ThongTri = new ThongTriDeclaration { SoThongTri = "mới" }
         });
 
+        // GetTreeAsync is now AsNoTracking; without Clear() the identity map would hand
+        // back the very same tracked instances ReplaceTreeAsync just wrote through,
+        // which would satisfy these asserts even if the DB round-trip were broken.
+        ctx.ChangeTracker.Clear();
         var tree = await repo.GetTreeAsync(id);
         tree!.ThongTri!.SoThongTri.ShouldBe("mới");
         ctx.ThongTriDeclarations.Count(d => d.ProjectId == id).ShouldBe(1);
@@ -72,6 +80,10 @@ public class FormDeclarationPersistenceTests
         });
         await repo.ReplaceTreeAsync(new Project { Id = id, Name = "DA1" });   // không kèm bản khai
 
+        // GetTreeAsync is now AsNoTracking; without Clear() the identity map would hand
+        // back the very same tracked instances ReplaceTreeAsync just wrote through,
+        // which would satisfy these asserts even if the DB round-trip were broken.
+        ctx.ChangeTracker.Clear();
         var tree = await repo.GetTreeAsync(id);
         tree!.ThongTri!.SoThongTri.ShouldBe("12/TT");
     }

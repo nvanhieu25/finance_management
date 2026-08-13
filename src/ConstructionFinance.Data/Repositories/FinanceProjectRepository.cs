@@ -67,8 +67,15 @@ public class FinanceProjectRepository : IFinanceProjectRepository
             .OrderBy(p => p.Name)
             .ToListAsync(ct);
 
+    // AsNoTracking: this tree is handed straight to the desktop view models, whose form
+    // pages mutate the declaration entities via property setters. Tracked entities would
+    // let an unrelated SaveChangesAsync elsewhere in the app flush those edits before the
+    // user ever asks to save, and would leave a whole tree parked in the change tracker
+    // for the app's lifetime every time a project is opened. ReplaceTreeAsync re-queries
+    // its own "existing" tracked copy, so nothing here depends on the identity map.
     public async Task<Project?> GetTreeAsync(int id, CancellationToken ct = default) =>
         await _context.FinanceProjects
+            .AsNoTracking()
             .Include(p => p.ViTris).ThenInclude(v => v.CostGroups)
                 .ThenInclude(g => g.Packages).ThenInclude(pk => pk.Dots)
             .Include(p => p.ThongTri)
@@ -76,8 +83,10 @@ public class FinanceProjectRepository : IFinanceProjectRepository
             .Include(p => p.Gdntt)
             .FirstOrDefaultAsync(p => p.Id == id, ct);
 
+    // AsNoTracking: feeds only the all-projects Tổng hợp nav screen, a read/aggregate path.
     public async Task<IReadOnlyList<Project>> ListTreesAsync(CancellationToken ct = default) =>
         await _context.FinanceProjects
+            .AsNoTracking()
             .Include(p => p.ViTris).ThenInclude(v => v.CostGroups)
                 .ThenInclude(g => g.Packages).ThenInclude(pk => pk.Dots)
             .OrderBy(p => p.Name)
