@@ -149,6 +149,27 @@ cảnh báo trong tab và **chặn xuất Excel** cho tới khi chọn lại.
 > (`'Vị trí 1'!I7`) trong khi "Số đề nghị kỳ này" chỉ là một đợt — sai khi Vị trí có nhiều gói
 > hoặc nhiều nhà thầu. Ở đây lũy kế tính **theo gói thầu**.
 
+### 4.4 Xác nhận tại gate (2026-08-14)
+
+Ba biểu mẫu đã được dựng từ đúng bộ số của sheet `Vị trí 1` trong `Mẫu.xlsx`, xuất ra
+`.xlsx` và đối chiếu từng ô (báo cáo: `.superpowers/sdd/2026-08-13-phase7d-ba-bieu-mau/gate-comparison.md`).
+KS chi khớp 15/15; Thông tri khớp 8/9 (ô còn lại là nhãn tĩnh "Dự án….." trong Mẫu, không
+nối vào ô nào); GĐNTT lệch 6/12 và **mọi chỗ lệch đều giải thích được** — không có lỗi nào
+thuộc về code.
+
+Hai chỗ lệch không phải do ta mà do **chính Mẫu**: ô `D28` ("Tài khoản") là chuỗi văn bản
+`="Vị trí 1"!D9` gõ nhầm thành text nên không bao giờ được tính; và `H18` lấy số từ đợt
+**NSNN** ở dòng 11 trong khi nhãn `A18` của chính nó trỏ sang đợt dòng 12.
+
+Hai câu để ngỏ khi thiết kế, người dùng đã chốt tại gate — **giữ nguyên hành vi đang có**:
+
+- **GĐNTT vẫn lọc `Fund = NgoaiHoi`.** Tiêu đề form ghi rõ "Thuộc nguồn vốn: Quỹ dự trữ
+  ngoại hối", nên việc Mẫu kéo một đợt NSNN vào đó là lỗi của Mẫu, không phải căn cứ để bỏ lọc.
+- **"Số dư tạm ứng của hạng mục" tính đến hết kỳ trước**, không gồm chính đợt đang đề nghị.
+  Với bộ số của Mẫu: 5.000.000 (đến hết kỳ trước) so với 15.000.000 (cả gói, gồm đợt kỳ này —
+  bằng cột M của sổ). Hai cách chỉ lệch nhau đúng phần `Tạm ứng − Thu hồi` của đợt được chọn.
+  Chọn cách thứ nhất vì kho bạc đọc ô này để đối chiếu thu hồi, tức là số dư *mang sang*.
+
 ## 5. Lưu các ô nhập tay
 
 Ba thực thể 1–1 với `Project` trong `Domain.Finance`, mỗi thực thể một bảng, một migration:
