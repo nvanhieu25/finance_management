@@ -1,0 +1,93 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:ConstructionFinance.Desktop.ViewModels.Finance.Forms"
+             xmlns:conv="using:ConstructionFinance.Desktop.Common"
+             x:Class="ConstructionFinance.Desktop.Views.Finance.Forms.ThongTriFormView"
+             x:DataType="vm:ThongTriFormViewModel">
+    <DockPanel>
+        <ContentControl DockPanel.Dock="Top" Content="{Binding Picker}"/>
+        <Button DockPanel.Dock="Top" Classes="toolbar accent" HorizontalAlignment="Left"
+                Margin="0,6,0,10" Command="{Binding ExportCommand}" Content="Xuất Excel"/>
+
+        <ScrollViewer>
+            <Border Classes="card" MaxWidth="900" HorizontalAlignment="Left" Padding="24">
+                <StackPanel Spacing="8">
+                    <Grid ColumnDefinitions="*,*">
+                        <StackPanel Grid.Column="0" Spacing="4">
+                            <TextBox Watermark="Đơn vị cấp trên (Cài đặt)" IsEnabled="False"/>
+                            <TextBox Watermark="Số" Text="{Binding SoThongTri}"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="1" Spacing="4">
+                            <TextBlock Text="Mẫu số CQ06-HD" HorizontalAlignment="Right"/>
+                            <TextBox Watermark="Ghi sổ ngày…" Text="{Binding NgayGhiSo}"/>
+                        </StackPanel>
+                    </Grid>
+
+                    <TextBlock Text="THÔNG TRI" FontWeight="Bold" FontSize="18"
+                               HorizontalAlignment="Center"/>
+                    <TextBlock Text="Thu hồi tạm ứng — Kinh phí: NSNN" HorizontalAlignment="Center"/>
+
+                    <Grid ColumnDefinitions="Auto,*">
+                        <TextBlock Grid.Column="0" Text="Về" VerticalAlignment="Center"/>
+                        <TextBox Grid.Column="1" Watermark="tháng … năm …" Text="{Binding VeThangNam}" Margin="8,0,0,0"/>
+                    </Grid>
+                    <Grid ColumnDefinitions="Auto,*,Auto,*">
+                        <TextBlock Grid.Column="0" Text="Tên CTMT, DA" VerticalAlignment="Center"/>
+                        <TextBox Grid.Column="1" Text="{Binding TenCTMT}" Margin="8,0,0,0"/>
+                        <TextBlock Grid.Column="2" Text="Mã số" VerticalAlignment="Center" Margin="8,0,0,0"/>
+                        <TextBox Grid.Column="3" Text="{Binding MaSo}" Margin="8,0,0,0"/>
+                    </Grid>
+                    <Grid ColumnDefinitions="Auto,*,Auto,*,Auto,*">
+                        <TextBlock Grid.Column="0" Text="TK" VerticalAlignment="Center"/>
+                        <TextBox Grid.Column="1" Text="{Binding TaiKhoan1}" Margin="6,0,0,0"/>
+                        <TextBlock Grid.Column="2" Text="Đơn vị" VerticalAlignment="Center" Margin="6,0,0,0"/>
+                        <TextBox Grid.Column="3" Text="{Binding DonVi1}" Margin="6,0,0,0"/>
+                        <TextBlock Grid.Column="4" Text="Số CT" VerticalAlignment="Center" Margin="6,0,0,0"/>
+                        <TextBox Grid.Column="5" Text="{Binding SoChungTu1}" Margin="6,0,0,0"/>
+                    </Grid>
+                    <Grid ColumnDefinitions="Auto,*,Auto,*,Auto,*">
+                        <TextBlock Grid.Column="0" Text="TK" VerticalAlignment="Center"/>
+                        <TextBox Grid.Column="1" Text="{Binding TaiKhoan2}" Margin="6,0,0,0"/>
+                        <TextBlock Grid.Column="2" Text="Đơn vị" VerticalAlignment="Center" Margin="6,0,0,0"/>
+                        <TextBox Grid.Column="3" Text="{Binding DonVi2}" Margin="6,0,0,0"/>
+                        <TextBlock Grid.Column="4" Text="Số CT" VerticalAlignment="Center" Margin="6,0,0,0"/>
+                        <TextBox Grid.Column="5" Text="{Binding SoChungTu2}" Margin="6,0,0,0"/>
+                    </Grid>
+
+                    <TextBlock Text="Mục lục ngân sách" FontWeight="Bold" Margin="0,8,0,0"/>
+                    <Grid ColumnDefinitions="*,*,*,*,*,*">
+                        <TextBox Grid.Column="0" Watermark="Loại NS" Text="{Binding LoaiNganSach}"/>
+                        <TextBox Grid.Column="1" Watermark="Khoản" Text="{Binding Khoan}" Margin="6,0,0,0"/>
+                        <TextBox Grid.Column="2" Watermark="Mục" Text="{Binding Muc}" Margin="6,0,0,0"/>
+                        <TextBox Grid.Column="3" Watermark="Tiểu mục" Text="{Binding TieuMuc}" Margin="6,0,0,0"/>
+                        <TextBox Grid.Column="4" Watermark="Tiết mục" Text="{Binding TietMuc}" Margin="6,0,0,0"/>
+                        <TextBox Grid.Column="5" Watermark="Ngành" Text="{Binding Nganh}" Margin="6,0,0,0"/>
+                    </Grid>
+
+                    <DataGrid ItemsSource="{Binding Lines}" IsReadOnly="True" Margin="0,8,0,0"
+                              GridLinesVisibility="All" HeadersVisibility="All" CanUserSortColumns="False">
+                        <DataGrid.Styles>
+                            <Style Selector="DataGridRow" x:DataType="vm:FormLineRow">
+                                <Setter Property="FontWeight"
+                                        Value="{Binding IsBold, Converter={x:Static conv:BoolToFontWeightConverter.Instance}}"/>
+                            </Style>
+                        </DataGrid.Styles>
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="NỘI DUNG" Binding="{Binding Content}" Width="*"/>
+                            <DataGridTextColumn Header="SỐ TIỀN" Binding="{Binding AmountText}" Width="180"/>
+                        </DataGrid.Columns>
+                    </DataGrid>
+
+                    <Grid ColumnDefinitions="*,180" Margin="0,4,0,0">
+                        <TextBlock Grid.Column="0" Text="Cộng" FontWeight="Bold" HorizontalAlignment="Right"
+                                   Margin="0,0,12,0"/>
+                        <TextBlock Grid.Column="1" Text="{Binding TotalText}" FontWeight="Bold"/>
+                    </Grid>
+                    <TextBlock Margin="0,4,0,0">
+                        <Run Text="Bằng chữ: "/><Run Text="{Binding TotalInWords}" FontStyle="Italic"/>
+                    </TextBlock>
+                </StackPanel>
+            </Border>
+        </ScrollViewer>
+    </DockPanel>
+</UserControl>

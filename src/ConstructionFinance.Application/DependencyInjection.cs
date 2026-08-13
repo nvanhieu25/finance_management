@@ -36,6 +36,7 @@ public static class DependencyInjection
         services.AddScoped<IFinanceProjectService, FinanceProjectService>();
         services.AddScoped<IFinanceImportService, FinanceImportService>();
         services.AddScoped<IFinanceExportService, FinanceExportService>();
+        services.AddScoped<IFormExcelExporter, Forms.FormExcelExporter>();
 
         return services;
     }

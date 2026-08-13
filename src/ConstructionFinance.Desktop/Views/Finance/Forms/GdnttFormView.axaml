@@ -1,0 +1,96 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:ConstructionFinance.Desktop.ViewModels.Finance.Forms"
+             x:Class="ConstructionFinance.Desktop.Views.Finance.Forms.GdnttFormView"
+             x:DataType="vm:GdnttFormViewModel">
+    <DockPanel>
+        <ContentControl DockPanel.Dock="Top" Content="{Binding Picker}"/>
+        <Border DockPanel.Dock="Top" Background="#FFF4CE" Padding="10" Margin="0,6,0,0"
+                IsVisible="{Binding ErrorMessage, Converter={x:Static ObjectConverters.IsNotNull}}">
+            <TextBlock Text="{Binding ErrorMessage}" TextWrapping="Wrap"/>
+        </Border>
+        <Button DockPanel.Dock="Top" Classes="toolbar accent" HorizontalAlignment="Left"
+                Margin="0,6,0,10" Command="{Binding ExportCommand}"
+                IsEnabled="{Binding CanExport}" Content="Xuất Excel"/>
+
+        <ScrollViewer>
+            <Border Classes="card" MaxWidth="1000" HorizontalAlignment="Left" Padding="24">
+                <StackPanel Spacing="8">
+                    <TextBlock Text="CỘNG HOÀ XÃ HỘI CHỦ NGHĨA VIỆT NAM" FontWeight="Bold"
+                               HorizontalAlignment="Center"/>
+                    <TextBlock Text="Độc lập - Tự do - Hạnh phúc" HorizontalAlignment="Center"/>
+                    <TextBlock Text="GIẤY ĐỀ NGHỊ THANH TOÁN VỐN ĐẦU TƯ" FontWeight="Bold" FontSize="18"
+                               HorizontalAlignment="Center" Margin="0,8,0,8"/>
+
+                    <Grid ColumnDefinitions="Auto,*,Auto,*">
+                        <TextBlock Grid.Column="0" Text="Số" VerticalAlignment="Center"/>
+                        <TextBox Grid.Column="1" Text="{Binding So}" Margin="8,0,0,0"/>
+                        <TextBlock Grid.Column="2" Text="Ngày" VerticalAlignment="Center" Margin="8,0,0,0"/>
+                        <TextBox Grid.Column="3" Text="{Binding NgayThangNam}" Margin="8,0,0,0"/>
+                    </Grid>
+                    <TextBox Watermark="Kính gửi" Text="{Binding KinhGui}"/>
+                    <TextBox Watermark="Tên dự án công trình" Text="{Binding TenDuAnCongTrinh}"/>
+                    <TextBox Watermark="Chủ đầu tư / Ban QLDA" Text="{Binding ChuDauTu}"/>
+                    <TextBox Watermark="Căn cứ Quyết định số" Text="{Binding CanCuQuyetDinh}"/>
+                    <TextBox Watermark="Căn cứ Hợp đồng số" Text="{Binding CanCuHopDong}"/>
+                    <TextBox Watermark="Căn cứ giấy đề nghị thanh toán số" Text="{Binding CanCuGiayDeNghi}"/>
+                    <TextBox Watermark="Thuộc kế hoạch" Text="{Binding ThuocKeHoach}"/>
+
+                    <Grid ColumnDefinitions="Auto,*">
+                        <TextBlock Grid.Column="0" Text="Số dư tạm ứng của hạng mục:"/>
+                        <TextBlock Grid.Column="1" Text="{Binding UnrecoveredBeforeText}" Margin="8,0,0,0"/>
+                    </Grid>
+                    <Grid ColumnDefinitions="Auto,*">
+                        <TextBlock Grid.Column="0" Text="Thuộc nguồn vốn:"/>
+                        <TextBlock Grid.Column="1" Text="{Binding NguonVonText}" Margin="8,0,0,0"/>
+                    </Grid>
+
+                    <Grid ColumnDefinitions="2*,*,*,*" Margin="0,8,0,0">
+                        <TextBlock Grid.Column="0" Text="NỘI DUNG" FontWeight="Bold" TextWrapping="Wrap"/>
+                        <TextBlock Grid.Column="1" Text="Giá trị HĐ (gồm PLHĐ)" FontWeight="Bold" TextWrapping="Wrap" Margin="8,0,0,0"/>
+                        <TextBlock Grid.Column="2" Text="Lũy kế đến cuối kỳ trước" FontWeight="Bold" TextWrapping="Wrap" Margin="8,0,0,0"/>
+                        <TextBlock Grid.Column="3" Text="Số đề nghị kỳ này" FontWeight="Bold" TextWrapping="Wrap" Margin="8,0,0,0"/>
+                    </Grid>
+                    <Grid ColumnDefinitions="2*,*,*,*">
+                        <TextBlock Grid.Column="0" Text="{Binding PackageName}"/>
+                        <TextBlock Grid.Column="1" Text="{Binding ContractTotalText}" Margin="8,0,0,0"/>
+                        <TextBlock Grid.Column="2" Text="{Binding CumulativeBeforeText}" Margin="8,0,0,0"/>
+                        <TextBlock Grid.Column="3" Text="{Binding RequestedText}" Margin="8,0,0,0"/>
+                    </Grid>
+
+                    <TextBlock Margin="0,8,0,0">
+                        <Run Text="Bằng chữ: "/><Run Text="{Binding RequestedInWords}" FontStyle="Italic"/>
+                    </TextBlock>
+
+                    <TextBlock Text="Trong đó:" FontWeight="Bold" Margin="0,8,0,0"/>
+                    <Grid ColumnDefinitions="2*,*">
+                        <TextBlock Grid.Column="0" Text=" - Thanh toán để thu hồi tạm ứng"/>
+                        <TextBlock Grid.Column="1" Text="{Binding RecoveredText}" Margin="8,0,0,0"/>
+                    </Grid>
+                    <Grid ColumnDefinitions="2*,*">
+                        <TextBlock Grid.Column="0" Text=" - Chuyển tiền bảo hành" VerticalAlignment="Center"/>
+                        <TextBox Grid.Column="1" Text="{Binding ChuyenTienBaoHanhText}" Margin="8,0,0,0"/>
+                    </Grid>
+                    <Grid ColumnDefinitions="2*,*">
+                        <TextBlock Grid.Column="0" Text=" - Chuyển tiền tạm giữ chờ quyết toán" VerticalAlignment="Center"/>
+                        <TextBox Grid.Column="1" Text="{Binding ChuyenTienTamGiuText}" Margin="8,0,0,0"/>
+                    </Grid>
+                    <Grid ColumnDefinitions="2*,*">
+                        <TextBlock Grid.Column="0" Text=" - Số trả nhà thầu" FontWeight="Bold"/>
+                        <TextBlock Grid.Column="1" Text="{Binding PaidToContractorText}" FontWeight="Bold" Margin="8,0,0,0"/>
+                    </Grid>
+
+                    <Grid ColumnDefinitions="Auto,*" Margin="0,8,0,0">
+                        <TextBlock Grid.Column="0" Text="Tên đơn vị thụ hưởng:"/>
+                        <TextBlock Grid.Column="1" Text="{Binding ContractorName}" Margin="8,0,0,0"/>
+                    </Grid>
+                    <Grid ColumnDefinitions="Auto,*">
+                        <TextBlock Grid.Column="0" Text="Tài khoản:"/>
+                        <TextBlock Grid.Column="1" Text="{Binding BankAccountText}" Margin="8,0,0,0"/>
+                    </Grid>
+                    <TextBox Watermark="Tại (ngân hàng)" Text="{Binding TaiNganHang}"/>
+                </StackPanel>
+            </Border>
+        </ScrollViewer>
+    </DockPanel>
+</UserControl>
