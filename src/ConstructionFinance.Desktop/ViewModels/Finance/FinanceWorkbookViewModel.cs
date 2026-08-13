@@ -232,6 +232,14 @@ public partial class FinanceWorkbookViewModel : ViewModelBase
         IsBusy = true;
         try
         {
+            // Cài đặt (Đơn vị cấp trên/cơ sở) can change while the workbook is open, and
+            // RefreshFormTabs runs synchronously from several UI-driven paths (ledger edits,
+            // tab selection), so it can't await a settings read itself. Re-reading here, on
+            // every project switch, keeps the form tabs from showing a snapshot frozen at
+            // workbook-open time without having to make the whole refresh chain async.
+            var info = await _companyInfo.GetAsync();
+            _orgInfo = new FormOrgInfo(info.DonViCapTren, info.DonViCoSo);
+
             var tree = await _service.GetTreeAsync(project.Id);
             if (tree is null) return;
 

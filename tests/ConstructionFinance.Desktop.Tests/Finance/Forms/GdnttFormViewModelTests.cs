@@ -117,6 +117,17 @@ public class GdnttFormViewModelTests
     }
 
     [Fact]
+    public void Refresh_exposes_the_two_agency_names_from_org_info()
+    {
+        var (vm, _, _) = Create();
+
+        Load(vm, Row(new FormDotKey(0, 0, 0, 0), 10_000_000m));
+
+        vm.DonViCapTrenText.ShouldBe("Sở Tài chính");
+        vm.DonViCoSoText.ShouldBe("Ban QLDA số 1");
+    }
+
+    [Fact]
     public void Refresh_loading_stored_values_does_not_announce_a_change()
     {
         var (vm, _, _) = Create();

@@ -70,6 +70,18 @@ public class ThongTriFormViewModelTests
     }
 
     [Fact]
+    public void Refresh_exposes_the_two_agency_names_from_org_info()
+    {
+        var (vm, _, _) = Create();
+
+        vm.Refresh(new[] { Row(0, 10_000_000m) }, Array.Empty<LedgerRowViewModel>(),
+            new ThongTriDeclaration(), new FormOrgInfo("Sở Tài chính", "Ban QLDA số 1"), "Dự án A");
+
+        vm.DonViCapTrenText.ShouldBe("Sở Tài chính");
+        vm.DonViCoSoText.ShouldBe("Ban QLDA số 1");
+    }
+
+    [Fact]
     public void Editing_a_manual_field_writes_through_and_announces_the_change()
     {
         var (vm, _, _) = Create();

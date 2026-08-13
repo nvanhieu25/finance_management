@@ -36,6 +36,10 @@ public partial class ThongTriFormViewModel : ViewModelBase
     public string TotalText { get; private set; } = "";
     public string TotalInWords { get; private set; } = "";
 
+    /// Tên hai đơn vị in ở đầu Thông tri (Cài đặt → dùng chung mọi dự án).
+    public string DonViCapTrenText => _org.DonViCapTren ?? "";
+    public string DonViCoSoText => _org.DonViCoSo ?? "";
+
     /// Bắn khi người dùng sửa một ô nhập tay, để workbook đánh dấu bẩn.
     public event EventHandler? DeclarationChanged;
 
@@ -72,6 +76,8 @@ public partial class ThongTriFormViewModel : ViewModelBase
 
         Picker.Refresh(rows, sources);
         RaiseAllDeclarationProperties();
+        OnPropertyChanged(nameof(DonViCapTrenText));
+        OnPropertyChanged(nameof(DonViCoSoText));
         Rebuild();
     }
 

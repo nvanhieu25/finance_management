@@ -48,6 +48,10 @@ public partial class GdnttFormViewModel : ViewModelBase
     public string PaidToContractorText => Money(_form?.PaidToContractor);
     public string NguonVonText => "Quỹ dự trữ ngoại hối";
 
+    /// Tên hai đơn vị in ở đầu GĐNTT (Cài đặt → dùng chung mọi dự án).
+    public string DonViCapTrenText => _org.DonViCapTren ?? "";
+    public string DonViCoSoText => _org.DonViCoSo ?? "";
+
     public string? So { get => _declaration.So; set => SetText(_declaration.So, value, v => _declaration.So = v); }
     public string? NgayThangNam { get => _declaration.NgayThangNam; set => SetText(_declaration.NgayThangNam, value, v => _declaration.NgayThangNam = v); }
     public string? KinhGui { get => _declaration.KinhGui; set => SetText(_declaration.KinhGui, value, v => _declaration.KinhGui = v); }
@@ -76,6 +80,8 @@ public partial class GdnttFormViewModel : ViewModelBase
 
         Picker.Refresh(rows, sources);
         RaiseDeclarationProperties();
+        OnPropertyChanged(nameof(DonViCapTrenText));
+        OnPropertyChanged(nameof(DonViCoSoText));
         Rebuild();
     }
 

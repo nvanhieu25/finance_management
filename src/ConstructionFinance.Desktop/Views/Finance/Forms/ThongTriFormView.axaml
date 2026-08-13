@@ -14,7 +14,8 @@
                 <StackPanel Spacing="8">
                     <Grid ColumnDefinitions="*,*">
                         <StackPanel Grid.Column="0" Spacing="4">
-                            <TextBox Watermark="Đơn vị cấp trên (Cài đặt)" IsEnabled="False"/>
+                            <TextBlock Text="{Binding DonViCapTrenText}" FontWeight="Bold"/>
+                            <TextBlock Text="{Binding DonViCoSoText}"/>
                             <TextBox Watermark="Số" Text="{Binding SoThongTri}"/>
                         </StackPanel>
                         <StackPanel Grid.Column="1" Spacing="4">
@@ -73,7 +74,14 @@
                             </Style>
                         </DataGrid.Styles>
                         <DataGrid.Columns>
-                            <DataGridTextColumn Header="NỘI DUNG" Binding="{Binding Content}" Width="*"/>
+                            <DataGridTemplateColumn Header="NỘI DUNG" Width="*">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate x:DataType="vm:FormLineRow">
+                                        <TextBlock Text="{Binding Content}"
+                                                   Margin="{Binding Indent, Converter={x:Static conv:IndentToMarginConverter.Instance}}"/>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
                             <DataGridTextColumn Header="SỐ TIỀN" Binding="{Binding AmountText}" Width="180"/>
                         </DataGrid.Columns>
                     </DataGrid>

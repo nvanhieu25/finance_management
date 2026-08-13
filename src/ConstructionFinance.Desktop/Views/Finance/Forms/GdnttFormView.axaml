@@ -16,9 +16,17 @@
         <ScrollViewer>
             <Border Classes="card" MaxWidth="1000" HorizontalAlignment="Left" Padding="24">
                 <StackPanel Spacing="8">
-                    <TextBlock Text="CỘNG HOÀ XÃ HỘI CHỦ NGHĨA VIỆT NAM" FontWeight="Bold"
-                               HorizontalAlignment="Center"/>
-                    <TextBlock Text="Độc lập - Tự do - Hạnh phúc" HorizontalAlignment="Center"/>
+                    <Grid ColumnDefinitions="*,*">
+                        <StackPanel Grid.Column="0" Spacing="4">
+                            <TextBlock Text="{Binding DonViCapTrenText}" FontWeight="Bold"/>
+                            <TextBlock Text="{Binding DonViCoSoText}"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="1" Spacing="4">
+                            <TextBlock Text="CỘNG HOÀ XÃ HỘI CHỦ NGHĨA VIỆT NAM" FontWeight="Bold"
+                                       HorizontalAlignment="Center"/>
+                            <TextBlock Text="Độc lập - Tự do - Hạnh phúc" HorizontalAlignment="Center"/>
+                        </StackPanel>
+                    </Grid>
                     <TextBlock Text="GIẤY ĐỀ NGHỊ THANH TOÁN VỐN ĐẦU TƯ" FontWeight="Bold" FontSize="18"
                                HorizontalAlignment="Center" Margin="0,8,0,8"/>
 
