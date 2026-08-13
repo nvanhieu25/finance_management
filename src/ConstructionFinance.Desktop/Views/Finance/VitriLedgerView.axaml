@@ -195,6 +195,18 @@
             <Setter Property="Width" Value="2"/>
             <Setter Property="Background" Value="{DynamicResource BrandPrimaryBrush}"/>
         </Style>
+        <!-- Selected-row highlight (7B review, Important #1): the user had no visible way
+             to tell a row was selected. A full-width, low-opacity overlay Border — same
+             "one Border spanning Grid.ColumnSpan=14" technique as the horizontal row
+             separator above — instead of a Background Setter, because Group rows already
+             carry their own hardcoded Background (AccentSoftBrush) as a local value, which
+             would win over any Style-driven Background and hide a selected/unselected
+             difference; an overlay paints on top regardless of the row's own background. -->
+        <Style Selector="Border.rowSelectedOverlay">
+            <Setter Property="Background" Value="{DynamicResource BrandPrimaryBrush}"/>
+            <Setter Property="Opacity" Value="0.12"/>
+            <Setter Property="IsHitTestVisible" Value="False"/>
+        </Style>
     </UserControl.Styles>
 
     <DockPanel>
@@ -457,6 +469,8 @@
                                                      bar under the ENTIRE row, same technique as the vertical overlay. -->
                                                 <Border Grid.Column="0" Grid.ColumnSpan="14" VerticalAlignment="Bottom" Height="1"
                                                         Background="{DynamicResource LedgerGridLineBrush}" IsHitTestVisible="False"/>
+                                                <Border Grid.Column="0" Grid.ColumnSpan="14" Classes="rowSelectedOverlay"
+                                                        IsVisible="{Binding IsSelected}"/>
                                             </Grid>
                                         </DataTemplate>
                                     </local:LedgerRowTemplateSelector.Group>
@@ -464,9 +478,14 @@
                                     <!-- Package: Name + Nhà thầu/TK + contract fields + computed subtotals -->
                                     <local:LedgerRowTemplateSelector.Package>
                                         <DataTemplate x:DataType="vm:LedgerRowViewModel">
+                                            <!-- Background="Transparent" (invisible, but paints something) so a
+                                                 click on one of this row's empty gridCellBorder placeholder cells
+                                                 (no Background of its own) still hits THIS Grid instead of
+                                                 falling through to whatever is behind the row — needed for the
+                                                 row-selection PointerPressed handler in the code-behind. -->
                                             <Grid Classes="gridRow packageRow"
                                                   Classes.wrap="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).WrapText}"
-                                                  ClipToBounds="True">
+                                                  ClipToBounds="True" Background="Transparent">
                                                 <Grid.ColumnDefinitions>
                                                     <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.NgayWidth}"/>
                                                     <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.NoiDung}"/>
@@ -509,8 +528,10 @@
                                                                  Watermark="Số TK" Text="{Binding BankAccount}"/>
                                                     </StackPanel>
                                                 </Border>
-                                                <TextBox Grid.Column="3" Classes="gridCell num" Text="{Binding ContractValueText}"/>
-                                                <TextBox Grid.Column="4" Classes="gridCell num" Text="{Binding ContractAnnexText}"/>
+                                                <TextBox Grid.Column="3" Classes="gridCell num" Text="{Binding ContractValueText}"
+                                                         Tag="ContractValueText" LostFocus="OnFacadeCellLostFocus"/>
+                                                <TextBox Grid.Column="4" Classes="gridCell num" Text="{Binding ContractAnnexText}"
+                                                         Tag="ContractAnnexText" LostFocus="OnFacadeCellLostFocus"/>
                                                 <Border Grid.Column="5" Classes="gridCellBorder"/>
                                                 <Border Grid.Column="6" Classes="gridCellBorder"/>
                                                 <Border Grid.Column="7" Classes="gridCellBorder"/>
@@ -531,6 +552,8 @@
                                                 <!-- Full-width horizontal row separator — see the Group template above. -->
                                                 <Border Grid.Column="0" Grid.ColumnSpan="14" VerticalAlignment="Bottom" Height="1"
                                                         Background="{DynamicResource LedgerGridLineBrush}" IsHitTestVisible="False"/>
+                                                <Border Grid.Column="0" Grid.ColumnSpan="14" Classes="rowSelectedOverlay"
+                                                        IsVisible="{Binding IsSelected}"/>
                                             </Grid>
                                         </DataTemplate>
                                     </local:LedgerRowTemplateSelector.Package>
@@ -538,9 +561,12 @@
                                     <!-- Entry: editable transaction cells + Fund dropdown -->
                                     <local:LedgerRowTemplateSelector.Entry>
                                         <DataTemplate x:DataType="vm:LedgerRowViewModel">
+                                            <!-- Background="Transparent" — same reason as the Package row above:
+                                                 keeps this Grid itself hit-testable so a click on an empty cell
+                                                 still selects the row instead of falling through. -->
                                             <Grid Classes="gridRow entryRow"
                                                   Classes.wrap="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).WrapText}"
-                                                  ClipToBounds="True">
+                                                  ClipToBounds="True" Background="Transparent">
                                                 <Grid.ColumnDefinitions>
                                                     <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.NgayWidth}"/>
                                                     <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.NoiDung}"/>
@@ -557,7 +583,8 @@
                                                     <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.SoDuTu}"/>
                                                     <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.TongDaGn}"/>
                                                 </Grid.ColumnDefinitions>
-                                                <TextBox Grid.Column="0" Classes="gridCell" Text="{Binding DateText}"/>
+                                                <TextBox Grid.Column="0" Classes="gridCell" Text="{Binding DateText}"
+                                                         Tag="DateText" LostFocus="OnFacadeCellLostFocus"/>
                                                 <TextBox Grid.Column="1" Classes="gridCell overflowCell"
                                                          Classes.wrap="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).WrapText}"
                                                          MinWidth="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.NoiDung.Value}"
@@ -566,9 +593,12 @@
                                                 <Border Grid.Column="3" Classes="gridCellBorder"/>
                                                 <Border Grid.Column="4" Classes="gridCellBorder"/>
                                                 <TextBox Grid.Column="5" Classes="gridCell" Text="{Binding DocumentNo}"/>
-                                                <TextBox Grid.Column="6" Classes="gridCell num" Text="{Binding AdvanceText}"/>
-                                                <TextBox Grid.Column="7" Classes="gridCell num" Text="{Binding KlhtText}"/>
-                                                <TextBox Grid.Column="8" Classes="gridCell num" Text="{Binding RecoveredText}"/>
+                                                <TextBox Grid.Column="6" Classes="gridCell num" Text="{Binding AdvanceText}"
+                                                         Tag="AdvanceText" LostFocus="OnFacadeCellLostFocus"/>
+                                                <TextBox Grid.Column="7" Classes="gridCell num" Text="{Binding KlhtText}"
+                                                         Tag="KlhtText" LostFocus="OnFacadeCellLostFocus"/>
+                                                <TextBox Grid.Column="8" Classes="gridCell num" Text="{Binding RecoveredText}"
+                                                         Tag="RecoveredText" LostFocus="OnFacadeCellLostFocus"/>
                                                 <Border Grid.Column="9" Classes="gridCellBorder">
                                                     <ComboBox Classes="gridCell" HorizontalAlignment="Stretch" BorderThickness="0"
                                                               ItemsSource="{x:Static local:FundOptions.Names}"
@@ -581,6 +611,8 @@
                                                 <!-- Full-width horizontal row separator — see the Group template above. -->
                                                 <Border Grid.Column="0" Grid.ColumnSpan="14" VerticalAlignment="Bottom" Height="1"
                                                         Background="{DynamicResource LedgerGridLineBrush}" IsHitTestVisible="False"/>
+                                                <Border Grid.Column="0" Grid.ColumnSpan="14" Classes="rowSelectedOverlay"
+                                                        IsVisible="{Binding IsSelected}"/>
                                             </Grid>
                                         </DataTemplate>
                                     </local:LedgerRowTemplateSelector.Entry>

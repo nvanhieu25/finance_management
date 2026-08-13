@@ -45,6 +45,12 @@ public partial class LedgerRowViewModel : ObservableObject
     [ObservableProperty] private string _unrecoveredAdvanceText = "";
     [ObservableProperty] private string _totalDisbursedText = "";
 
+    /// Pure display flag driven by VitriLedgerViewModel.SelectedRow (the single source of
+    /// truth — this is NOT a second selection model, just a per-row mirror of it so the
+    /// row's own DataTemplate can paint a highlight without a converter/multi-binding).
+    /// Parent VM sets this; it does not raise InputChanged.
+    [ObservableProperty] private bool _isSelected;
+
     /// Raised whenever an EDITABLE cell facade changes (entry date/content/document/fund/money,
     /// package name/contractor/bank/contract-value facades). Read-only computed display props do
     /// NOT raise this — the parent VM sets them, it doesn't need to be told about its own writes.

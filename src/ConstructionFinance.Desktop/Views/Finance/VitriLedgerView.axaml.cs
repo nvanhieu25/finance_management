@@ -24,12 +24,26 @@ public partial class VitriLedgerView : UserControl
         base.OnLoaded(e);
         // Tunnel so we react before the TextBox/ComboBox consumes the key.
         AddHandler(KeyDownEvent, OnGridKeyDown, RoutingStrategies.Tunnel);
+        // GotFocus already bubbles by default — covers every editable cell (TextBox/
+        // ComboBox). PointerPressed is added at Tunnel so it still fires even if some
+        // control marks the event Handled during Bubble — covers a click on a
+        // non-focusable part of a row (an empty gridline Border, a read-only computed
+        // TextBlock cell, ...) where nothing ever takes focus.
+        AddHandler(GotFocusEvent, OnGridGotFocus, RoutingStrategies.Bubble);
+        AddHandler(PointerPressedEvent, OnGridPointerPressed, RoutingStrategies.Tunnel);
 
         WireColumnGrips();
     }
 
     protected override void OnUnloaded(RoutedEventArgs e)
     {
+        // This View instance is reused as Vị trí tabs are switched away from and back to
+        // (see _wiredGrips remarks below), so every handler wired in OnLoaded must be
+        // unwired here or it piles up across (re)loads.
+        RemoveHandler(KeyDownEvent, OnGridKeyDown);
+        RemoveHandler(GotFocusEvent, OnGridGotFocus);
+        RemoveHandler(PointerPressedEvent, OnGridPointerPressed);
+
         foreach (var thumb in _wiredGrips)
             thumb.DragDelta -= OnColumnGripDragDelta;
         _wiredGrips.Clear();
@@ -104,28 +118,55 @@ public partial class VitriLedgerView : UserControl
         }
     }
 
-    /// Find which (row, column) a focused cell belongs to within RowsHost. Walks up
-    /// from the focused control (TextBox, or a ComboBox nested inside a gridline
-    /// Border) to the child that is a DIRECT child of the row's Grid — that child
-    /// carries the real Grid.Column, even when it's the Border wrapping the control.
+    // FIX (7B review, Important #1): SelectedRow used to be written ONLY by AddPackage/
+    // AddEntry/DeleteSelected themselves — nothing in the View ever set it from a click or
+    // a focus change, so once a Vị trí had more than one nhóm/gói the toolbar's "Thêm gói"/
+    // "Thêm đợt"/"Xóa dòng đang chọn" (all bound to SelectedRow) silently no-op'd, with no
+    // way at all to delete an existing row. Both handlers below funnel into the same
+    // LocateCell used by arrow-key navigation, so "which row" is resolved identically
+    // everywhere in this file.
+    private void OnGridGotFocus(object? sender, GotFocusEventArgs e) => SelectRowFromSource(e.Source);
+    private void OnGridPointerPressed(object? sender, PointerPressedEventArgs e) => SelectRowFromSource(e.Source);
+
+    private void SelectRowFromSource(object? source)
+    {
+        if (DataContext is not VitriLedgerViewModel vm) return;
+        if (source is not Control control) return;
+
+        var (rowIndex, _) = LocateCell(control);
+        if (rowIndex < 0 || rowIndex >= vm.Rows.Count) return;
+        vm.SelectedRow = vm.Rows[rowIndex];
+    }
+
+    /// Find which (row, column) a focused/clicked cell belongs to within RowsHost. Walks up
+    /// from `source` (a TextBox, a ComboBox nested inside a gridline Border, or — a pointer
+    /// click that landed on an empty gridCellBorder placeholder with no Background of its
+    /// own — the row's own Grid itself, since the click falls through to it) to the child
+    /// that is a DIRECT child of the row's Grid — that child carries the real Grid.Column,
+    /// even when it's the Border wrapping the control. Column comes back -1 when `source`
+    /// IS the row Grid (no specific cell was hit, just the row's background) — callers that
+    /// only need the row (row selection) ignore it; callers that need a real column
+    /// (KeyDown navigation/paste) never see this case in practice since a bare Grid is never
+    /// focusable/keyboard-sourced.
     private (int row, int col) LocateCell(Control source)
     {
-        Control? rowChild = null;
         Control? walker = source;
         while (walker is not null)
         {
-            if (walker.Parent is Grid { } grid && grid.Classes.Contains("gridRow"))
-            {
-                rowChild = walker;
-                break;
-            }
+            if (walker is Grid { } selfGrid && selfGrid.Classes.Contains("gridRow"))
+                return ResolveRow(selfGrid, -1);
+
+            if (walker.Parent is Grid { } parentGrid && parentGrid.Classes.Contains("gridRow"))
+                return ResolveRow(parentGrid, Grid.GetColumn(walker));
+
             walker = walker.Parent as Control;
         }
-        if (rowChild is null) return (-1, -1);
+        return (-1, -1);
+    }
 
-        var col = Grid.GetColumn(rowChild);
-        var rowGrid = rowChild.GetVisualParent() as Grid;
-        var container = rowGrid?.FindAncestorOfType<ContentPresenter>();
+    private (int row, int col) ResolveRow(Grid rowGrid, int col)
+    {
+        var container = rowGrid.FindAncestorOfType<ContentPresenter>();
         if (container is null) return (-1, -1);
 
         var rowsHost = this.FindControl<ItemsControl>("RowsHost")!;
@@ -179,5 +220,36 @@ public partial class VitriLedgerView : UserControl
                 }
                 return false;
         }
+    }
+
+    // FIX (7B review, Important #2): the money facades (AdvanceText/KlhtText/RecoveredText/
+    // ContractValueText/ContractAnnexText) push their reformatted "1.234.567" string back via
+    // OnPropertyChanged from inside their OWN setter's call stack — Avalonia's TwoWay binding
+    // re-entrancy guard silently drops that echo, so the TextBox keeps showing the raw digits
+    // the user typed for the rest of the session even though the underlying decimal parsed
+    // fine. Spec §6.2 requires the "." grouping to reappear once the cell loses focus, so
+    // this handler just re-pulls the facade's CURRENT value into the TextBox's Text — a
+    // fresh read outside that call stack, so the drop doesn't apply. DateText has the exact
+    // same problem for its OTHER accepted input format ("yyyy-MM-dd" — FinanceCellParsing.
+    // ParseDate accepts it, but the getter always re-emits "dd/MM/yyyy", so that echo gets
+    // dropped too; a headless test proved this fails identically before this fix), so it is
+    // wired to the same handler. Every affected TextBox across the Entry/Package templates
+    // is wired to this one handler, keyed by its Tag (the facade's own property name) — same
+    // Tag-driven-dispatch pattern already used by the column-resize grips above.
+    private void OnFacadeCellLostFocus(object? sender, RoutedEventArgs e)
+    {
+        if (sender is not TextBox { DataContext: LedgerRowViewModel row } textBox) return;
+        if (textBox.Tag is not string facade) return;
+
+        textBox.Text = facade switch
+        {
+            nameof(LedgerRowViewModel.DateText) => row.DateText,
+            nameof(LedgerRowViewModel.AdvanceText) => row.AdvanceText,
+            nameof(LedgerRowViewModel.KlhtText) => row.KlhtText,
+            nameof(LedgerRowViewModel.RecoveredText) => row.RecoveredText,
+            nameof(LedgerRowViewModel.ContractValueText) => row.ContractValueText,
+            nameof(LedgerRowViewModel.ContractAnnexText) => row.ContractAnnexText,
+            _ => textBox.Text
+        };
     }
 }

@@ -133,6 +133,15 @@ public partial class VitriLedgerViewModel : ViewModelBase
     partial void OnNguonVonChanged(string? value) => MarkDirty();
     partial void OnSortOrderChanged(int value) => MarkDirty();
 
+    /// Mirrors SelectedRow onto each row's own IsSelected flag so the View's row templates
+    /// can paint a highlight (7B review, Important #1 — the user had no visible feedback
+    /// that a row was selected at all). SelectedRow itself stays the single source of truth.
+    partial void OnSelectedRowChanged(LedgerRowViewModel? value)
+    {
+        foreach (var row in Rows)
+            row.IsSelected = ReferenceEquals(row, value);
+    }
+
     partial void OnIsDirtyChanged(bool value) => DirtyChanged?.Invoke(this, EventArgs.Empty);
 
     private void MarkDirty()
