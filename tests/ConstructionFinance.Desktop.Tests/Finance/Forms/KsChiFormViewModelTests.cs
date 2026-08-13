@@ -16,7 +16,8 @@ public class KsChiFormViewModelTests
         new(new FormDotKey(0, 0, 0, dotIndex), "Vị trí 1", "CHI PHÍ XÂY DỰNG", "Gói A",
             "Cty XL A", "123456789", 50_000_000_000m, 0m, new DateOnly(2026, 3, 1), "Đợt", "CT01",
             fund, advance, klht, recovered,
-            Disbursed: advance > 0m && klht == 0m ? advance : klht - recovered);
+            // Same formula as TreeCalculator.Disbursed: a đợt may carry both Tạm ứng and KLHT.
+            Disbursed: advance + klht - recovered);
 
     private static (KsChiFormViewModel vm, Mock<IFormExcelExporter> exporter, FakeDialogService dialog) Create()
     {

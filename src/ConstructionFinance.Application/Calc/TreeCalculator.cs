@@ -9,10 +9,13 @@ public static class TreeCalculator
     /// Fiscal year runs 1/2/N → 31/1/(N+1): Feb–Dec map to N, Jan maps to N−1.
     public static int FiscalYear(DateOnly d) => d.Month >= 2 ? d.Year : d.Year - 1;
 
-    public static bool IsAdvance(DotInput d) => d.Advance > 0m && d.PaymentKLHT == 0m;
-
-    public static decimal Disbursed(DotInput d) =>
-        IsAdvance(d) ? d.Advance : d.PaymentKLHT - d.RecoveredAdvance;
+    /// Giải ngân của một đợt = Tạm ứng + Thanh toán KLHT − Thu hồi tạm ứng.
+    /// Một đợt có thể vừa mang Tạm ứng vừa mang KLHT trong cùng lần ghi sổ (sổ cho phép
+    /// nhập cả hai), nên công thức phải cộng dồn cả ba cột thay vì rẽ nhánh theo loại đợt —
+    /// rẽ nhánh sẽ âm thầm bỏ mất phần Tạm ứng của đợt hỗn hợp đó. Với đợt thuần (chỉ tạm ứng
+    /// hoặc chỉ thanh toán), công thức rút gọn về đúng giá trị cũ. Khớp cột N = H + I − J của
+    /// sổ tham chiếu.
+    public static decimal Disbursed(DotInput d) => d.Advance + d.PaymentKLHT - d.RecoveredAdvance;
 
     public static TreeAggregate AggregatePackage(IReadOnlyList<DotInput> dots)
     {

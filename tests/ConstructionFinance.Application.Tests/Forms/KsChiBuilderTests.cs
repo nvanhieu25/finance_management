@@ -12,7 +12,8 @@ public class KsChiBuilderTests
         new(new FormDotKey(0, 0, 0, index), "Vị trí 1", "CHI PHÍ XÂY DỰNG", "Gói A",
             "Cty XL A", "123456789", 50_000_000_000m, 0m, new DateOnly(2026, 3, 1), content, "CT01",
             fund, advance, klht, recovered,
-            Disbursed: advance > 0m && klht == 0m ? advance : klht - recovered);
+            // Same formula as TreeCalculator.Disbursed: a đợt may carry both Tạm ứng and KLHT.
+            Disbursed: advance + klht - recovered);
 
     // Một đợt tạm ứng NSNN 10tr, một đợt thanh toán NSNN (KLHT 200tr, thu hồi 5tr),
     // một đợt tạm ứng ngoại hối 30tr.
@@ -60,6 +61,21 @@ public class KsChiBuilderTests
         form.PaidToBeneficiary.Total.ShouldBe(235_000_000m);
         form.PaidToBeneficiary.NSNN.ShouldBe(205_000_000m);
         form.PaidToBeneficiary.NgoaiHoi.ShouldBe(30_000_000m);
+        form.PaidToBeneficiary.Total.ShouldBe(rows.Sum(r => r.Disbursed));
+    }
+
+    [Fact]
+    public void Build_keeps_the_paid_invariant_for_a_dot_carrying_both_advance_and_klht()
+    {
+        // A đợt with BOTH Tạm ứng and KLHT is exactly the case that used to break
+        // PaidToBeneficiary.Total == Σ Disbursed, because Disbursed dropped the Tạm ứng
+        // whenever the same đợt also carried a KLHT payment.
+        var mixed = Dot(0, Fund.NSNN, 10_000_000m, 200_000_000m, 5_000_000m, "Đợt hỗn hợp");
+        var rows = new[] { mixed };
+
+        var form = KsChiBuilder.Build(rows, All(rows), null);
+
+        form.PaidToBeneficiary.Total.ShouldBe(205_000_000m);
         form.PaidToBeneficiary.Total.ShouldBe(rows.Sum(r => r.Disbursed));
     }
 

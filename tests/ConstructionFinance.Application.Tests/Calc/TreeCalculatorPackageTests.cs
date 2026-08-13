@@ -33,6 +33,18 @@ public class TreeCalculatorPackageTests
     }
 
     [Fact]
+    public void Disbursed_of_a_mixed_dot_adds_advance_and_klht_then_subtracts_recovered()
+    {
+        // The ledger allows a single đợt to carry BOTH Tạm ứng and KLHT at once.
+        // The formula must add every column rather than branch on "is this an advance đợt",
+        // or it silently drops the Tạm ứng of a mixed row.
+        var mixed = new DotInput(new DateOnly(2026, 3, 1), Fund.NSNN,
+            Advance: 10_000_000m, PaymentKLHT: 200_000_000m, RecoveredAdvance: 5_000_000m);
+
+        TreeCalculator.Disbursed(mixed).ShouldBe(205_000_000m);
+    }
+
+    [Fact]
     public void AggregatePackage_empty_is_all_zero()
     {
         var a = TreeCalculator.AggregatePackage(System.Array.Empty<DotInput>());

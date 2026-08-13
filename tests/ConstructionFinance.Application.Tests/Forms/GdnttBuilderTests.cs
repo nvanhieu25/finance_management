@@ -15,7 +15,8 @@ public class GdnttBuilderTests
         new(key, "Vị trí 1", "CHI PHÍ XÂY DỰNG", packageName, "Cty XL A", "123456789",
             50_000_000_000m, 2_000_000_000m, new DateOnly(2026, 3, 1), "Đợt", "CT01",
             fund, advance, klht, recovered,
-            Disbursed: advance > 0m && klht == 0m ? advance : klht - recovered);
+            // Same formula as TreeCalculator.Disbursed: a đợt may carry both Tạm ứng and KLHT.
+            Disbursed: advance + klht - recovered);
 
     /// Gói A: đợt 0 tạm ứng 10tr, đợt 1 thanh toán KLHT 200tr thu hồi 4tr,
     /// đợt 2 tạm ứng 30tr (kỳ này).
