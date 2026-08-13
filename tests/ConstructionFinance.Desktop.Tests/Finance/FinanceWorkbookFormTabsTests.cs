@@ -139,6 +139,7 @@ public class FinanceWorkbookFormTabsTests
         await vm.LoadAsync();
 
         vm.ViTriPages.OfType<ThongTriFormPageViewModel>().Single().Inner.SoThongTri.ShouldBe("9/TT");
+        vm.IsDirty.ShouldBeFalse();
     }
 
     [Fact]

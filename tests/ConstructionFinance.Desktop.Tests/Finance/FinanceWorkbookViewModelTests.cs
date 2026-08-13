@@ -487,9 +487,10 @@ public class FinanceWorkbookViewModelTests
 
         sut.ViTriPages.OfType<ViTriPageViewModel>().Count().ShouldBe(1);
         // new Vị trí sits before the trailing fixed tabs (Quyết toán năm + the three
-        // form tabs from Task 13) — it is the last ViTriPageViewModel in the strip,
-        // not necessarily the last page overall.
-        sut.ViTriPages.OfType<ViTriPageViewModel>().Last().ShouldBe(sut.SelectedViTriPage);
+        // form tabs from Task 13): the page right after it must be Quyết toán năm,
+        // not one of the form tabs or the end of the strip.
+        var addedIndex = sut.ViTriPages.IndexOf(sut.SelectedViTriPage!);
+        sut.ViTriPages[addedIndex + 1].ShouldBeOfType<YearSettlementPageViewModel>();
         sut.SelectedViTriPage.ShouldBeOfType<ViTriPageViewModel>();
         sut.IsDirty.ShouldBeTrue();
     }
