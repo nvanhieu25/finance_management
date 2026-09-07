@@ -39,11 +39,11 @@ public class VitriLedgerCellLayoutTests
         // Rows: [0] Total, [1] Nhóm 1, [2] Gói A, [3] Đợt 1
     }
 
-    private static Ledger CreateLedger(ViTri viTri)
+    private static Ledger CreateLedger(ViTri viTri, double windowWidth = 1900)
     {
         var vm = new VitriLedgerViewModel(viTri);
         var view = new VitriLedgerView { DataContext = vm };
-        var window = new Window { Content = view, Width = 1900, Height = 900 };
+        var window = new Window { Content = view, Width = windowWidth, Height = 900 };
         window.Show();
         Dispatcher.UIThread.RunJobs();
         return new Ledger(window, view, vm);
@@ -154,6 +154,66 @@ public class VitriLedgerCellLayoutTests
             // được tự nở thêm vì nội dung/lề của chính nó.
             var totalWidth = offsets[^1] + vm.ColumnWidths.GetWidth(LedgerColumnWidths.TongDaGnIndex).Value;
             rowGrid.Bounds.Width.ShouldBe(totalWidth, 0.5);
+
+            window.Close();
+        });
+    }
+
+    /// Khác với test bên trên (so dòng với toạ độ CỘNG DỒN từ LedgerColumnWidths), test này
+    /// so dòng với vị trí RENDER THẬT của header và lớp kẻ dọc — đúng thứ mà 7 test cũ
+    /// không hề chạm tới, nên một header/overlay lệch phải 13px vẫn lọt qua 7 test xanh.
+    /// Viewport CỐ Ý rộng hơn hẳn 1880px (bề rộng danh nghĩa của bảng): header/TỔNG CỘNG/
+    /// hai overlay kẻ dọc không có HorizontalAlignment riêng nên mặc định Stretch — khi
+    /// viewport rộng hơn bảng, Avalonia rải phần dư cho các Grid này (mỗi cột +1px), còn
+    /// Grid của từng DÒNG bị ItemContainerTheme ghim HorizontalAlignment=Left nên vẫn giữ
+    /// đúng 1880px. Ở viewport <= ~1882px không có phần dư để rải nên test này PASS ngay cả
+    /// khi còn lỗi — phải dùng viewport rộng hơn hẳn 1880 (ở đây 2400, cùng mức reviewer đã
+    /// đo) mới thực sự bắt được lỗi.
+    [Fact]
+    public void Bien_cot_header_va_lop_ke_doc_trung_voi_bien_cot_thuc_te_cua_dong_khi_vien_rong_hon_bang()
+    {
+        HeadlessTestSession.Run(() =>
+        {
+            var (window, view, vm) = CreateLedger(BuildOneOfEachRowKindFixture(), windowWidth: 2400);
+
+            var headerGrid = view.FindControl<Grid>("HeaderColumnsGrid")!;
+            var rowsHost = view.FindControl<ItemsControl>("RowsHost")!;
+            // Overlay kẻ dọc của TOÀN BỘ phần cuộn (không phải overlay của thanh TỔNG CỘNG):
+            // trong VitriLedgerView.axaml nó là Grid duy nhất khác, anh em trực tiếp của
+            // RowsHost, bên trong Grid bọc ngoài cùng của ScrollViewer thân bảng.
+            var bodyDividerOverlay = rowsHost.GetVisualParent<Grid>()!.Children
+                .OfType<Grid>().Single();
+
+            for (var column = 0; column < LedgerColumnWidths.ColumnCount; column++)
+            {
+                var headerCell = headerGrid.Children.OfType<Grid>()
+                    .Single(g => Grid.GetColumn(g) == column);
+                var headerLeftEdge = headerCell.TranslatePoint(new Point(0, 0), window)!.Value.X;
+
+                // Border.colDivider canh PHẢI (HorizontalAlignment=Right, Width=1), nên
+                // Bounds của chính nó là mép phải trừ 1px chứ không phải mép trái của cột —
+                // lấy điểm local (Bounds.Width, 0), tức mép phải thật, rồi quy đổi sang toạ
+                // độ Window để so cho đúng chiều (mép phải với mép phải).
+                var divider = bodyDividerOverlay.Children.OfType<Border>()
+                    .Single(b => b.Classes.Contains("colDivider") && Grid.GetColumn(b) == column);
+                var dividerRightEdge = divider.TranslatePoint(new Point(divider.Bounds.Width, 0), window)!.Value.X;
+
+                foreach (var rowIndex in new[] { 1, 2, 3 }) // Nhóm, Gói, Đợt — đều phải khớp.
+                {
+                    var rowGrid = FindRowGrid(view, rowIndex);
+                    var rowCell = rowGrid.Children.OfType<Control>()
+                        .Single(c => Grid.GetColumn(c) == column && Grid.GetColumnSpan(c) <= 1);
+                    var rowLeftEdge = rowCell.TranslatePoint(new Point(0, 0), window)!.Value.X;
+                    var rowRightEdge = rowCell.TranslatePoint(new Point(rowCell.Bounds.Width, 0), window)!.Value.X;
+
+                    headerLeftEdge.ShouldBe(rowLeftEdge, 0.5,
+                        $"cột {column} dòng {rowIndex}: header ở x={headerLeftEdge} " +
+                        $"nhưng dòng ở x={rowLeftEdge}");
+                    dividerRightEdge.ShouldBe(rowRightEdge, 0.5,
+                        $"cột {column} dòng {rowIndex}: lớp kẻ dọc ở x={dividerRightEdge} " +
+                        $"nhưng mép phải ô của dòng ở x={rowRightEdge}");
+                }
+            }
 
             window.Close();
         });
