@@ -128,4 +128,34 @@ public class VitriLedgerCellLayoutTests
             window.Close();
         });
     }
+
+    [Theory]
+    [InlineData(1)] // Nhóm
+    [InlineData(2)] // Gói
+    [InlineData(3)] // Đợt
+    public void Bien_cot_cua_moi_loai_dong_trung_voi_toa_do_danh_nghia_cua_header(int rowIndex)
+    {
+        HeadlessTestSession.Run(() =>
+        {
+            var (window, view, vm) = CreateLedger(BuildOneOfEachRowKindFixture());
+            var rowGrid = FindRowGrid(view, rowIndex);
+            var offsets = ColumnLeftOffsets(vm.ColumnWidths);
+
+            // Bỏ qua các Border phủ toàn dòng (ColumnSpan=14: vạch kẻ ngang + lớp chọn dòng).
+            foreach (var cell in rowGrid.Children.OfType<Control>().Where(c => Grid.GetColumnSpan(c) <= 1))
+            {
+                var column = Grid.GetColumn(cell);
+                cell.Bounds.X.ShouldBe(offsets[column], 0.5,
+                    $"dòng {rowIndex} cột {column} bắt đầu ở x={cell.Bounds.X} " +
+                    $"thay vì {offsets[column]} như header/lớp kẻ dọc");
+            }
+
+            // Tổng bề rộng dòng phải đúng bằng tổng bề rộng 14 cột — không dòng nào
+            // được tự nở thêm vì nội dung/lề của chính nó.
+            var totalWidth = offsets[^1] + vm.ColumnWidths.GetWidth(LedgerColumnWidths.TongDaGnIndex).Value;
+            rowGrid.Bounds.Width.ShouldBe(totalWidth, 0.5);
+
+            window.Close();
+        });
+    }
 }

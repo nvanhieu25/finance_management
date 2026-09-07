@@ -85,7 +85,11 @@
              an empty placeholder Border (no Background) lets it show through, exactly
              like Excel. FOCUSED (editing), it snaps back to a normal bordered, clipped,
              column-Stretched box. The column's own declared Width never changes either
-             way — this is purely a per-control render trick. -->
+             way — this is purely a per-control render trick.
+             Mức thụt đầu dòng theo cấp đặt bằng Padding TRÁI của chính ô (không phải
+             Margin): Margin cộng NGOÀI bề rộng mong muốn nên nó nở cả cột Grid ra
+             thêm đúng bằng mức thụt, khiến ba loại dòng có ba hệ toạ độ cột khác nhau
+             và lệch hẳn với header lẫn lớp kẻ dọc. -->
         <Style Selector="TextBox.overflowCell">
             <Setter Property="HorizontalAlignment" Value="Left"/>
             <Setter Property="ClipToBounds" Value="False"/>
@@ -449,7 +453,7 @@
                                                 <TextBox Grid.Column="1" Classes="gridCell overflowCell" FontWeight="Bold"
                                                          Classes.wrap="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).WrapText}"
                                                          MinWidth="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.NoiDung.Value}"
-                                                         Margin="4,0,0,0" Text="{Binding Name}"/>
+                                                         Padding="10,4,6,4" Text="{Binding Name}"/>
                                                 <Border Grid.Column="2" Classes="gridCellBorder"/>
                                                 <Border Grid.Column="3" Classes="gridCellBorder"/>
                                                 <Border Grid.Column="4" Classes="gridCellBorder"/>
@@ -521,7 +525,7 @@
                                                 <TextBox Grid.Column="1" Classes="gridCell overflowCell" FontWeight="SemiBold"
                                                          Classes.wrap="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).WrapText}"
                                                          MinWidth="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.NoiDung.Value}"
-                                                         Margin="20,0,0,0" Text="{Binding Name}"/>
+                                                         Padding="26,4,6,4" Text="{Binding Name}"/>
                                                 <Border Grid.Column="2" Classes="gridCellBorder">
                                                     <StackPanel Spacing="0" Margin="6,2" ClipToBounds="True">
                                                         <TextBox BorderThickness="0" Padding="0" FontSize="12"
@@ -595,7 +599,7 @@
                                                 <TextBox Grid.Column="1" Classes="gridCell overflowCell"
                                                          Classes.wrap="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).WrapText}"
                                                          MinWidth="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.NoiDung.Value}"
-                                                         Margin="36,0,0,0" Text="{Binding Content}"/>
+                                                         Padding="42,4,6,4" Text="{Binding Content}"/>
                                                 <Border Grid.Column="2" Classes="gridCellBorder"/>
                                                 <Border Grid.Column="3" Classes="gridCellBorder"/>
                                                 <Border Grid.Column="4" Classes="gridCellBorder"/>
