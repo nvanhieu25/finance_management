@@ -120,16 +120,6 @@
             <Setter Property="MinWidth" Value="0"/>
             <Setter Property="ClipToBounds" Value="True"/>
         </Style>
-        <!-- Zero out the ItemsControl item container's own padding/margin so a row's
-             Grid starts at the exact same x-offset as the header/TỔNG CỘNG Grids —
-             otherwise a ContentPresenter's own theme padding silently shifts every
-             row a few px right of the frozen bars above it. -->
-        <Style Selector="ItemsControl#RowsHost ContentPresenter">
-            <Setter Property="Padding" Value="0"/>
-            <Setter Property="Margin" Value="0"/>
-            <Setter Property="HorizontalContentAlignment" Value="Left"/>
-            <Setter Property="HorizontalAlignment" Value="Left"/>
-        </Style>
         <!-- Row heights: fixed single-line by default; switch to Auto (+ a MinHeight
              floor) when Xuống dòng trong ô is on, so a wrapped multi-line cell can grow
              the row instead of being clipped. A plain XAML attribute on the Grid would
@@ -398,6 +388,23 @@
                     <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto" Padding="0">
                       <Grid>
                         <ItemsControl x:Name="RowsHost" ItemsSource="{Binding Rows}">
+                            <!-- Chuẩn hoá padding/margin/canh lề của CONTAINER mỗi dòng, để Grid
+                                 của dòng bắt đầu đúng cùng một toạ độ x với header/TỔNG CỘNG.
+                                 BẮT BUỘC đặt ở ItemContainerTheme chứ KHÔNG phải một Style
+                                 "ItemsControl#RowsHost ContentPresenter": selector hậu duệ đó
+                                 khớp cả những ContentPresenter nằm TRONG ControlTemplate của
+                                 từng TextBox/ComboBox ô, và HorizontalAlignment=Left làm nền
+                                 (cũng là vùng hit-test) của ô co lại bằng bề rộng chữ — ô trống
+                                 chỉ còn 12px bấm được, phần cột còn lại rơi xuyên xuống Grid.
+                                 ItemContainerTheme chỉ áp cho container do ItemsControl sinh ra. -->
+                            <ItemsControl.ItemContainerTheme>
+                                <ControlTheme TargetType="ContentPresenter">
+                                    <Setter Property="Padding" Value="0"/>
+                                    <Setter Property="Margin" Value="0"/>
+                                    <Setter Property="HorizontalContentAlignment" Value="Left"/>
+                                    <Setter Property="HorizontalAlignment" Value="Left"/>
+                                </ControlTheme>
+                            </ItemsControl.ItemContainerTheme>
                             <ItemsControl.ItemTemplate>
                                 <local:LedgerRowTemplateSelector>
 
