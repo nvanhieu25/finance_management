@@ -81,13 +81,22 @@ public class PrintWorkbookTests
             Mock.Of<IFormExcelExporter>(), companyInfo.Object);
     }
 
-    /// Nạp dự án bằng đúng đường app dùng: LoadAsync chọn dự án đầu rồi nạp cây và dựng tab. Mọi mock trả
-    /// Task đã hoàn tất nên cả chuỗi (kể cả phần fire-and-forget trong OnSelectedProjectChanged) chạy đồng
-    /// bộ tới cùng, nên chờ ở đây không có gì để chặn.
+    /// Nạp dự án bằng đúng đường app dùng: LoadAsync chọn dự án đầu rồi nạp cây và dựng tab.
+    ///
+    /// BẤT BIẾN CỦA CẢ TỆP NÀY: mọi mock trong CreateWorkbook trả một Task ĐÃ HOÀN TẤT (ReturnsAsync), nên cả chuỗi,
+    /// kể cả phần fire-and-forget LoadSelectedProjectTreeAsync mà OnSelectedProjectChanged tự bắn ra, chạy đồng bộ tới
+    /// cùng ngay trong LoadAsync; vì thế chờ bằng GetAwaiter().GetResult() ở đây không chặn gì và khi nó trả về các tab
+    /// đã dựng xong. Mọi test trong tệp (kể cả test `await LoadAsync()` trực tiếp) dựa vào điều đó. Một mock trả Task
+    /// bất đồng bộ THẬT (Task.Delay, Task.Yield, I/O) sẽ làm phần fire-and-forget chạy tiếp sau khi LoadAsync đã trả:
+    /// test sẽ xanh đỏ tùy thời điểm thay vì đỏ rõ ràng, nên có kiểm tra ngay dưới đây. Đừng "sửa" bằng vòng chờ; hãy giữ
+    /// mock ở dạng đã hoàn tất.
     private static FinanceWorkbookViewModel LoadWorkbook(Project? tree)
     {
         var workbook = CreateWorkbook(tree);
         workbook.LoadAsync().GetAwaiter().GetResult();
+
+        if (tree is not null)
+            workbook.ViTriPages.ShouldNotBeEmpty("bất biến của tệp test: mock phải trả Task đã hoàn tất để cây nạp xong đồng bộ");
         return workbook;
     }
 
@@ -615,12 +624,17 @@ public class PrintWorkbookTests
         workbook.SelectedViTriPage = workbook.ViTriPages.OfType<ViTriPageViewModel>().First();   // rồi rời sang Vị trí 1
         var changed = new List<string>();
         workbook.PropertyChanged += (_, e) => changed.Add(e.PropertyName ?? "");
+        var pageChanged = new List<string>();
+        gdntt.PropertyChanged += (_, e) => pageChanged.Add(e.PropertyName ?? "");
 
         gdntt.Inner.Picker.Items[0].IsSelected = true;
 
         // PrintSheetName của workbook là của tab đang mở (Vị trí 1, vẫn "Vị trí 1"): GĐNTT đổi gì khi người dùng không
         // xem nó cũng không phải chuyện của nút In. Và workbook phải gỡ handler khỏi trang đã rời.
         gdntt.PrintSheetName.ShouldBe("GĐNTT", "tiền đề: GĐNTT đã đổi thật");
+        // Tiền đề thứ hai: chính trang GĐNTT ĐÃ báo. Không có dòng này thì khi trang thôi không báo nữa, workbook "im lặng"
+        // cũng xanh test — im vì không có gì để chuyển tiếp chứ không phải vì đã gỡ handler.
+        pageChanged.ShouldContain(nameof(IPrintablePage.PrintSheetName), "tiền đề: trang GĐNTT đã bắn PrintSheetName");
         changed.ShouldNotContain(nameof(IPrintablePage.PrintSheetName));
         ((IPrintablePage)workbook).PrintSheetName.ShouldBe("Vị trí 1");
     }
@@ -633,12 +647,93 @@ public class PrintWorkbookTests
         workbook.SelectedViTriPage = viTri1;
         var changed = new List<string>();
         workbook.PropertyChanged += (_, e) => changed.Add(e.PropertyName ?? "");
+        var pageChanged = new List<string>();
+        viTri1.PropertyChanged += (_, e) => pageChanged.Add(e.PropertyName ?? "");
 
         viTri1.Title = "Nhà điều hành";      // trang đang mở bắn Title và Header
         viTri1.IsDirty = true;               // và IsDirty
 
+        // Tiền đề: trang đang mở ĐÃ bắn thông báo (Title, Header, IsDirty), chỉ không phải PrintSheetName. Không có hai
+        // dòng này thì khi hai lệnh gán trên không còn bắn gì, "workbook không chuyển tiếp" xanh vì không có gì để chuyển.
+        pageChanged.ShouldNotBeEmpty("tiền đề: trang đang mở đã bắn thông báo");
+        pageChanged.ShouldNotContain(nameof(IPrintablePage.PrintSheetName), "tiền đề: nhưng đó không phải PrintSheetName");
+
         // Chỉ PrintSheetName của trang mới được chuyển tiếp thành PrintSheetName của workbook; không thì mỗi lần trang
         // đang mở đổi bất cứ gì (đánh dấu bẩn, đổi tiêu đề) nút In lại bị hỏi lại.
         changed.ShouldNotContain(nameof(IPrintablePage.PrintSheetName));
+    }
+
+    // ===== Đổi tên Vị trí là đổi tên sheet in =====
+
+    [Fact]
+    public void Doi_ten_Vi_tri_thi_trang_bao_PrintSheetName_da_doi()
+    {
+        var page = new ViTriPageViewModel(new VitriLedgerViewModel(Fixture("Vị trí 1", 0)));
+        var changed = new List<string>();
+        page.PropertyChanged += (_, e) => changed.Add(e.PropertyName ?? "");
+
+        page.Ledger.Name = "Nhà điều hành";      // người dùng gõ vào ô tên Vị trí
+
+        changed.ShouldContain(nameof(IPrintablePage.PrintSheetName));
+        page.PrintSheetName.ShouldBe("Nhà điều hành");
+    }
+
+    [Fact]
+    public void Doi_ten_Vi_tri_dang_mo_thi_workbook_bao_PrintSheetName_da_doi()
+    {
+        var workbook = BuildWorkbookWithTwoViTri();
+        var viTri1 = workbook.ViTriPages.OfType<ViTriPageViewModel>().First();
+        workbook.SelectedViTriPage = viTri1;
+        var changed = new List<string>();
+        workbook.PropertyChanged += (_, e) => changed.Add(e.PropertyName ?? "");
+
+        viTri1.Ledger.Name = "Nhà điều hành";
+
+        // Tên sheet là tên Vị trí; nút In ở khung chung có thể hiện tên đó (nhãn, tooltip), nên nó phải theo kịp ngay
+        // chứ không đợi tới lần đổi tab sau.
+        changed.ShouldContain(nameof(IPrintablePage.PrintSheetName));
+        ((IPrintablePage)workbook).PrintSheetName.ShouldBe("Nhà điều hành");
+    }
+
+    // ===== Đổi tab: làm mới trước, báo sau =====
+
+    [Fact]
+    public void Doi_sang_tab_tong_hop_thi_chi_bao_PrintSheetName_sau_khi_da_lam_moi_tab_do()
+    {
+        var workbook = OpenAndEditTheSameCellTwice();        // đang ở Vị trí 1; Tổng hợp còn mang số cũ 1.000.000
+        var tongHop = workbook.ViTriPages.OfType<ProjectTongHopPageViewModel>().Single();
+        PrintCell TongHopTamUngDangHien() => CellAt((PrintTableSheet)tongHop.BuildPrintSheet()!, 2, "Tạm ứng");
+        TongHopTamUngDangHien().ShouldBe(PrintCell.OfMoney(1_000_000m), "tiền đề: Tổng hợp đang mang số cũ");
+
+        var seen = new List<(string? Name, PrintCell TongHopTamUng)>();
+        workbook.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName == nameof(IPrintablePage.PrintSheetName))
+                seen.Add((workbook.PrintSheetName, TongHopTamUngDangHien()));
+        };
+
+        workbook.SelectedViTriPage = tongHop;
+
+        // Người nghe (nút In) đọc NGAY lúc được báo: phải thấy đúng trang vừa mở và số đã làm mới. Tức là báo SAU lần
+        // làm mới và SAU khi trang đang mở đã đổi, chứ không phải ở một thứ tự do thư viện sinh mã tình cờ gọi ra.
+        seen.ShouldNotBeEmpty("tiền đề: đổi tab có báo PrintSheetName");
+        foreach (var s in seen)
+        {
+            s.Name.ShouldBe("Tổng hợp", "tên đọc được lúc được báo phải là của trang vừa mở");
+            s.TongHopTamUng.ShouldBe(PrintCell.OfMoney(2_500_000m), "số đọc được lúc được báo phải đã làm mới");
+        }
+    }
+
+    [Fact]
+    public void Doi_tab_thi_bao_lenh_Xoa_Vi_tri_kiem_tra_lai_CanExecute()
+    {
+        var workbook = BuildWorkbookWithTwoViTri();
+        var raised = 0;
+        workbook.DeleteViTriCommand.CanExecuteChanged += (_, _) => raised++;
+
+        workbook.SelectedViTriPage = workbook.ViTriPages.OfType<ViTriPageViewModel>().First();
+
+        // Nút "Xóa Vị trí" mờ ở tab tổng hợp và sáng ở tab sổ: nó chỉ biết kiểm tra lại khi được báo.
+        raised.ShouldBeGreaterThan(0);
     }
 }

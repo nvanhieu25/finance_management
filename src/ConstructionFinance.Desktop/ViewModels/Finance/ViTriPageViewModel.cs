@@ -27,7 +27,12 @@ public sealed class ViTriPageViewModel : WorkbookPageViewModel
     private void OnLedgerPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
         if (e.PropertyName == nameof(VitriLedgerViewModel.Name))
+        {
             Title = DisplayName(Ledger.Name);
+            // Tên sheet in là chính tên này (xem PrintSheetName): đổi tên Vị trí là đổi tên sheet, nên báo cho nơi đang
+            // nghe (nút In ở khung chung có thể hiện tên đó).
+            OnPropertyChanged(nameof(PrintSheetName));
+        }
     }
 
     private static string DisplayName(string? name) =>

@@ -356,30 +356,32 @@ public partial class FinanceWorkbookViewModel : ViewModelBase, IPrintablePage, I
         OnPropertyChanged(nameof(IsDirty));
     }
 
-    partial void OnSelectedViTriPageChanged(WorkbookPageViewModel? value)
+    // Một handler duy nhất, thứ tự viết rõ ra: không dựa vào việc CommunityToolkit gọi overload nào trước (hai
+    // overload cùng được gọi sau khi trường đã gán, nhưng thứ tự giữa chúng không phải điều thư viện hứa).
+    partial void OnSelectedViTriPageChanged(WorkbookPageViewModel? oldValue, WorkbookPageViewModel? newValue)
     {
-        if (value is ProjectTongHopPageViewModel or YearSettlementPageViewModel
+        // 1. Gỡ handler khỏi trang vừa rời: workbook chỉ nghe trang ĐANG MỞ, vì PrintSheetName của nó là của trang đó,
+        //    và trang đã rời không được báo thay cho workbook trong lúc làm mới bên dưới (cũng không bị giữ lại).
+        if (oldValue is not null) oldValue.PropertyChanged -= OnOpenPagePropertyChanged;
+
+        // 2. Làm mới tab tổng hợp/biểu mẫu vừa được mở, để nó hiện số mới nhất.
+        if (newValue is ProjectTongHopPageViewModel or YearSettlementPageViewModel
             or ThongTriFormPageViewModel or KsChiFormPageViewModel or GdnttFormPageViewModel)
             RefreshAggregateTabs();
 
-        // Đổi tab là đổi PrintSheetName (ủy quyền cho tab đang mở) và có thể đổi cả CanPrintAll. Báo SAU lần làm
-        // mới ở trên để người nghe (nút In ở khung chung) đọc giá trị đã cập nhật.
+        // 3. Nghe trang mới (sau lần làm mới, để lần làm mới không tự gây ra thông báo chuyển tiếp thừa).
+        if (newValue is not null) newValue.PropertyChanged += OnOpenPagePropertyChanged;
+
+        // 4. Báo CUỐI CÙNG: đổi tab là đổi PrintSheetName (ủy quyền cho tab đang mở) và có thể đổi cả CanPrintAll, nên báo
+        //    khi mọi thứ ở trên đã xong để người nghe (nút In ở khung chung) đọc giá trị đã cập nhật, từ đúng trang mới.
         RaisePrintStateChanged();
         DeleteViTriCommand.NotifyCanExecuteChanged();
     }
 
-    // Workbook chỉ nghe trang ĐANG MỞ, vì PrintSheetName của nó là của trang đó: trang khác đổi gì cũng không phải
-    // chuyện của nút In. Gỡ handler khỏi trang vừa rời để trang đó không còn báo thay cho workbook (và không bị giữ lại).
-    partial void OnSelectedViTriPageChanged(WorkbookPageViewModel? oldValue, WorkbookPageViewModel? newValue)
-    {
-        if (oldValue is not null) oldValue.PropertyChanged -= OnOpenPagePropertyChanged;
-        if (newValue is not null) newValue.PropertyChanged += OnOpenPagePropertyChanged;
-    }
-
-    // Trang đang mở tự đổi PrintSheetName mà không đổi tab (vd. GĐNTT vừa được tích gói thầu nên chuyển từ không in
-    // được sang in được): chuyển tiếp, nếu không nút In mờ lệch cho tới khi người dùng đổi tab. Chỉ chuyển tiếp đúng
-    // PrintSheetName — trang đang mở đổi tiêu đề hay đánh dấu bẩn thì nút In không cần biết. Trang chỉ báo khi tên
-    // thật sự đổi (xem GdnttFormPageViewModel), nên chuyển tiếp thẳng không gây ồn.
+    // Trang đang mở tự đổi PrintSheetName mà không đổi tab (đổi tên Vị trí; hoặc GĐNTT vừa được tích gói thầu nên chuyển
+    // từ không in được sang in được): chuyển tiếp, nếu không nút In hiện tên/trạng thái lệch cho tới khi người dùng đổi
+    // tab. Chỉ chuyển tiếp đúng PrintSheetName — trang đang mở đổi tiêu đề hay đánh dấu bẩn thì nút In không cần biết.
+    // Không so giá trị ở đây: báo thừa thì được (xem hợp đồng ở IPrintablePage), bỏ sót mới là lỗi.
     private void OnOpenPagePropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
         if (e.PropertyName == nameof(IPrintablePage.PrintSheetName))

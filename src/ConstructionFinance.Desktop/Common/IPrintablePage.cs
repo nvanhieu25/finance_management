@@ -11,8 +11,9 @@ public interface IPrintablePage
     /// đang trả được một sheet thật: nút In bật theo thành viên này, nên một màn có tên mà không có sheet
     /// sẽ làm nút sáng lên rồi nhận về null. Điều kiện in được có thể đổi theo thời gian (vd. biểu mẫu
     /// GĐNTT chưa chọn gói thầu thì chưa in được), nên người cài đặt giữ hai thành viên đi cùng một điều kiện,
-    /// và khi tên đổi mà không có lần đổi màn nào đi kèm thì phải bắn PropertyChanged(PrintSheetName). Đừng bắn
-    /// khi giá trị không đổi: người nghe (nút In) cập nhật lại mỗi lần được báo.
+    /// và khi tên đổi mà không có lần đổi màn nào đi kèm thì phải bắn PropertyChanged(PrintSheetName). Bắn thừa
+    /// (giá trị không đổi) thì được, vì người nghe chỉ đọc lại một giá trị rẻ; BỎ SÓT một lần đổi mới là lỗi, vì
+    /// nút In sẽ mờ/sáng lệch cho tới lần đổi tab sau.
     string? PrintSheetName { get; }
 
     /// Nội dung sẽ in, đúng như đang hiện trên màn hình. Trả null khi PrintSheetName là null (màn đang
