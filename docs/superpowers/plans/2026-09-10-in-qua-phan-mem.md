@@ -1172,7 +1172,11 @@ Tạo `tests/ConstructionFinance.Desktop.Tests/MainWindowPrintCommandTests.cs` v
     {
         var workbook = (IPrintableWorkbook)CurrentContent!;
         var sheets = workbook.BuildAllSheets();
-        return sheets.Count == 0 ? Task.CompletedTask : PrintAsync(sheets, "Toan bo");
+        // Nhánh rỗng gần như không xảy ra vì CanPrintAll đã chặn nút, nhưng KHÔNG được
+        // im lặng: user vừa bấm một nút, nên phải nói ra chuyện gì xảy ra.
+        if (sheets.Count == 0)
+            return _dialog.ShowMessageAsync("In", "Chưa có nội dung nào để in.");
+        return PrintAsync(sheets, "Toan bo");
     }
 
     private bool CanPrintAll() =>
