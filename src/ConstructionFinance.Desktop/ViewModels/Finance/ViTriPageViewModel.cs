@@ -1,4 +1,6 @@
 using System.ComponentModel;
+using ConstructionFinance.Application.Calc;
+using ConstructionFinance.Application.Printing;
 
 namespace ConstructionFinance.Desktop.ViewModels.Finance;
 
@@ -29,4 +31,109 @@ public sealed class ViTriPageViewModel : WorkbookPageViewModel
 
     private static string DisplayName(string? name) =>
         string.IsNullOrWhiteSpace(name) ? "(vị trí mới)" : name.Trim();
+
+    // ===== In =====
+
+    // Sổ Vị trí in 14 cột, đúng thứ tự và tiêu đề như lưới trên màn hình. Bề rộng tính bằng KÝ TỰ (đơn vị
+    // của Excel) và là bộ riêng của bản in, cố ý không lấy từ LedgerColumnWidths (pixel màn hình).
+    private static readonly PrintColumn[] PrintColumns =
+    [
+        new("Ngày", 11, PrintAlign.Center),
+        new("Nội dung", 38, PrintAlign.Left),
+        new("Nhà thầu / TK", 22, PrintAlign.Left),
+        new("Giá trị HĐ", 15, PrintAlign.Right),
+        new("Phụ lục", 13, PrintAlign.Right),
+        new("Số CT", 11, PrintAlign.Center),
+        new("Tạm ứng", 15, PrintAlign.Right),
+        new("KLHT", 15, PrintAlign.Right),
+        new("Thu hồi", 14, PrintAlign.Right),
+        new("Nguồn", 11, PrintAlign.Center),
+        new("GN NSNN", 15, PrintAlign.Right),
+        new("GN Ngoại hối", 15, PrintAlign.Right),
+        new("Số dư TU", 14, PrintAlign.Right),
+        new("Tổng đã GN", 15, PrintAlign.Right),
+    ];
+
+    // Chỉ số cột trong PrintColumns, để dựng ô theo tên cột thay vì số trơ trọi.
+    private const int ColNgay = 0, ColNoiDung = 1, ColNhaThauTk = 2, ColGiaTriHd = 3, ColPhuLuc = 4,
+        ColSoCt = 5, ColTamUng = 6, ColKlht = 7, ColThuHoi = 8, ColNguon = 9,
+        ColGnNsnn = 10, ColGnNgoaiHoi = 11, ColSoDuTu = 12, ColTongDaGn = 13;
+
+    // Màn hình viết chữ này thẳng trong XAML; Name của dòng TỔNG CỘNG là null nên không lấy từ đó được.
+    private const string TotalLabel = "TỔNG CỘNG";
+
+    public override string? PrintSheetName => DisplayName(Ledger.Name);
+
+    public override PrintSheet? BuildPrintSheet() => new PrintTableSheet(
+        DisplayName(Ledger.Name),
+        PrintPageProfiles.ViTriLedger,
+        PrintColumns,
+        Ledger.Rows.Select(ToPrintRow).ToList());
+
+    /// Mỗi dòng hiển thị là một dòng in, ô nào dòng đó không có dữ liệu thì PrintCell.Empty.
+    private static PrintRow ToPrintRow(LedgerRowViewModel row)
+    {
+        var cells = new PrintCell[PrintColumns.Length];
+        Array.Fill(cells, PrintCell.Empty);
+
+        switch (row.Kind)
+        {
+            case RowKind.Total:
+                cells[ColNoiDung] = PrintCell.OfText(TotalLabel);
+                FillComputedColumns(cells, row.Aggregate);
+                return new PrintRow(cells, IndentLevel: 0, IsBold: true, IsShaded: true);
+
+            case RowKind.Group:
+                cells[ColNoiDung] = PrintCell.OfText(row.Name);
+                FillComputedColumns(cells, row.Aggregate);
+                return new PrintRow(cells, IndentLevel: 0, IsBold: true);
+
+            case RowKind.Package:
+                cells[ColNoiDung] = PrintCell.OfText(row.Name);
+                cells[ColNhaThauTk] = ContractorCell(row);
+                cells[ColGiaTriHd] = PrintCell.OfMoney(row.ContractValue);
+                cells[ColPhuLuc] = PrintCell.OfMoney(row.ContractAnnexValue);
+                FillComputedColumns(cells, row.Aggregate);
+                return new PrintRow(cells, IndentLevel: 1, IsBold: true);
+
+            case RowKind.Entry:
+                cells[ColNgay] = PrintCell.OfDate(row.Date);
+                cells[ColNoiDung] = PrintCell.OfText(row.Content);
+                cells[ColSoCt] = PrintCell.OfText(row.DocumentNo);
+                cells[ColTamUng] = PrintCell.OfMoney(row.Advance);
+                cells[ColKlht] = PrintCell.OfMoney(row.PaymentKLHT);
+                cells[ColThuHoi] = PrintCell.OfMoney(row.RecoveredAdvance);
+                cells[ColNguon] = PrintCell.OfText(row.FundText);
+                // Bộ ghi thụt bậc lên ô chữ ĐẦU TIÊN có chữ, mà Excel không thụt được ô căn giữa (bộ ghi
+                // ném ArgumentException, hỏng cả lần in). Đợt thì ô đó phải là Nội dung (căn trái); đợt
+                // trống Nội dung sẽ rơi vào Số CT hoặc Nguồn, đều căn giữa. Không có Nội dung thì cũng
+                // không có gì để thụt, nên để bậc 0.
+                return new PrintRow(cells, IndentLevel: string.IsNullOrEmpty(row.Content) ? 0 : 2);
+
+            default:
+                throw new NotSupportedException($"Chưa có cách in dòng loại {row.Kind}.");
+        }
+    }
+
+    /// Bốn cột tính sẵn (GN NSNN, GN Ngoại hối, Số dư TU, Tổng đã GN) lấy từ Aggregate: SỐ thật chứ
+    /// không phải chuỗi đã định dạng trên màn hình. Chưa có Aggregate thì màn hình để trống bốn ô này,
+    /// bản in cũng vậy.
+    private static void FillComputedColumns(PrintCell[] cells, TreeAggregate? aggregate)
+    {
+        if (aggregate is null) return;
+
+        cells[ColGnNsnn] = PrintCell.OfMoney(aggregate.DisbursedNSNN);
+        cells[ColGnNgoaiHoi] = PrintCell.OfMoney(aggregate.DisbursedNgoaiHoi);
+        cells[ColSoDuTu] = PrintCell.OfMoney(aggregate.UnrecoveredAdvance);
+        cells[ColTongDaGn] = PrintCell.OfMoney(aggregate.TotalDisbursed);
+    }
+
+    /// Nhà thầu và số TK ghép trong một ô, cách nhau bằng ngắt dòng (bộ ghi bật WrapText cho ô chữ).
+    /// Phần nào trống thì bỏ; cả hai trống thì ô trống.
+    private static PrintCell ContractorCell(LedgerRowViewModel row)
+    {
+        var parts = new[] { row.ContractorName, row.BankAccount }.Where(p => !string.IsNullOrWhiteSpace(p));
+        var text = string.Join("\n", parts);
+        return text.Length == 0 ? PrintCell.Empty : PrintCell.OfText(text);
+    }
 }

@@ -440,6 +440,7 @@ public partial class VitriLedgerViewModel : ViewModelBase
 
     private static void ApplyAggregate(LedgerRowViewModel row, TreeAggregate agg)
     {
+        row.Aggregate = agg;
         row.DisbursedNsnnText = MoneyText.Format(agg.DisbursedNSNN);
         row.DisbursedNgoaiHoiText = MoneyText.Format(agg.DisbursedNgoaiHoi);
         row.UnrecoveredAdvanceText = MoneyText.Format(agg.UnrecoveredAdvance);

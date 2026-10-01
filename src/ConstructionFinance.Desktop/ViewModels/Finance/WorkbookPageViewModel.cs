@@ -1,4 +1,5 @@
 using CommunityToolkit.Mvvm.ComponentModel;
+using ConstructionFinance.Application.Printing;
 using ConstructionFinance.Desktop.Common;
 
 namespace ConstructionFinance.Desktop.ViewModels.Finance;
@@ -7,7 +8,7 @@ namespace ConstructionFinance.Desktop.ViewModels.Finance;
 /// body binds Content, which the app-wide ViewLocator resolves to the existing
 /// view of the wrapped view-model — so the workbook reuses the Phase-3/4 views
 /// as-is instead of re-implementing them.
-public abstract partial class WorkbookPageViewModel : ViewModelBase
+public abstract partial class WorkbookPageViewModel : ViewModelBase, IPrintablePage
 {
     [ObservableProperty] private string _title = "";
     [ObservableProperty] private bool _isDirty;
@@ -20,6 +21,10 @@ public abstract partial class WorkbookPageViewModel : ViewModelBase
 
     /// Inner view-model rendered in the tab body (resolved by ViewLocator).
     public abstract object Content { get; }
+
+    /// Mặc định: trang không in được. Trang nào in được thì override cả hai.
+    public virtual string? PrintSheetName => null;
+    public virtual PrintSheet? BuildPrintSheet() => null;
 
     partial void OnTitleChanged(string value) => OnPropertyChanged(nameof(Header));
     partial void OnIsDirtyChanged(bool value) => OnPropertyChanged(nameof(Header));
