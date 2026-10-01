@@ -1168,15 +1168,21 @@ Tạo `tests/ConstructionFinance.Desktop.Tests/MainWindowPrintCommandTests.cs` v
         CurrentContent is IPrintablePage { PrintSheetName: { Length: > 0 } };
 
     [RelayCommand(CanExecute = nameof(CanPrintAll))]
-    private Task PrintAllAsync()
+    private async Task PrintAllAsync()
     {
         var workbook = (IPrintableWorkbook)CurrentContent!;
         var sheets = workbook.BuildAllSheets();
         // Nhánh rỗng gần như không xảy ra vì CanPrintAll đã chặn nút, nhưng KHÔNG được
         // im lặng: user vừa bấm một nút, nên phải nói ra chuyện gì xảy ra.
         if (sheets.Count == 0)
-            return _dialog.ShowMessageAsync("In", "Chưa có nội dung nào để in.");
-        return PrintAsync(sheets, "Toan bo");
+        {
+            // MainWindowViewModel KHÔNG có field _dialog — chỉ có _services và _nav;
+            // lấy dialog qua DI giống PrintAsync bên dưới và lệnh Import đang làm.
+            var dialog = _services.GetRequiredService<IDialogService>();
+            await dialog.ShowMessageAsync("In", "Chưa có nội dung nào để in.");
+            return;
+        }
+        await PrintAsync(sheets, "Toan bo");
     }
 
     private bool CanPrintAll() =>
