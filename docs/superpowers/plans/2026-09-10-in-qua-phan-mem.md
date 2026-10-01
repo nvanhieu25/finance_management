@@ -48,7 +48,7 @@
 | `Common/PrintFileName.cs` | Dựng tên tệp gợi ý, bỏ dấu + loại ký tự Windows cấm. |
 | `Services/IFileLauncher.cs` | `IFileLauncher` + `FileLauncher`. |
 
-**Sửa:** `Application/Forms/FormExcelExporter.cs` (+`.KsChiGdntt.cs`), `Application/Services/Implementations/FinanceExportService.cs`, `Desktop/ViewModels/Finance/{LedgerRowViewModel, VitriLedgerViewModel, ViTriPageViewModel, ProjectTongHopPageViewModel, YearSettlementPageViewModel, WorkbookPageViewModel, FinanceWorkbookViewModel}.cs`, `Desktop/ViewModels/Finance/Forms/FormPageViewModels.cs`, `Desktop/ViewModels/MainWindowViewModel.cs`, `Desktop/Views/MainWindow.axaml`, `Desktop/App.axaml.cs` (đăng ký DI).
+**Sửa:** `Application/Forms/FormExcelExporter.cs` (+`.KsChiGdntt.cs`), `Application/Services/Implementations/FinanceExportService.cs`, `Desktop/ViewModels/Finance/{LedgerRowViewModel, VitriLedgerViewModel, ViTriPageViewModel, ProjectTongHopPageViewModel, YearSettlementPageViewModel, WorkbookPageViewModel, FinanceWorkbookViewModel}.cs`, `Desktop/ViewModels/Finance/Forms/FormPageViewModels.cs`, `Desktop/ViewModels/MainWindowViewModel.cs`, `Desktop/Views/MainWindow.axaml`, `Desktop/Common/HostBuilder.cs` (đăng ký DI).
 
 **Test:** `tests/ConstructionFinance.Application.Tests/Printing/` (mới) và `tests/ConstructionFinance.Desktop.Tests/Finance/` (thêm tệp).
 
@@ -1034,7 +1034,7 @@ git commit -m "feat(print): ba biểu mẫu khai báo nội dung in, workbook go
 - Create: `src/ConstructionFinance.Desktop/Common/PrintFileName.cs`
 - Modify: `src/ConstructionFinance.Desktop/ViewModels/MainWindowViewModel.cs`
 - Modify: `src/ConstructionFinance.Desktop/Views/MainWindow.axaml`
-- Modify: `src/ConstructionFinance.Desktop/App.axaml.cs` (đăng ký `IFileLauncher`, `IPrintWorkbookWriter`)
+- Modify: `src/ConstructionFinance.Desktop/Common/HostBuilder.cs` (đăng ký `IFileLauncher`, `IPrintWorkbookWriter` — đăng ký DI nằm ở đây, KHÔNG ở `App.axaml.cs`)
 - Test: `tests/ConstructionFinance.Desktop.Tests/PrintFileNameTests.cs`, `tests/ConstructionFinance.Desktop.Tests/MainWindowPrintCommandTests.cs`
 
 **Interfaces:**
@@ -1252,7 +1252,7 @@ Bọc `PaneFooter` hiện tại thành `StackPanel` dọc, đặt nút In **trê
 
 `ui:Symbol.Print` có trong FluentAvaloniaUI 2.2.0 (bản dự án đang ghim) — đã kiểm chứng, dùng thẳng.
 
-- [ ] **Step 7: Đăng ký DI trong `App.axaml.cs`**
+- [ ] **Step 7: Đăng ký DI trong `Common/HostBuilder.cs`**
 
 Thêm `services.AddSingleton<IFileLauncher, FileLauncher>();` và `services.AddSingleton<IPrintWorkbookWriter, PrintWorkbookWriter>();` cạnh các đăng ký đã có.
 
