@@ -18,6 +18,16 @@ public partial class FormExcelExporter : IFormExcelExporter
     {
         using var wb = new XLWorkbook();
         var ws = wb.AddWorksheet("Thông tri");
+        WriteThongTriSheet(ws, form);
+        wb.SaveAs(targetPath);
+    }
+
+    /// Vẽ biểu mẫu lên một worksheet CÓ SẴN. Tách ra để PrintWorkbookWriter ghép được
+    /// biểu mẫu vào workbook nhiều sheet mà không phải chép lại bố cục. Gồm cả font
+    /// Times New Roman 13, khổ A4 và lề trái/phải 0.5: bề rộng cột, ô gộp và chỗ xuống
+    /// dòng được canh theo chúng, nên vẽ thiếu thì không còn là cùng một biểu mẫu.
+    internal static void WriteThongTriSheet(IXLWorksheet ws, ThongTriForm form)
+    {
         ApplyPageDefaults(ws, XLPageOrientation.Portrait);
 
         ws.Cell(1, 1).Value = form.DonViCapTren ?? "";
@@ -105,7 +115,6 @@ public partial class FormExcelExporter : IFormExcelExporter
         ws.Columns(1, 6).Width = 9;
         ws.Column(7).Width = 52;
         ws.Column(8).Width = 18;
-        wb.SaveAs(targetPath);
     }
 
     /// Ô thủ tục người dùng bỏ trống thì in dấu chấm cho họ điền tay như Mẫu.

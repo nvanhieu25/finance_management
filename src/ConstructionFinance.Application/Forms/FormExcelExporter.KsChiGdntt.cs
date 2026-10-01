@@ -14,6 +14,13 @@ public partial class FormExcelExporter
     {
         using var wb = new XLWorkbook();
         var ws = wb.AddWorksheet("KS chi");
+        WriteKsChiSheet(ws, form);
+        wb.SaveAs(targetPath);
+    }
+
+    /// Như WriteThongTriSheet: vẽ trọn biểu mẫu (cả font, khổ giấy, lề) lên worksheet có sẵn.
+    internal static void WriteKsChiSheet(IXLWorksheet ws, KsChiForm form)
+    {
         ApplyPageDefaults(ws, XLPageOrientation.Portrait);
 
         ws.Cell(1, 1).Value = "PHẦN GHI CỦA CƠ QUAN KIỂM SOÁT, THANH TOÁN";
@@ -74,7 +81,6 @@ public partial class FormExcelExporter
         ws.Column(1).Width = 34;
         ws.Column(2).Width = 14;
         ws.Columns(3, 5).Width = 18;
-        wb.SaveAs(targetPath);
     }
 
     private static void WriteAmountRow(IXLWorksheet ws, int row, string label, KsChiAmounts amounts)
@@ -98,6 +104,13 @@ public partial class FormExcelExporter
     {
         using var wb = new XLWorkbook();
         var ws = wb.AddWorksheet("GĐNTT");
+        WriteGdnttSheet(ws, form);
+        wb.SaveAs(targetPath);
+    }
+
+    /// Như WriteThongTriSheet: vẽ trọn biểu mẫu (cả font, khổ giấy, lề) lên worksheet có sẵn.
+    internal static void WriteGdnttSheet(IXLWorksheet ws, GdnttForm form)
+    {
         ApplyPageDefaults(ws, XLPageOrientation.Landscape);
 
         ws.Cell(1, 1).Value = form.DonViCapTren ?? "";
@@ -194,6 +207,5 @@ public partial class FormExcelExporter
 
         ws.Column(1).Width = 26;
         ws.Columns(2, 9).Width = 16;
-        wb.SaveAs(targetPath);
     }
 }

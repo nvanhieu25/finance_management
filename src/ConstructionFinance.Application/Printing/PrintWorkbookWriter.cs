@@ -76,8 +76,9 @@ public sealed class PrintWorkbookWriter : IPrintWorkbookWriter
                 case PrintTableSheet table:
                     WriteTable(ws, table, footer);
                     break;
-                case PrintFormSheet:
-                    throw new NotSupportedException("PrintFormSheet chưa được hỗ trợ — xem Task 3.");
+                case PrintFormSheet form:
+                    WriteForm(ws, form, footer);
+                    break;
                 default:
                     throw new NotSupportedException($"Không hỗ trợ loại sheet {sheet.GetType().Name}.");
             }
@@ -103,7 +104,8 @@ public sealed class PrintWorkbookWriter : IPrintWorkbookWriter
         }, ct);
 
     /// Căn trang + chân trang theo hồ sơ. Một chỗ duy nhất cho mọi loại sheet, để bảng và
-    /// biểu mẫu không có hai đường căn trang.
+    /// biểu mẫu không có hai đường căn trang. Gọi đúng MỘT lần cho mỗi sheet: chân trang được
+    /// nối thêm chứ không đặt lại, gọi hai lần là chân trang in hai lần.
     private static void ApplyPage(IXLWorksheet ws, PrintPageProfile page, PrintFooterInfo footer)
     {
         // Font, khổ A4, hướng giấy, lề trái/phải — dùng lại đúng bộ đang áp cho ba biểu mẫu.
@@ -135,6 +137,31 @@ public sealed class PrintWorkbookWriter : IPrintWorkbookWriter
         if (text.Length > MaxFooterLeftChars)
             text = TextTruncation.Truncate(text, MaxFooterLeftChars - 1) + "…";   // chừa một chỗ cho "…"
         return text.Replace("&", "&&");
+    }
+
+    /// Sheet biểu mẫu. Hàm vẽ tự đặt font, khổ giấy và HƯỚNG GIẤY bằng hằng số của nó, nên vẽ
+    /// TRƯỚC rồi mới áp hồ sơ căn trang: để hồ sơ có tiếng nói cuối cùng. Cố ý KHÔNG kẻ lưới như
+    /// sheet bảng — biểu mẫu đã tự kẻ khung đúng chỗ Mẫu có, kẻ cả vùng dùng sẽ bao khung luôn
+    /// những ô Mẫu để trắng.
+    private static void WriteForm(IXLWorksheet ws, PrintFormSheet form, PrintFooterInfo footer)
+    {
+        switch (form.Form)
+        {
+            case { ThongTri: { } thongTri, KsChi: null, Gdntt: null }:
+                FormExcelExporter.WriteThongTriSheet(ws, thongTri);
+                break;
+            case { ThongTri: null, KsChi: { } ksChi, Gdntt: null }:
+                FormExcelExporter.WriteKsChiSheet(ws, ksChi);
+                break;
+            case { ThongTri: null, KsChi: null, Gdntt: { } gdntt }:
+                FormExcelExporter.WriteGdnttSheet(ws, gdntt);
+                break;
+            default:
+                throw new ArgumentException(
+                    $"Sheet \"{form.SheetName}\": FormPayload phải có đúng một biểu mẫu khác null (ThongTri, KsChi hoặc Gdntt).");
+        }
+
+        ApplyPage(ws, form.Page, footer);
     }
 
     private static void WriteTable(IXLWorksheet ws, PrintTableSheet table, PrintFooterInfo footer)
