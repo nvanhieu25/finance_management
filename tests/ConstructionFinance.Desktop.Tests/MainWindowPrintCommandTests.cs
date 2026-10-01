@@ -33,8 +33,10 @@ public class MainWindowPrintCommandTests
     // Những dòng người dùng đọc được, đúng từng chữ. FakeDialogService ghi mỗi thông báo thành
     // "MSG: <tiêu đề> — <nội dung>".
     private const string NothingToPrintMessage = "MSG: In — Chưa có nội dung nào để in.";
-    private const string FileInUseMessage =
-        "MSG: In ra Excel — Tệp đang được mở trong chương trình khác. Đóng tệp rồi thử lại.";
+    private const string FileInUseOrDiskFullMessage =
+        "MSG: In ra Excel — Không ghi được tệp. Có thể tệp đang được mở trong chương trình khác, hoặc ổ đĩa đã đầy. Hãy đóng tệp nếu đang mở, hoặc giải phóng dung lượng ổ đĩa, rồi thử lại.";
+    private const string SaveLocationUnavailableMessage =
+        "MSG: In ra Excel — Không ghi được tệp vì nơi lưu không hợp lệ hoặc không truy cập được (thư mục không còn tồn tại, hoặc đường dẫn quá dài). Hãy chọn nơi lưu khác rồi thử lại.";
     private const string WriteFailedMessage =
         "MSG: In ra Excel — Không ghi được tệp in. Thử lại hoặc chọn nơi lưu khác. Chi tiết lỗi đã được ghi vào nhật ký ứng dụng.";
 
@@ -426,8 +428,10 @@ public class MainWindowPrintCommandTests
 
     // ===== Khi ghi/mở tệp không thành =====
 
+    // IOException TRƠN (không phải lớp con): hai nguyên nhân còn lại sau khi đã tách riêng lỗi nơi lưu, và câu thông báo nêu cả
+    // hai để không nói sai: tệp đang mở trong chương trình khác, hoặc ổ đĩa đã đầy.
     [Fact]
-    public async Task Tep_dang_mo_trong_chuong_trinh_khac_thi_bao_dung_cau_va_khong_mo_tep()
+    public async Task Tep_dang_mo_hoac_o_day_thi_bao_ca_hai_nguyen_nhan_va_khong_mo_tep()
     {
         var writer = new FakeWriter { FailWith = new IOException("The process cannot access the file") };
         var launcher = new FakeLauncher();
@@ -437,7 +441,28 @@ public class MainWindowPrintCommandTests
 
         await vm.PrintCurrentSheetCommand.ExecuteAsync(null);
 
-        dialog.ShownMessages.ShouldBe(new[] { FileInUseMessage });
+        dialog.ShownMessages.ShouldBe(new[] { FileInUseOrDiskFullMessage });
+        launcher.Opened.ShouldBeNull();
+    }
+
+    // DirectoryNotFoundException và PathTooLongException đều là con của IOException, nên nếu không có nhánh riêng thì một thư mục
+    // không còn tồn tại sẽ nghe "đóng tệp rồi thử lại" về một tệp chẳng ai mở. Hai ca dùng hai kiểu KHÁC NHAU để mỗi nhánh catch
+    // phải tự tới được: bỏ một nhánh thì ca của nó rơi xuống nhánh IOException và đỏ.
+    [Theory]
+    [InlineData(typeof(DirectoryNotFoundException))]
+    [InlineData(typeof(PathTooLongException))]
+    public async Task Noi_luu_khong_hop_le_thi_bao_dung_cau_chu_khong_bao_tep_dang_mo(Type exceptionType)
+    {
+        var failure = (Exception)Activator.CreateInstance(exceptionType, "boom")!;
+        var writer = new FakeWriter { FailWith = failure };
+        var launcher = new FakeLauncher();
+        var dialog = new FakeDialogService();
+        var vm = CreateMainWindowViewModel(writer, launcher, dialog, savePath: "/tmp/x.xlsx");
+        vm.CurrentContent = new FakePrintablePage("Vị trí 1");
+
+        await vm.PrintCurrentSheetCommand.ExecuteAsync(null);
+
+        dialog.ShownMessages.ShouldBe(new[] { SaveLocationUnavailableMessage });
         launcher.Opened.ShouldBeNull();
     }
 
@@ -508,6 +533,73 @@ public class MainWindowPrintCommandTests
             dialog.ShownMessages.ShouldBe(new[] { WriteFailedMessage });
             launcher.Opened.ShouldBeNull();
             File.Exists(path).ShouldBeFalse();
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
+    // Ba nhánh catch của bước ghi, mỗi nhánh tới được bằng MỘT KIỂU NGOẠI LỆ KHÁC NHAU do bộ ghi THẬT ném ra trong một tình huống
+    // thật. Mỗi test trước hết khẳng định bộ ghi thật ném đúng kiểu CHÍNH XÁC (so kiểu, không chấp nhận lớp con: cả ba đều
+    // là IOException hoặc con của nó, nên "ném IOException" đúng cho cả ba và chẳng chứng minh gì), rồi mới kiểm câu lệnh In báo.
+
+    [Fact]
+    public async Task Thu_muc_dich_that_su_khong_ton_tai_thi_bo_ghi_that_nem_DirectoryNotFound_va_lenh_bao_noi_luu()
+    {
+        var path = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"), "in-test.xlsx");   // thư mục không có thật
+        await AssertRealWriterThrowsExactly<DirectoryNotFoundException>(path);
+
+        var launcher = new FakeLauncher();
+        var dialog = new FakeDialogService();
+        var vm = CreateMainWindowViewModel(new PrintWorkbookWriter(), launcher, dialog, savePath: path);
+        vm.CurrentContent = new FakePrintablePage("Vị trí 1");
+
+        await vm.PrintCurrentSheetCommand.ExecuteAsync(null);
+
+        dialog.ShownMessages.ShouldBe(new[] { SaveLocationUnavailableMessage });
+        launcher.Opened.ShouldBeNull();
+    }
+
+    [Fact]
+    public async Task Ten_tep_that_su_qua_dai_thi_bo_ghi_that_nem_PathTooLong_va_lenh_bao_noi_luu()
+    {
+        // Một thành phần đường dẫn dài 300 ký tự vượt giới hạn 255 của hệ tệp. Không có gì được tạo ra (mở tệp đã hỏng).
+        var path = Path.Combine(Path.GetTempPath(), new string('a', 300) + ".xlsx");
+        await AssertRealWriterThrowsExactly<PathTooLongException>(path);
+
+        var launcher = new FakeLauncher();
+        var dialog = new FakeDialogService();
+        var vm = CreateMainWindowViewModel(new PrintWorkbookWriter(), launcher, dialog, savePath: path);
+        vm.CurrentContent = new FakePrintablePage("Vị trí 1");
+
+        await vm.PrintCurrentSheetCommand.ExecuteAsync(null);
+
+        dialog.ShownMessages.ShouldBe(new[] { SaveLocationUnavailableMessage });
+        launcher.Opened.ShouldBeNull();
+    }
+
+    [Fact]
+    public async Task Tep_dich_that_su_dang_bi_giu_mo_thi_bo_ghi_that_nem_IOException_va_lenh_bao_tep_dang_mo_hoac_o_day()
+    {
+        var path = Path.Combine(Path.GetTempPath(), $"in-test-{Guid.NewGuid():N}.xlsx");
+        try
+        {
+            // Giữ tệp đích mở độc quyền như Excel đang mở nó. Trên Windows đó là xung đột chia sẻ thật; trên Linux/macOS .NET
+            // mô phỏng FileShare bằng khóa tư vấn flock nên lần ghi sau cũng bị chặn (đo: IOException trơn, HResult 0x0B).
+            using var held = new FileStream(path, FileMode.Create, FileAccess.ReadWrite, FileShare.None);
+            await AssertRealWriterThrowsExactly<IOException>(path);
+
+            var launcher = new FakeLauncher();
+            var dialog = new FakeDialogService();
+            var vm = CreateMainWindowViewModel(new PrintWorkbookWriter(), launcher, dialog, savePath: path);
+            vm.CurrentContent = new FakePrintablePage("Vị trí 1");
+
+            await vm.PrintCurrentSheetCommand.ExecuteAsync(null);
+
+            dialog.ShownMessages.ShouldBe(new[] { FileInUseOrDiskFullMessage });
+            launcher.Opened.ShouldBeNull();
+            held.Length.ShouldBe(0);                               // tệp đang bị giữ không bị ghi đè
         }
         finally
         {
@@ -744,6 +836,16 @@ public class MainWindowPrintCommandTests
                 SetAppHost(null);
             }
         });
+    }
+
+    /// Bộ ghi THẬT phải ném đúng kiểu CHÍNH XÁC `TException` khi ghi vào `path`. So `GetType()` chứ không dùng
+    /// Should.Throw<T>, vì Shouldly chấp nhận cả lớp con của T, mà DirectoryNotFoundException và PathTooLongException
+    /// đều là lớp con của IOException.
+    private static async Task AssertRealWriterThrowsExactly<TException>(string path) where TException : Exception
+    {
+        var thrown = await Should.ThrowAsync<Exception>(() =>
+            new PrintWorkbookWriter().WriteAsync(new[] { Sheet("Vị trí 1") }, path, new PrintFooterInfo("DA", null)));
+        thrown.GetType().ShouldBe(typeof(TException));
     }
 
     private static void SetAppHost(IHost? host) =>
