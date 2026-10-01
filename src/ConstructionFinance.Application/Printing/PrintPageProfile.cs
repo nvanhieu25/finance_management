@@ -27,7 +27,7 @@ public static class PrintPageProfiles
         new(PrintOrientation.Portrait, 1, 0, 1, 0);
 
     // Ba biểu mẫu cũng chỉ ép vừa bề ngang như mọi hồ sơ khác (spec §5 chỉ có cột "Ép ngang").
-    // Ép luôn chiều dọc thì Excel thu nhỏ vô hạn: một Thông tri dài co đến không đọc nổi thay vì
+    // Ép luôn chiều dọc thì Excel tự thu nhỏ xuống tận 10% (sàn tỉ lệ của OOXML): một Thông tri dài co đến không đọc nổi thay vì
     // sang trang — hai trang đọc được hơn một trang không đọc được.
     public static PrintPageProfile ThongTri { get; } = new(PrintOrientation.Portrait, 1, 0, 0, 0);
     public static PrintPageProfile KsChi { get; } = new(PrintOrientation.Portrait, 1, 0, 0, 0);

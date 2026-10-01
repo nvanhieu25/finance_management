@@ -216,7 +216,7 @@ public class PrintFormSheetTests
         wb.Worksheet(3).Cell(4, 1).GetString().ShouldBe("GIẤY ĐỀ NGHỊ THANH TOÁN VỐN ĐẦU TƯ");
 
         // GĐNTT có chín cột nên in ngang; hai biểu mẫu kia in dọc. Cả ba chỉ ép vừa bề ngang: ép luôn
-        // chiều dọc thì Excel thu nhỏ vô hạn, một Thông tri dài co đến không đọc nổi thay vì sang trang.
+        // chiều dọc thì Excel tự thu nhỏ xuống tận 10% (sàn tỉ lệ của OOXML), một Thông tri dài co đến không đọc nổi thay vì sang trang.
         wb.Worksheet(1).PageSetup.PageOrientation.ShouldBe(XLPageOrientation.Portrait);
         wb.Worksheet(2).PageSetup.PageOrientation.ShouldBe(XLPageOrientation.Portrait);
         wb.Worksheet(3).PageSetup.PageOrientation.ShouldBe(XLPageOrientation.Landscape);
