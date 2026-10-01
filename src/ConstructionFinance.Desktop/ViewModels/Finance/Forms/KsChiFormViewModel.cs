@@ -78,9 +78,13 @@ public partial class KsChiFormViewModel : ViewModelBase
     private static KsChiForm Empty() => KsChiBuilder.Build(
         Array.Empty<FormDotRow>(), new HashSet<FormDotKey>(), null);
 
+    /// Model biểu mẫu theo trạng thái hiện tại. Một chỗ dựng duy nhất, dùng chung cho bản xem trước,
+    /// xuất Excel và in. (Empty() ở trên chỉ dựng giá trị ban đầu của _form trước lần Refresh đầu tiên.)
+    public KsChiForm BuildForm() => KsChiBuilder.Build(_rows, Picker.SelectedKeys, _declaration);
+
     private void Rebuild()
     {
-        _form = KsChiBuilder.Build(_rows, Picker.SelectedKeys, _declaration);
+        _form = BuildForm();
         foreach (var name in new[]
                  {
                      nameof(AcceptedTotalText), nameof(AcceptedNsnnText), nameof(AcceptedNgoaiHoiText),
@@ -100,7 +104,7 @@ public partial class KsChiFormViewModel : ViewModelBase
 
         try
         {
-            await _exporter.ExportKsChiAsync(KsChiBuilder.Build(_rows, Picker.SelectedKeys, _declaration), path);
+            await _exporter.ExportKsChiAsync(BuildForm(), path);
             await _dialog.ShowMessageAsync("Xuất Excel", $"Đã xuất Kiểm soát chi ra:\n{path}");
         }
         catch (Exception ex)

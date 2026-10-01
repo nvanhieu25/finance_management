@@ -89,9 +89,18 @@ public partial class GdnttFormViewModel : ViewModelBase
 
     private static string Money(decimal? value) => value is null ? "" : MoneyText.Format(value.Value);
 
+    /// Model biểu mẫu theo trạng thái hiện tại, hoặc null khi lựa chọn đợt chưa hợp lệ (chưa chọn đợt nào,
+    /// hoặc trải nhiều gói thầu) — đúng lúc CanExport == false.
+    public GdnttForm? BuildForm() => BuildResult().Form;
+
+    /// Chỗ dựng duy nhất, dùng chung cho bản xem trước, xuất Excel và in. Trả cả kết quả chứ không chỉ model
+    /// vì bản xem trước và nút xuất còn cần thông báo lỗi để nói vì sao chưa dựng được.
+    private GdnttBuildResult BuildResult() =>
+        GdnttBuilder.Build(_rows, Picker.SelectedKeys, _declaration, _org);
+
     private void Rebuild()
     {
-        var result = GdnttBuilder.Build(_rows, Picker.SelectedKeys, _declaration, _org);
+        var result = BuildResult();
         _form = result.Form;
         ErrorMessage = result.Error;
 
@@ -108,7 +117,7 @@ public partial class GdnttFormViewModel : ViewModelBase
     [RelayCommand]
     private async Task ExportAsync()
     {
-        var result = GdnttBuilder.Build(_rows, Picker.SelectedKeys, _declaration, _org);
+        var result = BuildResult();
         if (result.Form is null)
         {
             await _dialog.ShowMessageAsync("Chưa xuất được", result.Error ?? "Lựa chọn đợt chưa hợp lệ.");

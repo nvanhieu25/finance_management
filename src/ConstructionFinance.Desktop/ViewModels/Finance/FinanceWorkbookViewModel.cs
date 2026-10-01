@@ -3,6 +3,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using ConstructionFinance.Application.Forms;
 using ConstructionFinance.Application.Import;
+using ConstructionFinance.Application.Printing;
 using ConstructionFinance.Application.Services.Interfaces;
 using ConstructionFinance.Desktop.Common;
 using ConstructionFinance.Desktop.Services;
@@ -14,7 +15,7 @@ using Serilog;
 namespace ConstructionFinance.Desktop.ViewModels.Finance;
 
 /// Excel-like workbook: a pinned TH page plus one page per project.
-public partial class FinanceWorkbookViewModel : ViewModelBase
+public partial class FinanceWorkbookViewModel : ViewModelBase, IPrintablePage, IPrintableWorkbook
 {
     private readonly IFinanceProjectService _service;
     private readonly IDialogService _dialog;
@@ -360,6 +361,9 @@ public partial class FinanceWorkbookViewModel : ViewModelBase
             or ThongTriFormPageViewModel or KsChiFormPageViewModel or GdnttFormPageViewModel)
             RefreshAggregateTabs();
 
+        // Đổi tab là đổi PrintSheetName (ủy quyền cho tab đang mở). Báo SAU lần làm mới ở trên để người nghe
+        // (nút In ở khung chung) đọc giá trị đã cập nhật.
+        OnPropertyChanged(nameof(PrintSheetName));
         DeleteViTriCommand.NotifyCanExecuteChanged();
     }
 
@@ -682,5 +686,31 @@ public partial class FinanceWorkbookViewModel : ViewModelBase
                 OnPropertyChanged(nameof(IsDirty));
         };
         return page;
+    }
+
+    // ===== In =====
+
+    // Ủy quyền cho tab đang mở: khung chung chỉ biết một interface, không cần biết đến khái niệm tab.
+    public string? PrintSheetName => SelectedViTriPage?.PrintSheetName;
+    public PrintSheet? BuildPrintSheet() => SelectedViTriPage?.BuildPrintSheet();
+
+    /// Tên dùng đặt tên tệp in: mã dự án nếu có, không thì tên dự án.
+    public string PrintWorkbookName => SelectedProjectCode is { Length: > 0 } code
+        ? code
+        : SelectedProjectName;
+
+    /// Thứ tự sheet theo Mẫu.xlsx: Tổng hợp → Vị trí 1..N → Quyết toán năm → 3 biểu mẫu — đúng thứ tự dải
+    /// tab ViTriPages. Trang nào trả null (ví dụ GĐNTT chưa chọn gói thầu) thì bỏ qua, không chặn cả lô.
+    public IReadOnlyList<PrintSheet> BuildAllSheets()
+    {
+        // Làm mới các tab Tổng hợp, Quyết toán năm và biểu mẫu TRƯỚC khi gom. Chúng chỉ tự làm mới khi được
+        // chọn và ở lần sửa ĐẦU TIÊN của mỗi sổ Vị trí (lúc IsDirty lật false→true, xem AddViTriPage). Đứng ở
+        // tab Vị trí, sửa từ lần thứ hai trở đi rồi bấm In toàn bộ: không làm mới ở đây thì các sheet đó mang
+        // số cũ mà không có gì cảnh báo.
+        RefreshAggregateTabs();
+
+        return ViTriPages.Select(p => p.BuildPrintSheet())
+                         .OfType<PrintSheet>()
+                         .ToList();
     }
 }

@@ -84,9 +84,14 @@ public partial class ThongTriFormViewModel : ViewModelBase
     /// Bản khai hiện tại để workbook lưu kèm cây.
     public ThongTriDeclaration ToDeclaration() => _declaration;
 
+    /// Model biểu mẫu theo trạng thái hiện tại. Một chỗ dựng duy nhất, dùng chung cho bản xem trước,
+    /// xuất Excel và in — không chỗ nào khác được tự gọi ThongTriBuilder.
+    public ThongTriForm BuildForm() =>
+        ThongTriBuilder.Build(_rows, Picker.SelectedKeys, _declaration, _org, _projectName);
+
     private void Rebuild()
     {
-        var form = ThongTriBuilder.Build(_rows, Picker.SelectedKeys, _declaration, _org, _projectName);
+        var form = BuildForm();
 
         Lines.Clear();
         foreach (var line in form.Lines)
@@ -113,7 +118,7 @@ public partial class ThongTriFormViewModel : ViewModelBase
 
         try
         {
-            var form = ThongTriBuilder.Build(_rows, Picker.SelectedKeys, _declaration, _org, _projectName);
+            var form = BuildForm();
             await _exporter.ExportThongTriAsync(form, path);
             await _dialog.ShowMessageAsync("Xuất Excel", $"Đã xuất Thông tri ra:\n{path}");
         }
