@@ -38,8 +38,11 @@ public sealed record PrintRow(
 
 public abstract record PrintSheet(string SheetName, PrintPageProfile Page);
 
-/// Sheet dạng bảng: Sổ Vị trí, Tổng hợp, Quyết toán năm.
-/// HeaderRowCount = số dòng đầu vừa in đậm/kẻ khung vừa lặp lại ở mỗi trang.
+/// Sheet dạng bảng: Sổ Vị trí, Tổng hợp, Quyết toán năm. Bộ ghi đặt dòng 1 là tiêu đề cột
+/// (lấy từ Columns, in đậm) và Rows bắt đầu từ dòng 2. Page.RepeatRowsTop quyết định bao
+/// nhiêu dòng đầu được lặp lại ở mỗi trang, đếm từ dòng 1 — nên RepeatRowsTop = 2 là lặp
+/// tiêu đề cộng dòng dữ liệu đầu tiên. Kiểu từng dòng dữ liệu do PrintRow.IsBold /
+/// IsShaded quyết định.
 public sealed record PrintTableSheet(
     string SheetName,
     PrintPageProfile Page,
