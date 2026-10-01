@@ -164,9 +164,11 @@ public static class PrintPageProfiles
     public static PrintPageProfile YearSettlement { get; } =
         new(PrintOrientation.Portrait, 1, 0, 1, 0);
 
-    public static PrintPageProfile ThongTri { get; } = new(PrintOrientation.Portrait, 1, 1, 0, 0);
-    public static PrintPageProfile KsChi { get; } = new(PrintOrientation.Portrait, 1, 1, 0, 0);
-    public static PrintPageProfile Gdntt { get; } = new(PrintOrientation.Landscape, 1, 1, 0, 0);
+    // Ép NGANG 1 trang, cao bao nhiêu trang cũng được (spec §5 chỉ có cột "Ép ngang").
+    // Ép dọc 1 trang là sai: Excel không có sàn tỉ lệ, Thông tri dài sẽ co tới mức không đọc nổi.
+    public static PrintPageProfile ThongTri { get; } = new(PrintOrientation.Portrait, 1, 0, 0, 0);
+    public static PrintPageProfile KsChi { get; } = new(PrintOrientation.Portrait, 1, 0, 0, 0);
+    public static PrintPageProfile Gdntt { get; } = new(PrintOrientation.Landscape, 1, 0, 0, 0);
 }
 ```
 
@@ -605,7 +607,7 @@ Tạo `tests/ConstructionFinance.Application.Tests/Printing/PrintFormSheetTests.
         wb.Worksheet(2).Name.ShouldBe("Thông tri");
         wb.Worksheet(2).Cell(4, 1).GetString().ShouldBe("THÔNG TRI");
         wb.Worksheet(2).PageSetup.PageOrientation.ShouldBe(XLPageOrientation.Portrait);
-        wb.Worksheet(2).PageSetup.PagesTall.ShouldBe(1);
+        wb.Worksheet(2).PageSetup.PagesTall.ShouldBe(0);   // sửa sau review Task 3: không ép dọc
     }
 
     [Fact]
