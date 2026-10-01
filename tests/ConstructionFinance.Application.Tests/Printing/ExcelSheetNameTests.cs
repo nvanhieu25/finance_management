@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using ClosedXML.Excel;
 using ConstructionFinance.Application.Printing;
 using Shouldly;
 using Xunit;
@@ -81,6 +82,63 @@ public class ExcelSheetNameTests
         result.ShouldBe(new string('a', 30) + "b");
         result.ShouldNotStartWith("'");
         result.ShouldNotEndWith("'");
+    }
+
+    // Ba test dưới đây chốt MỘT chỗ khác với hàm gốc, và là chỗ cố ý: cắt không xé đôi cặp
+    // surrogate. Hàm gốc cắt cứng theo đơn vị UTF-16, nên một tên có emoji vắt qua ranh giới để
+    // lại surrogate cao lẻ ở cuối — ClosedXML ném ArgumentException khi LƯU workbook (không phải
+    // lúc AddWorksheet), làm hỏng cả lần in.
+
+    [Fact]
+    public void Cat_con_31_ky_tu_khong_xe_doi_cap_surrogate()
+    {
+        var raw = new string('a', 30) + "\U0001F600" + "tail";   // surrogate cao đúng ở ký tự thứ 31
+
+        var name = ExcelSheetName.Unique(raw, new HashSet<string>());
+
+        name.ShouldBe(new string('a', 30));
+        name.Any(char.IsSurrogate).ShouldBeFalse();
+        AssertWorkbookSaves(name);
+    }
+
+    [Fact]
+    public void Cat_de_nhuong_cho_hau_to_khong_xe_doi_cap_surrogate()
+    {
+        // Tên 30 ký tự thì hợp lệ. Thêm " (2)" phải cắt còn 27 ký tự, và dao rơi đúng giữa cặp
+        // surrogate nằm ở ký tự thứ 27-28.
+        var used = new HashSet<string>();
+        var raw = new string('a', 26) + "\U0001F600" + "bc";
+
+        ExcelSheetName.Unique(raw, used).ShouldBe(raw);
+        var second = ExcelSheetName.Unique(raw, used);
+
+        second.ShouldBe(new string('a', 26) + " (2)");
+        second.Any(char.IsSurrogate).ShouldBeFalse();
+        AssertWorkbookSaves(second);
+    }
+
+    [Fact]
+    public void Cap_surrogate_nam_tron_trong_31_ky_tu_duoc_giu_nguyen()
+    {
+        // Mặt kia của hai test trên: cặp surrogate kết thúc đúng ở ký tự thứ 31 thì còn nguyên,
+        // không được lùi. Lùi nhầm ở đây để lại surrogate cao lẻ — đúng lỗi đang cần tránh.
+        var raw = new string('a', 29) + "\U0001F600" + "tail";
+
+        var name = ExcelSheetName.Unique(raw, new HashSet<string>());
+
+        name.ShouldBe(new string('a', 29) + "\U0001F600");
+        name.Length.ShouldBe(31);
+        AssertWorkbookSaves(name);
+    }
+
+    /// ClosedXML từ chối tên sheet hỏng ở lúc lưu, nên "lưu được" mới là chuẩn đối chiếu thật.
+    private static void AssertWorkbookSaves(string sheetName)
+    {
+        using var workbook = new XLWorkbook();
+        workbook.AddWorksheet(sheetName);
+        using var buffer = new MemoryStream();
+
+        Should.NotThrow(() => workbook.SaveAs(buffer));
     }
 
     [Fact]

@@ -223,9 +223,10 @@ public class PrintWorkbookWriterTests
         style.Font.FontSize.ShouldBe(13d);
     }
 
-    // ---- Các hành vi còn lại của bộ ghi: đường ghi ra tệp, căn lề theo PrintAlign, WrapText,
-    // ---- thụt bậc chỉ ở ô đầu, định dạng số, lặp dòng/cột, lề trang, và chân trang khi tên
-    // ---- dự án có dấu & hoặc quá dài.
+    // ---- Các hành vi còn lại của bộ ghi: đường ghi ra tệp và hủy giữa chừng, tên sheet chỉ khác
+    // ---- hoa/thường, căn lề theo PrintAlign, WrapText, thụt bậc chỉ ở ô đầu, định dạng số, lặp
+    // ---- dòng/cột, lề trang, kẻ khung, dòng nhiều ô hơn số cột, và chân trang (dấu &, tên quá
+    // ---- dài, cặp surrogate, mọi loại trang).
 
     [Fact]
     public async Task WriteAsync_ghi_tep_that_va_mo_lai_duoc()

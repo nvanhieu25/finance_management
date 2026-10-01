@@ -133,13 +133,7 @@ public sealed class PrintWorkbookWriter : IPrintWorkbookWriter
         var text = string.Join(" · ", parts);
 
         if (text.Length > MaxFooterLeftChars)
-        {
-            // Cắt theo đơn vị UTF-16, chừa một chỗ cho "…". Nếu dao rơi giữa một cặp surrogate
-            // thì lùi một ký tự: surrogate lẻ không phải XML hợp lệ, ClosedXML ném khi lưu.
-            var cut = MaxFooterLeftChars - 1;
-            if (char.IsHighSurrogate(text[cut - 1])) cut--;
-            text = text[..cut] + "…";
-        }
+            text = TextTruncation.Truncate(text, MaxFooterLeftChars - 1) + "…";   // chừa một chỗ cho "…"
         return text.Replace("&", "&&");
     }
 

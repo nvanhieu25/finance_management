@@ -5,7 +5,8 @@ namespace ConstructionFinance.Application.Printing;
 /// Tên sheet Excel: tối đa 31 ký tự, không được chứa \ / * ? : [ ] và không được
 /// bắt đầu hoặc kết thúc bằng dấu nháy đơn. Tách ra từ FinanceExportService (7E sẽ xóa
 /// tệp đó) để cả đường xuất cũ lẫn tính năng in dùng chung một quy tắc. Hành vi giữ
-/// nguyên so với hàm gốc — đây là chuyển chỗ ở, không phải sửa quy tắc.
+/// nguyên so với hàm gốc, trừ một chỗ cố ý sửa: cắt không xé đôi cặp surrogate (xem
+/// TextTruncation) — hàm gốc cắt cứng, nên tên có emoji vắt qua ranh giới làm ClosedXML ném.
 public static class ExcelSheetName
 {
     private const int MaxLength = 31;
@@ -33,10 +34,7 @@ public static class ExcelSheetName
         for (var n = 2; ; n++)
         {
             var suffix = $" ({n})";
-            var trimmed = cleaned.Length + suffix.Length > MaxLength
-                ? cleaned[..(MaxLength - suffix.Length)]
-                : cleaned;
-            var candidate = trimmed + suffix;
+            var candidate = TextTruncation.Truncate(cleaned, MaxLength - suffix.Length) + suffix;
             if (used.Add(candidate)) return candidate;
         }
     }
@@ -50,6 +48,6 @@ public static class ExcelSheetName
 
         var text = sb.ToString().Trim();
         if (text.Length == 0) return Fallback;
-        return text.Length > MaxLength ? text[..MaxLength] : text;
+        return TextTruncation.Truncate(text, MaxLength);
     }
 }
