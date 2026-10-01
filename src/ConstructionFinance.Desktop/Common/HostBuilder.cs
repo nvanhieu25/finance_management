@@ -1,4 +1,5 @@
 using ConstructionFinance.Application;
+using ConstructionFinance.Application.Printing;
 using ConstructionFinance.Data;
 using ConstructionFinance.Infrastructure;
 using Microsoft.EntityFrameworkCore;
@@ -35,6 +36,8 @@ public static class HostBuilder
                 services.AddSingleton<ViewModels.MainWindowViewModel>();
                 services.AddSingleton<Services.IDialogService, Services.DialogService>();
                 services.AddSingleton<Services.INavigationService, Services.NavigationService>();
+                services.AddSingleton<Services.IFileLauncher, Services.FileLauncher>();
+                services.AddSingleton<IPrintWorkbookWriter, PrintWorkbookWriter>();
                 services.AddTransient<ViewModels.Vendors.VendorListViewModel>();
                 services.AddTransient<ViewModels.Decisions.DecisionListViewModel>();
                 services.AddTransient<ViewModels.Contracts.ContractListViewModel>();

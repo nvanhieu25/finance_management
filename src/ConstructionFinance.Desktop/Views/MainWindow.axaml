@@ -46,16 +46,39 @@
                 </ui:NavigationViewItem>
             </ui:NavigationView.MenuItems>
             <ui:NavigationView.PaneFooter>
-                <Button Command="{Binding OpenImportWizardCommand}"
-                        Classes="accent"
-                        HorizontalAlignment="Stretch"
-                        HorizontalContentAlignment="Center"
-                        Margin="8,4">
-                    <StackPanel Orientation="Horizontal" Spacing="8">
-                        <ui:SymbolIcon Symbol="{x:Static ui:Symbol.Import}"/>
-                        <TextBlock Text="Import Excel"/>
-                    </StackPanel>
-                </Button>
+                <StackPanel>
+                    <!-- Nút In nằm một chỗ cố định ở mọi màn. Màn đang mở không có gì để in thì nút MỜ chứ không ẩn, để
+                         người dùng quen tay; ShowOnDisabled để lúc mờ vẫn đọc được tooltip nói vì sao. -->
+                    <Button x:Name="PrintButton"
+                            Classes="accent"
+                            HorizontalAlignment="Stretch"
+                            HorizontalContentAlignment="Center"
+                            Margin="8,4"
+                            IsEnabled="{Binding CanPrint}"
+                            ToolTip.Tip="{Binding PrintToolTip}"
+                            ToolTip.ShowOnDisabled="True">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <ui:SymbolIcon Symbol="{x:Static ui:Symbol.Print}"/>
+                            <TextBlock Text="In"/>
+                        </StackPanel>
+                        <Button.Flyout>
+                            <MenuFlyout>
+                                <MenuItem Header="In sheet này" Command="{Binding PrintCurrentSheetCommand}"/>
+                                <MenuItem Header="In toàn bộ" Command="{Binding PrintAllCommand}"/>
+                            </MenuFlyout>
+                        </Button.Flyout>
+                    </Button>
+                    <Button Command="{Binding OpenImportWizardCommand}"
+                            Classes="accent"
+                            HorizontalAlignment="Stretch"
+                            HorizontalContentAlignment="Center"
+                            Margin="8,4">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <ui:SymbolIcon Symbol="{x:Static ui:Symbol.Import}"/>
+                            <TextBlock Text="Import Excel"/>
+                        </StackPanel>
+                    </Button>
+                </StackPanel>
             </ui:NavigationView.PaneFooter>
             <Border Background="{DynamicResource AppBackgroundBrush}">
                 <ContentControl Content="{Binding CurrentContent}" Margin="20"/>
