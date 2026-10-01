@@ -255,11 +255,13 @@ public partial class MainWindowViewModel : ViewModelBase
         }
         catch (IOException ex)
         {
-            // Còn lại của IOException: nói thật cả hai nguyên nhân hay gặp, thay vì chỉ một.
-            LogPrintIoFailure(ex, path, "lỗi vào/ra: tệp đang mở hoặc ổ đầy");
+            // Còn lại của IOException: ba nguyên nhân hay gặp mà không thể phân biệt nếu không dựa vào mã riêng từng hệ điều
+            // hành (xung đột chia sẻ, ổ đầy, ổ mạng ngắt; ổ mạng offline trên Windows rất có thể ra IOException trơn, chưa
+            // kiểm). Câu thông báo nói thật cả ba, mỗi nguyên nhân kèm việc nên làm; chỗ phân biệt chính xác nằm ở nhật ký.
+            LogPrintIoFailure(ex, path, "lỗi vào/ra: tệp đang mở, ổ đầy hoặc ổ mạng ngắt kết nối");
             await dialog.ShowMessageAsync(PrintFileTitle,
-                "Không ghi được tệp. Có thể tệp đang được mở trong chương trình khác, hoặc ổ đĩa đã đầy. " +
-                "Hãy đóng tệp nếu đang mở, hoặc giải phóng dung lượng ổ đĩa, rồi thử lại.");
+                "Không ghi được tệp. Có thể tệp đang được mở trong chương trình khác, ổ đĩa đã đầy, hoặc ổ mạng bị ngắt kết nối. " +
+                "Hãy đóng tệp nếu đang mở, giải phóng dung lượng ổ đĩa, hoặc kiểm tra kết nối ổ mạng, rồi thử lại.");
             return;
         }
         catch (Exception ex)
@@ -277,8 +279,8 @@ public partial class MainWindowViewModel : ViewModelBase
             await dialog.ShowMessageAsync(PrintFileTitle, $"Đã lưu tệp tại:\n{path}");
     }
 
-    /// Nhật ký cho các lỗi ghi họ IOException. Người dùng chỉ đọc một câu ("tệp đang mở hoặc ổ đầy" che cả hai nguyên nhân);
-    /// nhật ký là thứ duy nhất cho người hỗ trợ biết đó là xung đột chia sẻ, ổ đầy hay ổ bị rút. HResult nằm ngay trong dòng
+    /// Nhật ký cho các lỗi ghi họ IOException. Người dùng chỉ đọc một câu (câu của nhánh IOException che cả ba nguyên nhân);
+    /// nhật ký là thứ duy nhất cho người hỗ trợ biết đó là xung đột chia sẻ, ổ đầy, ổ bị rút hay ổ mạng ngắt. HResult nằm ngay trong dòng
     /// vì cùng một lỗi mang mã khác nhau theo hệ điều hành (xung đột chia sẻ: đo trên Linux là 0x0B, Windows là 0x20/0x21 theo
     /// tài liệu Win32). Warning chứ không phải Error: đây là tình huống của môi trường người dùng, không phải lỗi của ứng dụng.
     private static void LogPrintIoFailure(Exception ex, string path, string cause) =>

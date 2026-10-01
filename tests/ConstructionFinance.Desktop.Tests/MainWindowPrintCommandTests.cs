@@ -33,8 +33,8 @@ public class MainWindowPrintCommandTests
     // Những dòng người dùng đọc được, đúng từng chữ. FakeDialogService ghi mỗi thông báo thành
     // "MSG: <tiêu đề> — <nội dung>".
     private const string NothingToPrintMessage = "MSG: In — Chưa có nội dung nào để in.";
-    private const string FileInUseOrDiskFullMessage =
-        "MSG: In ra Excel — Không ghi được tệp. Có thể tệp đang được mở trong chương trình khác, hoặc ổ đĩa đã đầy. Hãy đóng tệp nếu đang mở, hoặc giải phóng dung lượng ổ đĩa, rồi thử lại.";
+    private const string IoFailureMessage =
+        "MSG: In ra Excel — Không ghi được tệp. Có thể tệp đang được mở trong chương trình khác, ổ đĩa đã đầy, hoặc ổ mạng bị ngắt kết nối. Hãy đóng tệp nếu đang mở, giải phóng dung lượng ổ đĩa, hoặc kiểm tra kết nối ổ mạng, rồi thử lại.";
     private const string SaveLocationUnavailableMessage =
         "MSG: In ra Excel — Không ghi được tệp vì nơi lưu không hợp lệ hoặc không truy cập được (thư mục không còn tồn tại, ổ đĩa USB hoặc ổ mạng đã bị ngắt kết nối, hoặc đường dẫn quá dài). Hãy kiểm tra kết nối ổ đĩa hoặc chọn nơi lưu khác, rồi thử lại.";
     private const string WriteFailedMessage =
@@ -428,10 +428,11 @@ public class MainWindowPrintCommandTests
 
     // ===== Khi ghi/mở tệp không thành =====
 
-    // IOException TRƠN (không phải lớp con): hai nguyên nhân còn lại sau khi đã tách riêng lỗi nơi lưu, và câu thông báo nêu cả
-    // hai để không nói sai: tệp đang mở trong chương trình khác, hoặc ổ đĩa đã đầy.
+    // IOException TRƠN (không phải lớp con): sau khi đã tách riêng lỗi nơi lưu còn ba nguyên nhân hay gặp mà không thể phân biệt
+    // nếu không dựa vào mã riêng từng hệ điều hành, nên câu thông báo nêu cả ba để không nói sai: tệp đang mở trong chương trình
+    // khác, ổ đĩa đã đầy, hoặc ổ mạng bị ngắt kết nối. Chỗ phân biệt chính xác nằm ở nhật ký (HResult), không ở câu này.
     [Fact]
-    public async Task Tep_dang_mo_hoac_o_day_thi_bao_ca_hai_nguyen_nhan_va_khong_mo_tep()
+    public async Task Tep_dang_mo_o_day_hoac_o_mang_ngat_thi_bao_ca_ba_nguyen_nhan_va_khong_mo_tep()
     {
         var writer = new FakeWriter { FailWith = new IOException("The process cannot access the file") };
         var launcher = new FakeLauncher();
@@ -441,8 +442,32 @@ public class MainWindowPrintCommandTests
 
         await vm.PrintCurrentSheetCommand.ExecuteAsync(null);
 
-        dialog.ShownMessages.ShouldBe(new[] { FileInUseOrDiskFullMessage });
+        dialog.ShownMessages.ShouldBe(new[] { IoFailureMessage });
         launcher.Opened.ShouldBeNull();
+    }
+
+    // Ca mà việc nêu nguyên nhân mạng sinh ra để phục vụ: ổ mạng ánh xạ hoặc đường dẫn UNC đang offline. Theo cách .NET đổi lỗi
+    // Win32 thành ngoại lệ (nhớ lại, CHƯA kiểm trên Windows), "network path not found" (53) thành IOException TRƠN, nên nó rơi vào
+    // nhánh này và người dùng phải đọc nguyên nhân mạng chứ không bị đẩy đi tìm dung lượng ổ đĩa. Nhánh KHÔNG dựa vào mã: cùng
+    // một câu cho mọi IOException trơn; mã (ở đây 0x80070035) chỉ nằm trong nhật ký để người hỗ trợ phân biệt ba nguyên nhân.
+    // Hai dòng ShouldContain ghim YÊU CẦU (nêu nguyên nhân mạng và lời khuyên mạng) độc lập với hằng IoFailureMessage dùng chung.
+    [Fact]
+    public async Task O_mang_ngat_la_IOException_tron_thi_cau_nhac_ket_noi_mang_va_nhat_ky_giu_HResult()
+    {
+        var failure = new IOException("The network path was not found.", unchecked((int)0x80070035));
+        var writer = new FakeWriter { FailWith = failure };
+        var dialog = new FakeDialogService();
+        var vm = CreateMainWindowViewModel(writer, dialog: dialog, savePath: "//server/share/in.xlsx");
+        vm.CurrentContent = new FakePrintablePage("Vị trí 1");
+
+        var logged = await CaptureLogAsync(() => vm.PrintCurrentSheetCommand.ExecuteAsync(null));
+
+        var shown = dialog.ShownMessages.ShouldHaveSingleItem();
+        shown.ShouldBe(IoFailureMessage);
+        shown.ShouldContain("ổ mạng bị ngắt kết nối");
+        shown.ShouldContain("kiểm tra kết nối ổ mạng");
+        logged.Where(e => ReferenceEquals(e.Exception, failure)).ShouldHaveSingleItem()
+            .RenderMessage().ShouldContain("0x80070035");
     }
 
     // DirectoryNotFoundException, PathTooLongException và DriveNotFoundException đều là con của IOException, nên nếu không có
@@ -488,14 +513,14 @@ public class MainWindowPrintCommandTests
         launcher.Opened.ShouldBeNull();
     }
 
-    // Người dùng chỉ đọc một câu; nhật ký là thứ DUY NHẤT cho người hỗ trợ biết lỗi ghi là xung đột chia sẻ, ổ đầy hay ổ bị rút (câu
-    // "tệp đang mở hoặc ổ đầy" che cả hai). Mỗi nhánh họ IOException ghi một dòng Warning mang chính đối tượng ngoại lệ, đường
+    // Người dùng chỉ đọc một câu; nhật ký là thứ DUY NHẤT cho người hỗ trợ biết lỗi ghi là xung đột chia sẻ, ổ đầy, ổ bị rút hay ổ mạng
+    // ngắt (câu của nhánh IOException che cả ba). Mỗi nhánh họ IOException ghi một dòng Warning mang chính đối tượng ngoại lệ, đường
     // dẫn đích, nguyên nhân CỦA NHÁNH ĐÓ (không dùng chung một nhãn) và HResult (cùng một lỗi mang mã khác nhau theo hệ điều hành).
     [Theory]
     [InlineData(typeof(DirectoryNotFoundException), "thư mục không tồn tại")]
     [InlineData(typeof(PathTooLongException), "đường dẫn quá dài")]
     [InlineData(typeof(DriveNotFoundException), "ổ đĩa không tồn tại hoặc đã ngắt kết nối")]
-    [InlineData(typeof(IOException), "lỗi vào/ra: tệp đang mở hoặc ổ đầy")]
+    [InlineData(typeof(IOException), "lỗi vào/ra: tệp đang mở, ổ đầy hoặc ổ mạng ngắt kết nối")]
     public async Task Moi_nhanh_loi_ghi_ho_IOException_deu_ghi_nhat_ky_kem_ngoai_le_duong_dan_nguyen_nhan_va_HResult(
         Type exceptionType, string expectedCause)
     {
@@ -608,7 +633,7 @@ public class MainWindowPrintCommandTests
     }
 
     [Fact]
-    public async Task Tep_dich_that_su_dang_bi_giu_mo_thi_bo_ghi_that_nem_IOException_va_lenh_bao_tep_dang_mo_hoac_o_day()
+    public async Task Tep_dich_that_su_dang_bi_giu_mo_thi_bo_ghi_that_nem_IOException_va_lenh_bao_ca_ba_nguyen_nhan()
     {
         var path = Path.Combine(Path.GetTempPath(), $"in-test-{Guid.NewGuid():N}.xlsx");
         try
@@ -625,7 +650,7 @@ public class MainWindowPrintCommandTests
 
             await vm.PrintCurrentSheetCommand.ExecuteAsync(null);
 
-            dialog.ShownMessages.ShouldBe(new[] { FileInUseOrDiskFullMessage });
+            dialog.ShownMessages.ShouldBe(new[] { IoFailureMessage });
             launcher.Opened.ShouldBeNull();
             held.Length.ShouldBe(0);                               // tệp đang bị giữ không bị ghi đè
         }
