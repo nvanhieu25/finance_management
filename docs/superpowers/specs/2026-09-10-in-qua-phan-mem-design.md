@@ -129,9 +129,14 @@ Cho "In toàn bộ":
 public interface IPrintableWorkbook
 {
     string PrintWorkbookName { get; }        // dùng đặt tên tệp
-    IReadOnlyList<PrintSheet> BuildAllSheets();
+    bool CanPrintAll { get; }                // RẺ và KHÔNG tác dụng phụ: chỉ đọc tên sheet
+    IReadOnlyList<PrintSheet> BuildAllSheets();   // đường HÀNH ĐỘNG: tự làm mới tab tổng hợp
 }
 ```
+
+`CanPrintAll` tách riêng vì `CanExecute` của lệnh bị gọi rất thường xuyên: `BuildAllSheets()` làm mới tab tổng hợp, nên gọi nó trong một phép hỏi trạng thái vừa đắt vừa gây tác dụng phụ (đo được: làm mới hai lần mỗi lần đổi tab).
+
+Hợp đồng thông báo: `PrintSheetName` khác null PHẢI nghĩa là có sheet thật — tab GĐNTT chưa chọn gói thầu trả null ở CẢ HAI thành viên. Khi điều kiện đó lật, trang biểu mẫu bắn `PrintSheetName` và workbook bắn kèm `CanPrintAll`, nếu không nút In vẫn xám cho tới khi user đổi tab.
 
 Chỉ `FinanceWorkbookViewModel` implement — nó là nơi duy nhất nắm đủ mọi tab của dự án. Màn nào không implement thì mục "In toàn bộ" mờ đi.
 

@@ -672,7 +672,8 @@ public interface IPrintablePage
 public interface IPrintableWorkbook
 {
     string PrintWorkbookName { get; }
-    IReadOnlyList<PrintSheet> BuildAllSheets();
+    bool CanPrintAll { get; }                      // rẻ, không tác dụng phụ
+    IReadOnlyList<PrintSheet> BuildAllSheets();   // đường hành động: tự làm mới tab tổng hợp
 }
 ```
 
@@ -1175,7 +1176,9 @@ Tạo `tests/ConstructionFinance.Desktop.Tests/MainWindowPrintCommandTests.cs` v
     }
 
     private bool CanPrintAll() =>
-        CurrentContent is IPrintableWorkbook wb && wb.BuildAllSheets().Count > 0;
+        CurrentContent is IPrintableWorkbook wb && wb.CanPrintAll;
+        // KHÔNG gọi BuildAllSheets() ở đây: nó làm mới tab tổng hợp, nên đặt trong
+        // CanExecute là nhét tác dụng phụ vào một phép hỏi bị gọi rất thường xuyên.
 
     /// Đường chung của cả hai lệnh: chọn nơi lưu → ghi → mở bằng ứng dụng mặc định.
     private async Task PrintAsync(IReadOnlyList<PrintSheet> sheets, string sheetLabel)
