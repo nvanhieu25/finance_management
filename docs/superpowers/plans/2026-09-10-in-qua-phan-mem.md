@@ -106,7 +106,7 @@ public sealed record PrintRow(
     IReadOnlyList<PrintCell> Cells,
     int IndentLevel = 0,
     bool IsBold = false,
-    bool IsShaded = false);
+    PrintShade Shade = PrintShade.None);
 
 public abstract record PrintSheet(string SheetName, PrintPageProfile Page);
 
@@ -358,9 +358,9 @@ public class PrintWorkbookWriterTests
         new[]
         {
             new PrintRow(new[] { PrintCell.Empty, PrintCell.OfText("TỔNG CỘNG"), PrintCell.OfMoney(3_750_000m) },
-                IndentLevel: 0, IsBold: true, IsShaded: true),
+                IndentLevel: 0, IsBold: true, Shade: PrintShade.Light),
             new PrintRow(new[] { PrintCell.Empty, PrintCell.OfText("CHI PHÍ XÂY DỰNG"), PrintCell.Empty },
-                IndentLevel: 0, IsBold: true),
+                IndentLevel: 0, IsBold: true, Shade: PrintShade.VeryLight),
             new PrintRow(new[]
                 {
                     PrintCell.OfDate(new DateOnly(2026, 3, 15)),
@@ -865,7 +865,7 @@ và cho lớp khai báo `: ViewModelBase, IPrintablePage`.
 
 Ô theo loại dòng (ô nào không có dữ liệu thì `PrintCell.Empty`):
 
-- **Total / Group**: cột 1 = `Name`; cột 10–13 = `Aggregate` (`DisbursedNSNN`, `DisbursedNgoaiHoi`, `UnrecoveredAdvance`, `TotalDisbursed`). `IsBold = true`; Total thêm `IsShaded = true`.
+- **Total / Group**: cột 1 = `Name`; cột 10–13 = `Aggregate` (`DisbursedNSNN`, `DisbursedNgoaiHoi`, `UnrecoveredAdvance`, `TotalDisbursed`). `IsBold = true`; Total `Shade = PrintShade.Light`, Group `Shade = PrintShade.VeryLight` (spec §6.1 cho ba mức nền).
 - **Package**: cột 1 = `Name`; cột 2 = `ContractorName` + `"\n"` + `BankAccount` (bỏ phần rỗng, cả hai rỗng thì `Empty`); cột 3 = `ContractValue`; cột 4 = `ContractAnnexValue`; cột 10–13 = `Aggregate`. `IsBold = true`.
 - **Entry**: cột 0 = `Date`; cột 1 = `Content`; cột 5 = `DocumentNo`; cột 6 = `Advance`; cột 7 = `PaymentKLHT`; cột 8 = `RecoveredAdvance`; cột 9 = `FundText`. `IsBold = false`.
 
@@ -873,11 +873,11 @@ và cho lớp khai báo `: ViewModelBase, IPrintablePage`.
 
 `PrintSheetName` = `Ledger.Name`; rỗng thì `"(vị trí mới)"` (dùng lại quy tắc `DisplayName` đã có trong lớp).
 
-`ProjectTongHopPageViewModel` — 13 cột từ `SummaryDisplayRow`, tất cả là `PrintCell.OfText` (đây là chuỗi hiển thị sẵn, giữ nguyên để bản in khớp màn hình từng ký tự):
+`ProjectTongHopPageViewModel` — 13 cột từ `SummaryDisplayRow`. **Chín cột tiền là `PrintCell.OfMoney`**, đọc số gốc qua `SummaryDisplayRow.Source` (spec §4.2: ô mang giá trị có kiểu, tệp phải cộng được trong Excel). Bốn cột còn lại — `STT`, `Tên vị trí`, `Đơn vị thi công`, `Quyết toán năm` — là `OfText`. `OfMoney` cho ra đúng cách nhóm nghìn và đúng quy ước 0-ra-ô-trống như `MoneyText`, nên bản in vẫn khớp màn hình:
 `STT`(5,Center) · `Tên vị trí`(30,Left) · `Đơn vị thi công`(24,Left) · `Giá trị HĐ, PL`(16,Right) · `Tạm ứng`(16,Right) · `TT KLHT`(16,Right) · `Thu hồi`(15,Right) · `TT cho nhà thầu`(16,Right) · `Tạm ứng chưa thu hồi`(16,Right) · `GN Dự phòng NSNN`(16,Right) · `GN Quỹ DTNH`(16,Right) · `Tổng đã giải ngân`(16,Right) · `Quyết toán năm`(28,Left).
 `IsBold = row.IsBold`. `SheetName = "Tổng hợp"`.
 
-`YearSettlementPageViewModel` — 4 cột từ `YearSettlementRow`, đều `OfText`:
+`YearSettlementPageViewModel` — 4 cột từ `YearSettlementRow`. `Năm` là `OfText`; **ba cột tiền là `OfMoney`** (spec §4.2), đọc số gốc giữ thêm trên `YearSettlementRow`:
 `Năm`(12,Center) · `NSNN`(18,Right) · `Ngoại hối`(18,Right) · `Tổng`(18,Right). `IsBold = row.IsBold`. `SheetName = "Quyết toán năm"`.
 
 - [ ] **Step 6: Chạy lại test rồi chạy toàn bộ suite**

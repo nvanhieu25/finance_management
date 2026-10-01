@@ -102,7 +102,8 @@ public sealed record PrintCell(PrintCellKind Kind, string? Text, decimal? Number
     public static PrintCell OfDate(DateOnly? v)  => new(PrintCellKind.Date,  null, null, v);
 }
 
-public sealed record PrintRow(IReadOnlyList<PrintCell> Cells, int IndentLevel, bool IsBold, bool IsShaded);
+public enum PrintShade { None, Light, VeryLight }   // §6.1 cần BA mức nền, bool không đủ
+public sealed record PrintRow(IReadOnlyList<PrintCell> Cells, int IndentLevel, bool IsBold, PrintShade Shade);
 public sealed record PrintColumn(string Header, double WidthChars, PrintAlign Align);
 public enum PrintAlign { Left, Center, Right }
 ```
