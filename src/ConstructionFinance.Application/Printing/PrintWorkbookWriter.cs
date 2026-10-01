@@ -77,7 +77,7 @@ public sealed class PrintWorkbookWriter : IPrintWorkbookWriter
                     WriteTable(ws, table, footer);
                     break;
                 case PrintFormSheet form:
-                    WriteForm(ws, form, footer, nameof(sheets));
+                    WriteForm(ws, form, footer);
                     break;
                 default:
                     throw new NotSupportedException($"Không hỗ trợ loại sheet {sheet.GetType().Name}.");
@@ -148,11 +148,8 @@ public sealed class PrintWorkbookWriter : IPrintWorkbookWriter
     /// Sheet biểu mẫu. Hàm vẽ tự đặt font, khổ giấy và HƯỚNG GIẤY bằng hằng số của nó, nên vẽ
     /// TRƯỚC rồi mới áp hồ sơ căn trang: để hồ sơ có tiếng nói cuối cùng. Cố ý KHÔNG kẻ lưới như
     /// sheet bảng — biểu mẫu đã tự kẻ khung đúng chỗ Mẫu có, kẻ cả vùng dùng sẽ bao khung luôn
-    /// những ô Mẫu để trắng. `sheetsParamName` là tên tham số `sheets` của Write, đặt vào
-    /// ArgumentException.ParamName để người gọi lọc được lỗi do model in dựng sai ra khỏi
-    /// ArgumentException của ClosedXML.
-    private static void WriteForm(
-        IXLWorksheet ws, PrintFormSheet form, PrintFooterInfo footer, string sheetsParamName)
+    /// những ô Mẫu để trắng.
+    private static void WriteForm(IXLWorksheet ws, PrintFormSheet form, PrintFooterInfo footer)
     {
         // Mỗi biểu mẫu khác null thêm đúng một hàm vẽ; số hàm vẽ CHÍNH LÀ số biểu mẫu, nên điều kiện
         // "đúng một" và việc chọn hàm vẽ không thể lệch nhau. Thêm biểu mẫu thứ tư vào FormPayload
@@ -168,8 +165,7 @@ public sealed class PrintWorkbookWriter : IPrintWorkbookWriter
 
         if (drawers.Count != 1)
             throw new ArgumentException(
-                $"Sheet \"{form.SheetName}\": FormPayload phải có đúng một biểu mẫu khác null, hiện có {drawers.Count}.",
-                sheetsParamName);
+                $"Sheet \"{form.SheetName}\": FormPayload phải có đúng một biểu mẫu khác null, hiện có {drawers.Count}.");
 
         drawers[0]();
         ApplyPage(ws, form.Page, footer);

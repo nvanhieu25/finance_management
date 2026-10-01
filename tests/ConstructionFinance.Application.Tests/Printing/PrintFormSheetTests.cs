@@ -166,8 +166,6 @@ public class PrintFormSheetTests
                 new PrintWorkbookWriter().Write(sheets, buffer, Footer), label);
 
             error.Message.ShouldContain("Hai biểu mẫu");
-            // ParamName là chỗ người gọi lọc lỗi do model in dựng sai ra khỏi ArgumentException của ClosedXML.
-            error.ParamName.ShouldBe("sheets", label);
         }
     }
 
