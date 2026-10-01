@@ -118,3 +118,12 @@ Số dòng sẽ mất: `finance_project_lines` 2 · `finance_project_decisions` 
 ## 10. Cổng nghiệm thu
 
 7E xong khi: build 0 cảnh báo · suite xanh · chạy app bấm hết 5 mục nav không lỗi · Ctrl+S lưu được cây Vị trí · thêm/xóa dự án chạy · màn Thông tri vẫn hiện 15 dòng cũ · nút "Import Excel" đã biến mất và không chỗ nào còn trỏ tới nó.
+
+## 11. Việc do review tính năng In chuyển sang (2026-10-01)
+
+`ExcelSheetName` được tách ra khỏi `FinanceExportService` ở commit `623aace` chính vì 7E sẽ xóa `FinanceExportService`. Hệ quả: khi 7E chạy, mấy comment lịch sử trong `src/ConstructionFinance.Application/Printing/ExcelSheetName.cs` và `tests/ConstructionFinance.Application.Tests/Printing/ExcelSheetNameTests.cs` sẽ treo — chúng mô tả mã bằng cách tham chiếu `FinanceExportService`, `UniqueSheetName` và "hàm gốc", tức là tham chiếu tới thứ không còn tồn tại. Cụ thể, sau 7E thì `grep UniqueSheetName` vẫn còn khớp văn xuôi trong tệp test, và tên dự phòng `"DA"` mất lý do được ghi của nó.
+
+Phải làm trong 7E:
+
+- Viết lại các comment đó cho đứng độc lập, không tham chiếu mã đã xóa.
+- Chốt luôn: giữ `"DA"` hay đổi sang tên dự phòng trung tính. `"DA"` là tên riêng của nghiệp vụ dự án nằm trong một helper dùng chung — hợp lý khi nó còn là mã của `FinanceExportService`, cần xem lại khi chỗ gọi duy nhất là tính năng in.
