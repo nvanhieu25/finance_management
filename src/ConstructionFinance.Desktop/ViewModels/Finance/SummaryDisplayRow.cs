@@ -24,6 +24,10 @@ public class SummaryDisplayRow
     public string YearlyText { get; init; } = "";
     public bool IsBold { get; init; }
 
+    /// Dòng nguồn mà các chuỗi trên được định dạng ra từ đó. Bản in lấy SỐ thật từ đây (tiền phải cộng
+    /// được trong Excel) thay vì đọc ngược chuỗi đã định dạng. Null với dòng dựng tay không đi qua From.
+    public WorkbookSummaryRow? Source { get; init; }
+
     public static SummaryDisplayRow From(WorkbookSummaryRow row)
     {
         var a = row.Aggregate;
@@ -43,7 +47,8 @@ public class SummaryDisplayRow
             NgoaiHoi = MoneyText.Format(a.DisbursedNgoaiHoi),
             TotalDisbursed = MoneyText.Format(a.TotalDisbursed),
             YearlyText = FormatYearly(a.Yearly),
-            IsBold = row.Kind != SummaryRowKind.ViTri
+            IsBold = row.Kind != SummaryRowKind.ViTri,
+            Source = row
         };
     }
 

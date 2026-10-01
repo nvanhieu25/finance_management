@@ -29,12 +29,18 @@ public sealed record PrintCell(PrintCellKind Kind, string? Text, decimal? Number
 /// không phải pixel — cố tình không lấy từ LedgerColumnWidths của màn hình.
 public sealed record PrintColumn(string Header, double WidthChars, PrintAlign Align);
 
-/// Một dòng. IndentLevel thụt ô đầu tiên theo bậc (Nhóm 0 · Gói 1 · Đợt 2).
+/// Nền của một dòng. Hai bậc xám để dòng TỔNG CỘNG (Light) không trùng màu với dòng Nhóm (VeryLight):
+/// TỔNG CỘNG là dòng người đọc tìm đầu tiên và cũng là dòng được lặp ở đầu mỗi trang
+/// (PrintPageProfile.RepeatRowsTop), nên nó phải nổi hơn dòng Nhóm.
+public enum PrintShade { None, Light, VeryLight }
+
+/// Một dòng. IndentLevel thụt ô chữ đầu tiên của dòng nằm ở cột căn trái, theo bậc (Nhóm 0 · Gói 1 ·
+/// Đợt 2); dòng không có ô nào như vậy thì không thụt gì.
 public sealed record PrintRow(
     IReadOnlyList<PrintCell> Cells,
     int IndentLevel = 0,
     bool IsBold = false,
-    bool IsShaded = false);
+    PrintShade Shade = PrintShade.None);
 
 public abstract record PrintSheet(string SheetName, PrintPageProfile Page);
 
@@ -42,7 +48,7 @@ public abstract record PrintSheet(string SheetName, PrintPageProfile Page);
 /// (lấy từ Columns, in đậm) và Rows bắt đầu từ dòng 2. Page.RepeatRowsTop quyết định bao
 /// nhiêu dòng đầu được lặp lại ở mỗi trang, đếm từ dòng 1 — nên RepeatRowsTop = 2 là lặp
 /// tiêu đề cộng dòng dữ liệu đầu tiên. Kiểu từng dòng dữ liệu do PrintRow.IsBold /
-/// IsShaded quyết định.
+/// Shade quyết định.
 public sealed record PrintTableSheet(
     string SheetName,
     PrintPageProfile Page,

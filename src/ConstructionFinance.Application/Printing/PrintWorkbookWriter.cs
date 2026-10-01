@@ -56,8 +56,10 @@ public sealed class PrintWorkbookWriter : IPrintWorkbookWriter
     internal const XLBorderStyleValues GridBorder = XLBorderStyleValues.Thin;
     internal const XLBorderStyleValues HeaderBottomBorder = XLBorderStyleValues.Medium;
 
-    /// Xám nhạt của Excel ("White, Background 1, Darker 15%"), cho dòng IsShaded.
-    private static readonly XLColor ShadeColor = XLColor.FromHtml("#D9D9D9");
+    /// Hai bậc xám của Excel, đặt cạnh nhau vì chỉnh độ xám cũng là việc làm sau khi xem bản in thật:
+    /// "White, Background 1, Darker 15%" cho PrintShade.Light và "Darker 5%" cho PrintShade.VeryLight.
+    private static readonly XLColor LightShadeColor = XLColor.FromHtml("#D9D9D9");
+    private static readonly XLColor VeryLightShadeColor = XLColor.FromHtml("#F2F2F2");
 
     public void Write(IReadOnlyList<PrintSheet> sheets, Stream target, PrintFooterInfo footer)
     {
@@ -227,12 +229,11 @@ public sealed class PrintWorkbookWriter : IPrintWorkbookWriter
         // Đậm và nền đặt cho cả dải cột của bảng, không chỉ ô có chữ — để dải nền liền nhau.
         var rowStyle = ws.Range(sheetRow, 1, sheetRow, columns.Count).Style;
         if (row.IsBold) rowStyle.Font.Bold = true;
-        if (row.IsShaded) rowStyle.Fill.BackgroundColor = ShadeColor;
+        if (row.Shade != PrintShade.None) rowStyle.Fill.BackgroundColor = ShadeColor(row.Shade);
 
-        // Thụt bậc đặt lên ô Text đầu tiên có chữ, không phải cả dòng: ô Ngày/Tiền ở trước
-        // đó không có gì để thụt. Excel chỉ thụt được ô căn trái/phải — ô căn giữa mà bậc > 0
-        // thì ClosedXML ném ArgumentException; đó là lỗi của bên dựng PrintRow, không che đi.
-        var indentAt = IndexOfFirstText(row.Cells);
+        // Thụt bậc đặt lên một ô (IndexOfFirstIndentableText chọn), không phải cả dòng: ô Ngày/Tiền ở
+        // trước đó không có gì để thụt.
+        var indentAt = IndexOfFirstIndentableText(row.Cells, columns);
         for (var c = 0; c < row.Cells.Count; c++)
         {
             var cell = ws.Cell(sheetRow, c + 1);
@@ -268,10 +269,24 @@ public sealed class PrintWorkbookWriter : IPrintWorkbookWriter
         }
     }
 
-    private static int IndexOfFirstText(IReadOnlyList<PrintCell> cells)
+    private static XLColor ShadeColor(PrintShade shade) => shade switch
+    {
+        PrintShade.Light => LightShadeColor,
+        PrintShade.VeryLight => VeryLightShadeColor,
+        _ => throw new ArgumentOutOfRangeException(nameof(shade), shade, null),
+    };
+
+    /// Ô nhận bậc thụt: ô Text đầu tiên có chữ nằm ở cột căn trái; -1 nếu dòng không có ô nào như vậy,
+    /// khi đó dòng không thụt gì. Chỉ xét cột căn trái vì Excel không thụt được ô căn giữa (ClosedXML
+    /// ném ArgumentException) và thụt từ mép phải thì sai nghĩa với thụt bậc. Bộ ghi biết căn lề của
+    /// cột còn bên dựng PrintRow thì không, nên việc chọn ô là của bộ ghi: một đợt chưa gõ Nội dung chỉ
+    /// còn Số CT và Nguồn (căn giữa) làm ô chữ, và nó phải in được chứ không làm hỏng cả workbook.
+    private static int IndexOfFirstIndentableText(IReadOnlyList<PrintCell> cells, IReadOnlyList<PrintColumn> columns)
     {
         for (var i = 0; i < cells.Count; i++)
-            if (cells[i].Kind == PrintCellKind.Text && !string.IsNullOrEmpty(cells[i].Text))
+            if (columns[i].Align == PrintAlign.Left
+                && cells[i].Kind == PrintCellKind.Text
+                && !string.IsNullOrEmpty(cells[i].Text))
                 return i;
         return -1;
     }

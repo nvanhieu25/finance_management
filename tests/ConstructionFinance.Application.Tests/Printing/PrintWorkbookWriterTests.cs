@@ -40,9 +40,9 @@ public class PrintWorkbookWriterTests
         new[]
         {
             new PrintRow(new[] { PrintCell.Empty, PrintCell.OfText("TỔNG CỘNG"), PrintCell.OfMoney(3_750_000m) },
-                IndentLevel: 0, IsBold: true, IsShaded: true),
+                IndentLevel: 0, IsBold: true, Shade: PrintShade.Light),
             new PrintRow(new[] { PrintCell.Empty, PrintCell.OfText("CHI PHÍ XÂY DỰNG"), PrintCell.Empty },
-                IndentLevel: 0, IsBold: true),
+                IndentLevel: 0, IsBold: true, Shade: PrintShade.VeryLight),
             new PrintRow(new[]
                 {
                     PrintCell.OfDate(new DateOnly(2026, 3, 15)),
@@ -132,8 +132,25 @@ public class PrintWorkbookWriterTests
         var ws = wb.Worksheet(1);
 
         ws.Cell(2, 2).Style.Font.Bold.ShouldBeTrue();                       // TỔNG CỘNG
-        ws.Cell(2, 2).Style.Fill.BackgroundColor.ShouldNotBe(XLColor.NoColor);
+        ws.Cell(3, 2).Style.Font.Bold.ShouldBeTrue();                       // Nhóm
         ws.Cell(4, 2).Style.Font.Bold.ShouldBeFalse();                      // dòng Đợt
+
+        // "Có nền" là kiểu tô Solid. Ô không tô đọc lại ra màu chỉ mục 64 chứ không phải NoColor, nên
+        // so màu với NoColor không chứng minh được ô có nền hay không.
+        ws.Cell(2, 2).Style.Fill.PatternType.ShouldBe(XLFillPatternValues.Solid);   // TỔNG CỘNG: PrintShade.Light
+        ws.Cell(3, 2).Style.Fill.PatternType.ShouldBe(XLFillPatternValues.Solid);   // Nhóm: PrintShade.VeryLight
+        ws.Cell(4, 2).Style.Fill.PatternType.ShouldBe(XLFillPatternValues.None);    // Đợt: PrintShade.None
+
+        // Hai bậc phải nhìn phân biệt được, và "rất nhạt" phải nhạt hơn "nhạt". Không ghim giá trị màu,
+        // để chỉnh độ xám sau khi xem bản in thật không phải sửa test.
+        var light = ws.Cell(2, 2).Style.Fill.BackgroundColor;
+        var veryLight = ws.Cell(3, 2).Style.Fill.BackgroundColor;
+        veryLight.ShouldNotBe(light);
+        veryLight.Color.GetBrightness().ShouldBeGreaterThan(light.Color.GetBrightness());
+
+        // Nền phủ cả dải cột, kể cả ô không có chữ, để dải nền liền nhau.
+        ws.Cell(2, 1).Style.Fill.BackgroundColor.ShouldBe(light);           // ô Ngày của TỔNG CỘNG
+        ws.Cell(3, 3).Style.Fill.BackgroundColor.ShouldBe(veryLight);       // ô Tạm ứng của Nhóm
     }
 
     [Fact]
@@ -179,6 +196,73 @@ public class PrintWorkbookWriterTests
         ws.Cell(2, 2).Style.Alignment.Indent.ShouldBe(1);   // ô Text đầu tiên có chữ
         ws.Cell(2, 3).Style.Alignment.Indent.ShouldBe(0);   // ô Text thứ hai
         ws.Cell(2, 4).Style.Alignment.Indent.ShouldBe(0);   // ô tiền
+    }
+
+    [Fact]
+    public void Thut_bac_roi_vao_o_chu_can_trai_dau_tien_ke_ca_khi_co_chu_o_cot_can_giua_dung_truoc()
+    {
+        // Ô chữ đầu tiên ("01") nằm ở cột căn giữa, mà Excel không thụt được ô căn giữa: bậc thụt
+        // phải đi tiếp tới ô chữ đầu tiên nằm ở cột căn trái chứ không làm hỏng cả lần ghi.
+        var sheet = new PrintTableSheet(
+            "Đợt",
+            PrintPageProfiles.ViTriLedger,
+            new[]
+            {
+                new PrintColumn("Số CT", 11, PrintAlign.Center),
+                new PrintColumn("Nội dung", 38, PrintAlign.Left),
+                new PrintColumn("Nguồn", 11, PrintAlign.Center),
+            },
+            new[]
+            {
+                new PrintRow(
+                    new[] { PrintCell.OfText("01"), PrintCell.OfText("Tạm ứng lần 1"), PrintCell.OfText("NSNN") },
+                    IndentLevel: 2),
+            });
+
+        using var wb = WriteAndReopen(sheet);
+        var ws = wb.Worksheet(1);
+
+        ws.Cell(2, 1).Style.Alignment.Indent.ShouldBe(0);   // chữ căn giữa đứng trước: không thụt
+        ws.Cell(2, 2).Style.Alignment.Indent.ShouldBe(2);   // ô chữ căn trái đầu tiên
+        ws.Cell(2, 3).Style.Alignment.Indent.ShouldBe(0);
+    }
+
+    [Fact]
+    public void Dong_khong_co_o_chu_nao_o_cot_can_trai_thi_khong_thut_va_khong_loi()
+    {
+        // Đợt chưa gõ Nội dung: chỉ còn Ngày (ngày thật, không phải chữ), một ô chữ ở cột căn phải
+        // và Nguồn (chữ, cột căn giữa). Không ô nào nhận được bậc thụt — chữ căn phải cũng không, vì
+        // thụt bậc là dấu hiệu ở mép trái.
+        var sheet = new PrintTableSheet(
+            "Đợt trống",
+            PrintPageProfiles.ViTriLedger,
+            new[]
+            {
+                new PrintColumn("Ngày", 11, PrintAlign.Center),
+                new PrintColumn("Nội dung", 38, PrintAlign.Left),
+                new PrintColumn("Ghi chú", 15, PrintAlign.Right),
+                new PrintColumn("Nguồn", 11, PrintAlign.Center),
+            },
+            new[]
+            {
+                new PrintRow(
+                    new[]
+                    {
+                        PrintCell.OfDate(new DateOnly(2026, 3, 15)),
+                        PrintCell.Empty,
+                        PrintCell.OfText("Thanh toán"),
+                        PrintCell.OfText("NSNN"),
+                    },
+                    IndentLevel: 2),
+            });
+
+        using var wb = WriteAndReopen(sheet);   // thụt nhầm vào ô căn giữa thì ClosedXML ném ArgumentException ngay ở đây
+        var ws = wb.Worksheet(1);
+
+        for (var column = 1; column <= 4; column++)
+            ws.Cell(2, column).Style.Alignment.Indent.ShouldBe(0, $"cột {column}");
+        ws.Cell(2, 3).GetString().ShouldBe("Thanh toán");   // dữ liệu vẫn được ghi đủ
+        ws.Cell(2, 4).GetString().ShouldBe("NSNN");
     }
 
     [Fact]

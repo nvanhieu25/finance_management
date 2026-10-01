@@ -48,7 +48,7 @@ public partial class LedgerRowViewModel : ObservableObject
 
     /// Bản gốc của bốn cột tính sẵn ở trên, giữ lại để bản in ghi được SỐ thật thay vì
     /// chuỗi đã định dạng. Null với dòng Đợt (đợt không có số tổng hợp riêng).
-    public TreeAggregate? Aggregate { get; set; }
+    public TreeAggregate? Aggregate { get; internal set; }
 
     /// Pure display flag driven by VitriLedgerViewModel.SelectedRow (the single source of
     /// truth — this is NOT a second selection model, just a per-row mirror of it so the

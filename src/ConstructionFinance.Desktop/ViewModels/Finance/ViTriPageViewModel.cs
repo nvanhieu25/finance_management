@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using System.ComponentModel;
 using ConstructionFinance.Application.Calc;
 using ConstructionFinance.Application.Printing;
@@ -36,7 +37,9 @@ public sealed class ViTriPageViewModel : WorkbookPageViewModel
 
     // Sổ Vị trí in 14 cột, đúng thứ tự và tiêu đề như lưới trên màn hình. Bề rộng tính bằng KÝ TỰ (đơn vị
     // của Excel) và là bộ riêng của bản in, cố ý không lấy từ LedgerColumnWidths (pixel màn hình).
-    private static readonly PrintColumn[] PrintColumns =
+    // ImmutableArray vì danh sách này được trao nguyên cho mọi PrintTableSheet: một mảng thường thì người
+    // nhận ép kiểu về PrintColumn[] rồi sửa được, làm hỏng mọi lần in sau.
+    private static readonly ImmutableArray<PrintColumn> PrintColumns =
     [
         new("Ngày", 11, PrintAlign.Center),
         new("Nội dung", 38, PrintAlign.Left),
@@ -81,12 +84,12 @@ public sealed class ViTriPageViewModel : WorkbookPageViewModel
             case RowKind.Total:
                 cells[ColNoiDung] = PrintCell.OfText(TotalLabel);
                 FillComputedColumns(cells, row.Aggregate);
-                return new PrintRow(cells, IndentLevel: 0, IsBold: true, IsShaded: true);
+                return new PrintRow(cells, IndentLevel: 0, IsBold: true, Shade: PrintShade.Light);
 
             case RowKind.Group:
                 cells[ColNoiDung] = PrintCell.OfText(row.Name);
                 FillComputedColumns(cells, row.Aggregate);
-                return new PrintRow(cells, IndentLevel: 0, IsBold: true);
+                return new PrintRow(cells, IndentLevel: 0, IsBold: true, Shade: PrintShade.VeryLight);
 
             case RowKind.Package:
                 cells[ColNoiDung] = PrintCell.OfText(row.Name);
@@ -104,11 +107,7 @@ public sealed class ViTriPageViewModel : WorkbookPageViewModel
                 cells[ColKlht] = PrintCell.OfMoney(row.PaymentKLHT);
                 cells[ColThuHoi] = PrintCell.OfMoney(row.RecoveredAdvance);
                 cells[ColNguon] = PrintCell.OfText(row.FundText);
-                // Bộ ghi thụt bậc lên ô chữ ĐẦU TIÊN có chữ, mà Excel không thụt được ô căn giữa (bộ ghi
-                // ném ArgumentException, hỏng cả lần in). Đợt thì ô đó phải là Nội dung (căn trái); đợt
-                // trống Nội dung sẽ rơi vào Số CT hoặc Nguồn, đều căn giữa. Không có Nội dung thì cũng
-                // không có gì để thụt, nên để bậc 0.
-                return new PrintRow(cells, IndentLevel: string.IsNullOrEmpty(row.Content) ? 0 : 2);
+                return new PrintRow(cells, IndentLevel: 2);
 
             default:
                 throw new NotSupportedException($"Chưa có cách in dòng loại {row.Kind}.");

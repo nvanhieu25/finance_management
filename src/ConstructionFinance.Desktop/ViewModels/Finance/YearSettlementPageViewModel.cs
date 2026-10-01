@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using ConstructionFinance.Application.Printing;
 
 namespace ConstructionFinance.Desktop.ViewModels.Finance;
@@ -9,7 +10,8 @@ public sealed class YearSettlementPageViewModel : WorkbookPageViewModel
     // không được làm đổi tên sheet trong bản in.
     private const string SheetName = "Quyết toán năm";
 
-    private static readonly PrintColumn[] PrintColumns =
+    // ImmutableArray vì danh sách được trao nguyên cho mọi PrintTableSheet (xem ViTriPageViewModel.PrintColumns).
+    private static readonly ImmutableArray<PrintColumn> PrintColumns =
     [
         new("Năm", 12, PrintAlign.Center),
         new("NSNN", 18, PrintAlign.Right),
@@ -34,14 +36,18 @@ public sealed class YearSettlementPageViewModel : WorkbookPageViewModel
         PrintColumns,
         Inner.Rows.Select(ToPrintRow).ToList());
 
-    // Cả 4 ô là chuỗi hiển thị sẵn của màn hình, giữ nguyên để bản in khớp màn hình từng ký tự.
+    // Nhãn năm giữ nguyên chuỗi của màn hình. Ba cột tiền là SỐ thật (cột Tổng là tổng của hai cột kia, như
+    // trên màn hình) để chọn một vùng trong Excel là thấy tổng; 0 ra ô trống như màn hình.
     private static PrintRow ToPrintRow(YearSettlementRow row) => new(
         new[]
         {
             PrintCell.OfText(row.YearLabel),
-            PrintCell.OfText(row.NSNN),
-            PrintCell.OfText(row.NgoaiHoi),
-            PrintCell.OfText(row.Total),
+            Money(row.NsnnAmount),
+            Money(row.NgoaiHoiAmount),
+            Money(row.NsnnAmount + row.NgoaiHoiAmount),
         },
         IsBold: row.IsBold);
+
+    /// Số 0 ra ô trống như màn hình (PrintCell.OfMoney); dòng dựng tay không có số để ghi, cũng ra ô trống.
+    private static PrintCell Money(decimal? value) => value is { } v ? PrintCell.OfMoney(v) : PrintCell.Empty;
 }

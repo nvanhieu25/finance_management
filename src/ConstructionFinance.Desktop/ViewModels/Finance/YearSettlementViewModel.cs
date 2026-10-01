@@ -22,7 +22,9 @@ public class YearSettlementViewModel : ViewModelBase
                 YearLabel = $"Quyết toán năm {y.FiscalYear}",
                 NSNN = MoneyText.Format(y.NSNN),
                 NgoaiHoi = MoneyText.Format(y.NgoaiHoi),
-                Total = MoneyText.Format(y.NSNN + y.NgoaiHoi)
+                Total = MoneyText.Format(y.NSNN + y.NgoaiHoi),
+                NsnnAmount = y.NSNN,
+                NgoaiHoiAmount = y.NgoaiHoi
             });
 
         if (Rows.Count == 0) return;   // no đợt → no year rows, no total
@@ -35,7 +37,9 @@ public class YearSettlementViewModel : ViewModelBase
             NSNN = MoneyText.Format(totalNsnn),
             NgoaiHoi = MoneyText.Format(totalNgoaiHoi),
             Total = MoneyText.Format(totalNsnn + totalNgoaiHoi),
-            IsBold = true
+            IsBold = true,
+            NsnnAmount = totalNsnn,
+            NgoaiHoiAmount = totalNgoaiHoi
         });
     }
 }
