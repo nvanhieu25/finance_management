@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using ConstructionFinance.Application.Forms;
@@ -361,10 +362,28 @@ public partial class FinanceWorkbookViewModel : ViewModelBase, IPrintablePage, I
             or ThongTriFormPageViewModel or KsChiFormPageViewModel or GdnttFormPageViewModel)
             RefreshAggregateTabs();
 
-        // Đổi tab là đổi PrintSheetName (ủy quyền cho tab đang mở). Báo SAU lần làm mới ở trên để người nghe
-        // (nút In ở khung chung) đọc giá trị đã cập nhật.
-        OnPropertyChanged(nameof(PrintSheetName));
+        // Đổi tab là đổi PrintSheetName (ủy quyền cho tab đang mở) và có thể đổi cả CanPrintAll. Báo SAU lần làm
+        // mới ở trên để người nghe (nút In ở khung chung) đọc giá trị đã cập nhật.
+        RaisePrintStateChanged();
         DeleteViTriCommand.NotifyCanExecuteChanged();
+    }
+
+    // Workbook chỉ nghe trang ĐANG MỞ, vì PrintSheetName của nó là của trang đó: trang khác đổi gì cũng không phải
+    // chuyện của nút In. Gỡ handler khỏi trang vừa rời để trang đó không còn báo thay cho workbook (và không bị giữ lại).
+    partial void OnSelectedViTriPageChanged(WorkbookPageViewModel? oldValue, WorkbookPageViewModel? newValue)
+    {
+        if (oldValue is not null) oldValue.PropertyChanged -= OnOpenPagePropertyChanged;
+        if (newValue is not null) newValue.PropertyChanged += OnOpenPagePropertyChanged;
+    }
+
+    // Trang đang mở tự đổi PrintSheetName mà không đổi tab (vd. GĐNTT vừa được tích gói thầu nên chuyển từ không in
+    // được sang in được): chuyển tiếp, nếu không nút In mờ lệch cho tới khi người dùng đổi tab. Chỉ chuyển tiếp đúng
+    // PrintSheetName — trang đang mở đổi tiêu đề hay đánh dấu bẩn thì nút In không cần biết. Trang chỉ báo khi tên
+    // thật sự đổi (xem GdnttFormPageViewModel), nên chuyển tiếp thẳng không gây ồn.
+    private void OnOpenPagePropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(IPrintablePage.PrintSheetName))
+            RaisePrintStateChanged();
     }
 
     /// New blank Vị trí tab under the selected project. No-op with no project selected.
@@ -699,7 +718,13 @@ public partial class FinanceWorkbookViewModel : ViewModelBase, IPrintablePage, I
         ? code
         : SelectedProjectName;
 
-    /// Thứ tự sheet theo Mẫu.xlsx: Tổng hợp → Vị trí 1..N → Quyết toán năm → 3 biểu mẫu — đúng thứ tự dải
+    /// Có gì để In toàn bộ không: ít nhất một trang báo tên sheet in được. Nút In hỏi cái này mỗi lần cập nhật
+    /// bật/mờ nên chỉ ĐỌC tên (rẻ): tuyệt đối không dựng sheet, không làm mới tab nào. Việc đó là của BuildAllSheets,
+    /// chạy một lần mỗi lần in thật.
+    public bool CanPrintAll => ViTriPages.Any(p => p.PrintSheetName is { Length: > 0 });
+
+    /// Đường HÀNH ĐỘNG của "In toàn bộ", chạy một lần mỗi lần in thật (còn bật/mờ nút thì hỏi CanPrintAll, không hỏi
+    /// hàm này). Thứ tự sheet theo Mẫu.xlsx: Tổng hợp → Vị trí 1..N → Quyết toán năm → 3 biểu mẫu — đúng thứ tự dải
     /// tab ViTriPages. Trang nào trả null (ví dụ GĐNTT chưa chọn gói thầu) thì bỏ qua, không chặn cả lô.
     public IReadOnlyList<PrintSheet> BuildAllSheets()
     {
@@ -712,5 +737,13 @@ public partial class FinanceWorkbookViewModel : ViewModelBase, IPrintablePage, I
         return ViTriPages.Select(p => p.BuildPrintSheet())
                          .OfType<PrintSheet>()
                          .ToList();
+    }
+
+    /// Trạng thái in của workbook gồm PrintSheetName (của tab đang mở) và CanPrintAll: hai thứ nút In đọc. Một trong
+    /// hai có thể đã đổi thì báo cả hai; báo thừa chỉ làm người nghe đọc lại một giá trị rẻ.
+    private void RaisePrintStateChanged()
+    {
+        OnPropertyChanged(nameof(PrintSheetName));
+        OnPropertyChanged(nameof(CanPrintAll));
     }
 }

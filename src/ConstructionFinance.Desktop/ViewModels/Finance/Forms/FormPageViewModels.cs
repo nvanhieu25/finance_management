@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using ConstructionFinance.Application.Printing;
 
 namespace ConstructionFinance.Desktop.ViewModels.Finance.Forms;
@@ -58,11 +59,17 @@ public sealed class GdnttFormPageViewModel : WorkbookPageViewModel
 {
     private const string SheetName = "GĐNTT";
 
+    // PrintSheetName đã báo gần nhất, để chỉ báo khi tên thật sự đổi (xem OnInnerPropertyChanged).
+    private string? _reportedPrintSheetName;
+
     public GdnttFormPageViewModel(GdnttFormViewModel inner)
     {
         Inner = inner;
         Title = "GĐNTT";
         Inner.DeclarationChanged += (_, _) => IsDirty = true;
+
+        _reportedPrintSheetName = PrintSheetName;
+        Inner.PropertyChanged += OnInnerPropertyChanged;
     }
 
     public GdnttFormViewModel Inner { get; }
@@ -76,4 +83,19 @@ public sealed class GdnttFormPageViewModel : WorkbookPageViewModel
         Inner.BuildForm() is { } form
             ? new PrintFormSheet(SheetName, PrintPageProfiles.Gdntt, new FormPayload(Gdntt: form))
             : null;
+
+    // Tên sheet đổi theo CanExport, và CanExport đổi ngay trên tab này (người dùng tích/bỏ tích đợt) chứ không kèm lần
+    // đổi tab nào, nên phải báo cho nơi đang nghe — nút In ở khung chung. GdnttFormViewModel.Rebuild() bắn CanExport
+    // ở MỌI lần dựng (mỗi lần tích, mỗi lần gõ một ô), kể cả khi giá trị không đổi: chuyển tiếp nguyên xi thì nút In
+    // cập nhật liên tục. Nên chỉ báo khi tên thật sự khác lần báo trước.
+    private void OnInnerPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName != nameof(GdnttFormViewModel.CanExport)) return;
+
+        var current = PrintSheetName;
+        if (current == _reportedPrintSheetName) return;
+
+        _reportedPrintSheetName = current;
+        OnPropertyChanged(nameof(PrintSheetName));
+    }
 }

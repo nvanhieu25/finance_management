@@ -243,9 +243,9 @@ public class PrintWorkbookTests
     // Các test này CỐ Ý không gọi hàm làm mới nào: hễ gọi là chính test tự cấp cái bảo đảm mà app không có, và
     // test chứng minh số không. Chúng đi đúng đường của người dùng (gõ vào ô → sổ Vị trí → workbook).
 
-    /// Mở dự án, đứng ở tab Vị trí 1, sửa cùng một ô Tạm ứng hai lần (1.000.000 rồi 2.500.000) rồi bấm "In toàn bộ".
-    /// Thông tri được tích sẵn đợt NSNN để có số mà in.
-    private static IReadOnlyList<PrintSheet> PrintAllAfterEditingTheSameCellTwice()
+    /// Mở dự án, đứng ở tab Vị trí 1 và sửa cùng một ô Tạm ứng hai lần (1.000.000 rồi 2.500.000), đúng như người
+    /// dùng gõ. Thông tri được tích sẵn đợt NSNN để có số mà in. Chỉ có vậy: chưa in, chưa chọn tab nào khác.
+    private static FinanceWorkbookViewModel OpenAndEditTheSameCellTwice()
     {
         var workbook = BuildWorkbookWithTwoViTri();
         var viTri1 = workbook.ViTriPages.OfType<ViTriPageViewModel>().First();
@@ -256,8 +256,12 @@ public class PrintWorkbookTests
         dot.AdvanceText = "1.000.000";
         dot.AdvanceText = "2.500.000";
 
-        return workbook.BuildAllSheets();
+        return workbook;
     }
+
+    /// ...rồi bấm "In toàn bộ".
+    private static IReadOnlyList<PrintSheet> PrintAllAfterEditingTheSameCellTwice() =>
+        OpenAndEditTheSameCellTwice().BuildAllSheets();
 
     [Fact]
     public void In_toan_bo_Tong_hop_mang_so_cua_lan_sua_thu_hai()
@@ -426,5 +430,215 @@ public class PrintWorkbookTests
 
         printable.PrintSheetName.ShouldBe("GĐNTT");
         printable.BuildPrintSheet().ShouldBeOfType<PrintFormSheet>().SheetName.ShouldBe("GĐNTT");
+    }
+
+    // ===== CanPrintAll: câu hỏi "có gì để In toàn bộ không" =====
+    //
+    // Nút In ở khung chung hỏi CanPrintAll mỗi lần cập nhật trạng thái bật/mờ, nên nó phải rẻ và KHÔNG có tác dụng
+    // phụ: không dựng sheet, không làm mới màn nào. Việc làm mới là của BuildAllSheets, chạy một lần mỗi lần in thật.
+
+    /// Trang in được, đếm số lần bị yêu cầu dựng sheet — để thấy CanPrintAll có dựng sheet hay không.
+    private sealed class TrangDemLanDung : WorkbookPageViewModel
+    {
+        public int BuildCalls { get; private set; }
+
+        public override object Content => new object();
+        public override string? PrintSheetName => "Trang đếm";
+
+        public override PrintSheet? BuildPrintSheet()
+        {
+            BuildCalls++;
+            return new PrintTableSheet("Trang đếm", PrintPageProfiles.YearSettlement,
+                Array.Empty<PrintColumn>(), Array.Empty<PrintRow>());
+        }
+    }
+
+    /// Số đang hiện trên ba tab tổng hợp/biểu mẫu: đúng ba ô mà các test "mang_so_cua_lan_sua_thu_hai" đọc.
+    private sealed record AggregatesShown(PrintCell TongHopTamUng, PrintCell QuyetToanTong, decimal ThongTriTotal);
+
+    /// Đọc thẳng BuildPrintSheet() của từng trang. Cách đọc này KHÔNG làm mới gì (khác workbook.BuildAllSheets()),
+    /// nên nhìn được trạng thái hiện tại mà không làm đổi nó.
+    private static AggregatesShown AggregatesShownNow(FinanceWorkbookViewModel workbook)
+    {
+        var tongHop = (PrintTableSheet)workbook.ViTriPages.OfType<ProjectTongHopPageViewModel>().Single().BuildPrintSheet()!;
+        var quyetToan = (PrintTableSheet)workbook.ViTriPages.OfType<YearSettlementPageViewModel>().Single().BuildPrintSheet()!;
+        var thongTri = (PrintFormSheet)workbook.ViTriPages.OfType<ThongTriFormPageViewModel>().Single().BuildPrintSheet()!;
+        return new AggregatesShown(
+            CellAt(tongHop, 2, "Tạm ứng"),       // dòng TỔNG CỘNG của Tổng hợp (Vị trí 1, Vị trí 2, TỔNG CỘNG)
+            CellAt(quyetToan, 1, "Tổng"),        // dòng TỔNG CỘNG của Quyết toán năm (năm 2026, TỔNG CỘNG)
+            thongTri.Form.ThongTri!.Total);
+    }
+
+    [Fact]
+    public void CanPrintAll_bat_khi_co_man_in_duoc_va_tat_khi_khong_co()
+    {
+        var loaded = BuildWorkbookWithTwoViTri();
+        var noProject = LoadWorkbook(null);
+        var onlyUnprintablePage = LoadWorkbook(null);
+        onlyUnprintablePage.ViTriPages.Add(new TrangKhongIn());
+
+        // Hỏi nhanh và in thật phải nhất quán: nút sáng thì BuildAllSheets có sheet để in, nút mờ thì không có.
+        ((IPrintableWorkbook)loaded).CanPrintAll.ShouldBeTrue("đã nạp dự án");
+        loaded.BuildAllSheets().ShouldNotBeEmpty();
+
+        ((IPrintableWorkbook)noProject).CanPrintAll.ShouldBeFalse("chưa có dự án");
+        noProject.BuildAllSheets().ShouldBeEmpty();
+
+        // Có trang nhưng không trang nào báo tên sheet: vẫn không in được. "Có trang" không đồng nghĩa "in được".
+        ((IPrintableWorkbook)onlyUnprintablePage).CanPrintAll.ShouldBeFalse("có trang nhưng không trang nào in được");
+        onlyUnprintablePage.BuildAllSheets().ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void CanPrintAll_khong_lam_moi_tab_nao_nen_so_van_cu_sau_hai_lan_sua()
+    {
+        var workbook = OpenAndEditTheSameCellTwice();
+        var stale = new AggregatesShown(PrintCell.OfMoney(1_000_000m), PrintCell.OfMoney(1_000_000m), 1_000_000m);
+
+        // Tiền đề: sau hai lần sửa, ba tab tổng hợp còn mang số của lần sửa ĐẦU (chính cái lỗi mà BuildAllSheets vá
+        // bằng cách làm mới). Test này dựa vào đó để thấy một lần làm mới; nếu một ngày lỗi gốc được sửa thì dòng này
+        // đỏ trước và nói rõ test cần viết lại, chứ không phải CanPrintAll hỏng.
+        AggregatesShownNow(workbook).ShouldBe(stale, "tiền đề: ba tab đang mang số cũ của lần sửa đầu");
+
+        var canPrintAll = ((IPrintableWorkbook)workbook).CanPrintAll;
+
+        // Nghịch đảo của ba test "mang_so_cua_lan_sua_thu_hai": BuildAllSheets làm mới nên in ra 2.500.000, còn
+        // CanPrintAll mà làm mới thì ba số này cũng nhảy sang 2.500.000. ShouldBeTrue để một CanPrintAll luôn trả
+        // false (cũng chẳng làm mới gì) không qua được.
+        canPrintAll.ShouldBeTrue();
+        AggregatesShownNow(workbook).ShouldBe(stale, "CanPrintAll không được làm mới tab nào");
+    }
+
+    [Fact]
+    public void CanPrintAll_khong_dung_sheet_nao()
+    {
+        var workbook = BuildWorkbookWithTwoViTri();
+        var spy = new TrangDemLanDung();
+        workbook.ViTriPages.Insert(0, spy);     // đứng ĐẦU dải: cách hỏi nào duyệt trang theo thứ tự cũng chạm nó trước
+
+        var canPrintAll = ((IPrintableWorkbook)workbook).CanPrintAll;
+
+        canPrintAll.ShouldBeTrue();
+        spy.BuildCalls.ShouldBe(0, "CanPrintAll chỉ đọc tên sheet, không dựng sheet");
+
+        // Đối chứng: in thật thì trang đó BỊ dựng, nên số 0 ở trên có nghĩa chứ không phải bộ đếm hỏng.
+        workbook.BuildAllSheets();
+        spy.BuildCalls.ShouldBe(1);
+    }
+
+    [Fact]
+    public async Task Nap_du_an_thi_bao_CanPrintAll_da_doi()
+    {
+        var workbook = CreateWorkbook(ProjectWithTwoViTri());
+        var changed = new List<string>();
+        workbook.PropertyChanged += (_, e) => changed.Add(e.PropertyName ?? "");
+        ((IPrintableWorkbook)workbook).CanPrintAll.ShouldBeFalse("tiền đề: chưa nạp dự án");
+
+        await workbook.LoadAsync();
+
+        // Không có tín hiệu này thì mục "In toàn bộ" không cập nhật được trạng thái khi dự án vừa nạp xong.
+        changed.ShouldContain(nameof(IPrintableWorkbook.CanPrintAll));
+        ((IPrintableWorkbook)workbook).CanPrintAll.ShouldBeTrue();
+    }
+
+    // ===== Tên sheet GĐNTT đổi theo gói thầu: phải báo cho nút In =====
+    //
+    // PrintSheetName của trang GĐNTT đổi khi người dùng tích/bỏ tích đợt NGAY TRÊN tab đó, không kèm lần đổi tab nào.
+    // Không báo thì nút In ở khung chung mờ lệch cho tới khi người dùng đổi tab.
+
+    [Fact]
+    public void Tich_goi_thau_thi_trang_GDNTT_bao_PrintSheetName_da_doi()
+    {
+        var inner = NewGdntt(Row(0, Fund.NgoaiHoi, 10_000_000m));
+        var page = new GdnttFormPageViewModel(inner);
+        var changed = new List<string>();
+        page.PropertyChanged += (_, e) => changed.Add(e.PropertyName ?? "");
+
+        inner.Picker.Items[0].IsSelected = true;
+        changed.Count(n => n == nameof(IPrintablePage.PrintSheetName)).ShouldBe(1, "tích gói thầu: null → \"GĐNTT\"");
+        page.PrintSheetName.ShouldBe("GĐNTT");
+
+        inner.Picker.Items[0].IsSelected = false;
+        changed.Count(n => n == nameof(IPrintablePage.PrintSheetName)).ShouldBe(2, "bỏ tích: \"GĐNTT\" → null");
+        page.PrintSheetName.ShouldBeNull();
+    }
+
+    [Fact]
+    public void Trang_GDNTT_chi_bao_PrintSheetName_khi_ten_that_su_doi()
+    {
+        // Hai đợt cùng một gói: tích thêm đợt thứ hai không làm đổi chuyện "in được hay không".
+        var inner = NewGdntt(Row(0, Fund.NgoaiHoi, 10_000_000m), Row(1, Fund.NgoaiHoi, 30_000_000m));
+        var page = new GdnttFormPageViewModel(inner);
+        inner.Picker.Items[0].IsSelected = true;                       // null → "GĐNTT"
+        var pageChanged = new List<string>();
+        var canExportRaised = 0;
+        page.PropertyChanged += (_, e) => pageChanged.Add(e.PropertyName ?? "");
+        inner.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName == nameof(GdnttFormViewModel.CanExport)) canExportRaised++;
+        };
+
+        inner.Picker.Items[1].IsSelected = true;                       // vẫn một gói: CanExport vẫn true
+        inner.TaiNganHang = "Vietcombank";                             // gõ một ô chữ
+        inner.ChuyenTienBaoHanhText = "1.000";                         // gõ một ô tiền
+
+        // Tiền đề làm test có nghĩa: Rebuild() của GdnttFormViewModel bắn CanExport ở MỌI lần dựng, kể cả khi giá trị
+        // không đổi. Chuyển tiếp nguyên xi thì mỗi lần tích hay gõ đều làm nút In cập nhật lại.
+        canExportRaised.ShouldBeGreaterThanOrEqualTo(3, "tiền đề: mỗi lần tích/gõ view-model đều bắn lại CanExport");
+        page.PrintSheetName.ShouldBe("GĐNTT", "tiền đề: vẫn in được suốt thời gian đó");
+        pageChanged.ShouldNotContain(nameof(IPrintablePage.PrintSheetName));
+    }
+
+    [Fact]
+    public void Tich_goi_thau_o_tab_GDNTT_dang_mo_thi_workbook_bao_PrintSheetName_va_CanPrintAll()
+    {
+        var workbook = BuildWorkbookWhereGdnttHasNoPackage();
+        var gdntt = workbook.ViTriPages.OfType<GdnttFormPageViewModel>().Single();
+        workbook.SelectedViTriPage = gdntt;
+        var changed = new List<string>();
+        workbook.PropertyChanged += (_, e) => changed.Add(e.PropertyName ?? "");
+
+        gdntt.Inner.Picker.Items[0].IsSelected = true;
+
+        // Không chuyển tiếp thì PrintSheetName đã đổi thành "GĐNTT" mà nút In vẫn mờ cho tới khi đổi tab.
+        changed.ShouldContain(nameof(IPrintablePage.PrintSheetName));
+        changed.ShouldContain(nameof(IPrintableWorkbook.CanPrintAll));
+        ((IPrintablePage)workbook).PrintSheetName.ShouldBe("GĐNTT");
+    }
+
+    [Fact]
+    public void Tich_goi_thau_o_GDNTT_sau_khi_roi_tab_do_thi_workbook_khong_bao()
+    {
+        var workbook = BuildWorkbookWhereGdnttHasNoPackage();
+        var gdntt = workbook.ViTriPages.OfType<GdnttFormPageViewModel>().Single();
+        workbook.SelectedViTriPage = gdntt;                                                      // đã mở GĐNTT: workbook từng nghe nó
+        workbook.SelectedViTriPage = workbook.ViTriPages.OfType<ViTriPageViewModel>().First();   // rồi rời sang Vị trí 1
+        var changed = new List<string>();
+        workbook.PropertyChanged += (_, e) => changed.Add(e.PropertyName ?? "");
+
+        gdntt.Inner.Picker.Items[0].IsSelected = true;
+
+        // PrintSheetName của workbook là của tab đang mở (Vị trí 1, vẫn "Vị trí 1"): GĐNTT đổi gì khi người dùng không
+        // xem nó cũng không phải chuyện của nút In. Và workbook phải gỡ handler khỏi trang đã rời.
+        gdntt.PrintSheetName.ShouldBe("GĐNTT", "tiền đề: GĐNTT đã đổi thật");
+        changed.ShouldNotContain(nameof(IPrintablePage.PrintSheetName));
+        ((IPrintablePage)workbook).PrintSheetName.ShouldBe("Vị trí 1");
+    }
+
+    [Fact]
+    public void Trang_dang_mo_doi_thu_khac_PrintSheetName_thi_workbook_khong_bao()
+    {
+        var workbook = BuildWorkbookWithTwoViTri();
+        var viTri1 = workbook.ViTriPages.OfType<ViTriPageViewModel>().First();
+        workbook.SelectedViTriPage = viTri1;
+        var changed = new List<string>();
+        workbook.PropertyChanged += (_, e) => changed.Add(e.PropertyName ?? "");
+
+        viTri1.Title = "Nhà điều hành";      // trang đang mở bắn Title và Header
+        viTri1.IsDirty = true;               // và IsDirty
+
+        // Chỉ PrintSheetName của trang mới được chuyển tiếp thành PrintSheetName của workbook; không thì mỗi lần trang
+        // đang mở đổi bất cứ gì (đánh dấu bẩn, đổi tiêu đề) nút In lại bị hỏi lại.
+        changed.ShouldNotContain(nameof(IPrintablePage.PrintSheetName));
     }
 }
