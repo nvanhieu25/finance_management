@@ -36,7 +36,7 @@ public class MainWindowPrintCommandTests
     private const string FileInUseOrDiskFullMessage =
         "MSG: In ra Excel — Không ghi được tệp. Có thể tệp đang được mở trong chương trình khác, hoặc ổ đĩa đã đầy. Hãy đóng tệp nếu đang mở, hoặc giải phóng dung lượng ổ đĩa, rồi thử lại.";
     private const string SaveLocationUnavailableMessage =
-        "MSG: In ra Excel — Không ghi được tệp vì nơi lưu không hợp lệ hoặc không truy cập được (thư mục không còn tồn tại, hoặc đường dẫn quá dài). Hãy chọn nơi lưu khác rồi thử lại.";
+        "MSG: In ra Excel — Không ghi được tệp vì nơi lưu không hợp lệ hoặc không truy cập được (thư mục không còn tồn tại, ổ đĩa USB hoặc ổ mạng đã bị ngắt kết nối, hoặc đường dẫn quá dài). Hãy kiểm tra kết nối ổ đĩa hoặc chọn nơi lưu khác, rồi thử lại.";
     private const string WriteFailedMessage =
         "MSG: In ra Excel — Không ghi được tệp in. Thử lại hoặc chọn nơi lưu khác. Chi tiết lỗi đã được ghi vào nhật ký ứng dụng.";
 
@@ -445,12 +445,14 @@ public class MainWindowPrintCommandTests
         launcher.Opened.ShouldBeNull();
     }
 
-    // DirectoryNotFoundException và PathTooLongException đều là con của IOException, nên nếu không có nhánh riêng thì một thư mục
-    // không còn tồn tại sẽ nghe "đóng tệp rồi thử lại" về một tệp chẳng ai mở. Hai ca dùng hai kiểu KHÁC NHAU để mỗi nhánh catch
-    // phải tự tới được: bỏ một nhánh thì ca của nó rơi xuống nhánh IOException và đỏ.
+    // DirectoryNotFoundException, PathTooLongException và DriveNotFoundException đều là con của IOException, nên nếu không có
+    // nhánh riêng thì một thư mục không còn tồn tại, hay một ổ USB vừa bị rút, sẽ nghe "đóng tệp rồi thử lại" (hoặc "ổ đã đầy")
+    // về một tệp chẳng ai mở. Ba ca dùng ba kiểu KHÁC NHAU để mỗi nhánh catch phải tự tới được: bỏ một nhánh thì ca của nó rơi
+    // xuống nhánh IOException và đỏ. (DriveNotFoundException không thể do bộ ghi thật ném ra trên Linux, nên ca đó đi qua bản giả.)
     [Theory]
     [InlineData(typeof(DirectoryNotFoundException))]
     [InlineData(typeof(PathTooLongException))]
+    [InlineData(typeof(DriveNotFoundException))]
     public async Task Noi_luu_khong_hop_le_thi_bao_dung_cau_chu_khong_bao_tep_dang_mo(Type exceptionType)
     {
         var failure = (Exception)Activator.CreateInstance(exceptionType, "boom")!;
@@ -484,6 +486,32 @@ public class MainWindowPrintCommandTests
 
         dialog.ShownMessages.ShouldBe(new[] { WriteFailedMessage });   // câu chung: không lộ chữ của ngoại lệ ("boom")
         launcher.Opened.ShouldBeNull();
+    }
+
+    // Người dùng chỉ đọc một câu; nhật ký là thứ DUY NHẤT cho người hỗ trợ biết lỗi ghi là xung đột chia sẻ, ổ đầy hay ổ bị rút (câu
+    // "tệp đang mở hoặc ổ đầy" che cả hai). Mỗi nhánh họ IOException ghi một dòng Warning mang chính đối tượng ngoại lệ, đường
+    // dẫn đích, nguyên nhân CỦA NHÁNH ĐÓ (không dùng chung một nhãn) và HResult (cùng một lỗi mang mã khác nhau theo hệ điều hành).
+    [Theory]
+    [InlineData(typeof(DirectoryNotFoundException), "thư mục không tồn tại")]
+    [InlineData(typeof(PathTooLongException), "đường dẫn quá dài")]
+    [InlineData(typeof(DriveNotFoundException), "ổ đĩa không tồn tại hoặc đã ngắt kết nối")]
+    [InlineData(typeof(IOException), "lỗi vào/ra: tệp đang mở hoặc ổ đầy")]
+    public async Task Moi_nhanh_loi_ghi_ho_IOException_deu_ghi_nhat_ky_kem_ngoai_le_duong_dan_nguyen_nhan_va_HResult(
+        Type exceptionType, string expectedCause)
+    {
+        var failure = (Exception)Activator.CreateInstance(exceptionType, "boom")!;
+        var writer = new FakeWriter { FailWith = failure };
+        var vm = CreateMainWindowViewModel(writer, savePath: "/tmp/x.xlsx");
+        vm.CurrentContent = new FakePrintablePage("Vị trí 1");
+
+        var logged = await CaptureLogAsync(() => vm.PrintCurrentSheetCommand.ExecuteAsync(null));
+
+        var entry = logged.Where(e => ReferenceEquals(e.Exception, failure)).ShouldHaveSingleItem();
+        entry.Level.ShouldBe(LogEventLevel.Warning);
+        var text = entry.RenderMessage();
+        text.ShouldContain("/tmp/x.xlsx");
+        text.ShouldContain(expectedCause);
+        text.ShouldContain($"0x{failure.HResult:X8}");
     }
 
     [Fact]

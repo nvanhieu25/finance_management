@@ -139,8 +139,9 @@ public partial class MainWindowViewModel : ViewModelBase
     private const string PrintToolTipEnabled = "In màn hình đang mở hoặc toàn bộ sổ";
     private const string PrintToolTipDisabled = "Màn hình này không có nội dung để in";
     private const string PrintSaveLocationUnavailableMessage =
-        "Không ghi được tệp vì nơi lưu không hợp lệ hoặc không truy cập được (thư mục không còn tồn tại, hoặc đường dẫn quá dài). " +
-        "Hãy chọn nơi lưu khác rồi thử lại.";
+        "Không ghi được tệp vì nơi lưu không hợp lệ hoặc không truy cập được " +
+        "(thư mục không còn tồn tại, ổ đĩa USB hoặc ổ mạng đã bị ngắt kết nối, hoặc đường dẫn quá dài). " +
+        "Hãy kiểm tra kết nối ổ đĩa hoặc chọn nơi lưu khác, rồi thử lại.";
 
     /// Cả nút In ở khung chung sáng khi ÍT NHẤT MỘT trong hai mục của nó dùng được; không thì mờ (vẫn nằm đúng chỗ).
     /// Chỉ ĐỌC trạng thái của màn đang mở, như hai CanExecute bên dưới.
@@ -228,24 +229,34 @@ public partial class MainWindowViewModel : ViewModelBase
         {
             await writer.WriteAsync(sheets, path, footer);
         }
-        // Thứ tự các nhánh catch quyết định câu người dùng đọc, và câu thông báo không được nói sai: DirectoryNotFoundException và
-        // PathTooLongException đều là CON của IOException, nên phải đứng TRƯỚC nhánh IOException (trình biên dịch bắt buộc,
-        // CS0160, nên không thể đảo nhầm mà vẫn build). Nếu không, một thư mục không còn tồn tại sẽ nghe "đóng tệp rồi thử lại"
-        // về một tệp chẳng ai mở. Không phân biệt xung đột chia sẻ theo HResult: mã đó khác nhau giữa các hệ điều hành (đo: Linux
-        // báo 0x0B, Windows 0x20/0x21), và đoán sai thì ca hay gặp nhất, tệp đang mở trong Excel, sẽ rơi xuống câu mơ hồ.
-        catch (DirectoryNotFoundException)
+        // Thứ tự các nhánh catch quyết định câu người dùng đọc, và câu thông báo không được nói sai: DirectoryNotFoundException,
+        // PathTooLongException và DriveNotFoundException đều là CON của IOException, nên phải đứng TRƯỚC nhánh IOException
+        // (trình biên dịch bắt buộc, CS0160, nên không thể đảo nhầm mà vẫn build). Nếu không, một thư mục không còn tồn tại, hay
+        // một ổ USB vừa bị rút, sẽ nghe "đóng tệp rồi thử lại" hoặc "ổ đã đầy" về một chuyện chẳng liên quan. Không phân biệt
+        // xung đột chia sẻ theo HResult: mã đó khác nhau giữa các hệ điều hành (đo trên Linux: 0x0B; Windows dùng 0x20/0x21 theo
+        // tài liệu Win32, chưa chạy thử ở đây), và đoán sai thì ca hay gặp nhất, tệp đang mở trong Excel, sẽ rơi xuống câu mơ hồ.
+        catch (DirectoryNotFoundException ex)
         {
+            LogPrintIoFailure(ex, path, "thư mục không tồn tại");
             await dialog.ShowMessageAsync(PrintFileTitle, PrintSaveLocationUnavailableMessage);
             return;
         }
-        catch (PathTooLongException)
+        catch (PathTooLongException ex)
         {
+            LogPrintIoFailure(ex, path, "đường dẫn quá dài");
             await dialog.ShowMessageAsync(PrintFileTitle, PrintSaveLocationUnavailableMessage);
             return;
         }
-        catch (IOException)
+        catch (DriveNotFoundException ex)
+        {
+            LogPrintIoFailure(ex, path, "ổ đĩa không tồn tại hoặc đã ngắt kết nối");
+            await dialog.ShowMessageAsync(PrintFileTitle, PrintSaveLocationUnavailableMessage);
+            return;
+        }
+        catch (IOException ex)
         {
             // Còn lại của IOException: nói thật cả hai nguyên nhân hay gặp, thay vì chỉ một.
+            LogPrintIoFailure(ex, path, "lỗi vào/ra: tệp đang mở hoặc ổ đầy");
             await dialog.ShowMessageAsync(PrintFileTitle,
                 "Không ghi được tệp. Có thể tệp đang được mở trong chương trình khác, hoặc ổ đĩa đã đầy. " +
                 "Hãy đóng tệp nếu đang mở, hoặc giải phóng dung lượng ổ đĩa, rồi thử lại.");
@@ -265,6 +276,13 @@ public partial class MainWindowViewModel : ViewModelBase
         if (!launcher.TryOpen(path))
             await dialog.ShowMessageAsync(PrintFileTitle, $"Đã lưu tệp tại:\n{path}");
     }
+
+    /// Nhật ký cho các lỗi ghi họ IOException. Người dùng chỉ đọc một câu ("tệp đang mở hoặc ổ đầy" che cả hai nguyên nhân);
+    /// nhật ký là thứ duy nhất cho người hỗ trợ biết đó là xung đột chia sẻ, ổ đầy hay ổ bị rút. HResult nằm ngay trong dòng
+    /// vì cùng một lỗi mang mã khác nhau theo hệ điều hành (xung đột chia sẻ: đo trên Linux là 0x0B, Windows là 0x20/0x21 theo
+    /// tài liệu Win32). Warning chứ không phải Error: đây là tình huống của môi trường người dùng, không phải lỗi của ứng dụng.
+    private static void LogPrintIoFailure(Exception ex, string path, string cause) =>
+        Log.Warning(ex, "Không ghi được tệp in ({Cause}): {Path}, HResult 0x{HResult:X8}", cause, path, ex.HResult);
 
     // Một handler duy nhất, thứ tự viết rõ ra: không dựa vào việc CommunityToolkit gọi overload nào trước (xem cùng
     // quy ước ở FinanceWorkbookViewModel.OnSelectedViTriPageChanged).
