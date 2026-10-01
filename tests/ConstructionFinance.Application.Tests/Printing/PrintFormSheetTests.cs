@@ -100,6 +100,23 @@ public class PrintFormSheetTests
         return new XLWorkbook(buffer);
     }
 
+    /// Ghi `payload` vào một sheet biểu mẫu tên `sheetName` và đòi bộ ghi ném ĐÚNG ArgumentException,
+    /// không phải lớp con, với thông báo nêu tên sheet. Should.Throw<ArgumentException> chấp nhận cả
+    /// lớp con, nên chỉ kiểm kiểu thì ArgumentOutOfRangeException văng ra từ việc lấy hàm vẽ trên danh
+    /// sách rỗng cũng làm test xanh dù lời bảo vệ chưa hề chạy. Hai nhánh (không có biểu mẫu nào, và
+    /// quá một) cùng đi qua hàm này nên không nhánh nào xanh được bằng đường vòng.
+    private static void AssertRejectsPayload(string sheetName, FormPayload payload, string label)
+    {
+        var sheets = new PrintSheet[] { new PrintFormSheet(sheetName, PrintPageProfiles.ThongTri, payload) };
+        using var buffer = new MemoryStream();
+
+        var error = Should.Throw<ArgumentException>(() =>
+            new PrintWorkbookWriter().Write(sheets, buffer, Footer), label);
+
+        error.GetType().ShouldBe(typeof(ArgumentException), label);
+        error.Message.ShouldContain(sheetName, Case.Sensitive, label);
+    }
+
     private static XLBorderStyleValues[] Sides(IXLCell cell)
     {
         var border = cell.Style.Border;
@@ -142,6 +159,15 @@ public class PrintFormSheetTests
     }
 
     [Fact]
+    public void FormPayload_rong_thi_nem_loi_neu_ten_sheet()
+    {
+        // Bản của brief ở trên chỉ kiểm kiểu ngoại lệ nên không phân biệt được lời bảo vệ với một
+        // ArgumentOutOfRangeException văng ra khi lấy hàm vẽ trên danh sách rỗng. Test này đòi đúng
+        // kiểu và đòi thông báo gọi đúng tên sheet.
+        AssertRejectsPayload("Trống", new FormPayload(), "không có biểu mẫu nào");
+    }
+
+    [Fact]
     public void FormPayload_co_hon_mot_bieu_mau_thi_nem_loi_neu_ten_sheet()
     {
         var thongTri = SampleThongTriForm();
@@ -158,15 +184,7 @@ public class PrintFormSheetTests
         };
 
         foreach (var (label, payload) in payloads)
-        {
-            var sheets = new PrintSheet[] { new PrintFormSheet("Hai biểu mẫu", PrintPageProfiles.ThongTri, payload) };
-            using var buffer = new MemoryStream();
-
-            var error = Should.Throw<ArgumentException>(() =>
-                new PrintWorkbookWriter().Write(sheets, buffer, Footer), label);
-
-            error.Message.ShouldContain("Hai biểu mẫu");
-        }
+            AssertRejectsPayload("Hai biểu mẫu", payload, label);
     }
 
     [Fact]
