@@ -1,5 +1,6 @@
 using ClosedXML.Excel;
 using ConstructionFinance.Application.Calc;
+using ConstructionFinance.Application.Printing;
 using ConstructionFinance.Application.Services.Interfaces;
 using ConstructionFinance.Domain.Finance;
 
@@ -72,7 +73,7 @@ public class FinanceExportService : IFinanceExportService
 
     private static void WriteDaSheet(XLWorkbook wb, Project project, HashSet<string> usedNames)
     {
-        var ws = wb.AddWorksheet(UniqueSheetName(project.Name, usedNames));
+        var ws = wb.AddWorksheet(ExcelSheetName.Unique(project.Name, usedNames));
         var lines = project.Lines.OrderBy(l => l.SortOrder).ToList();
         var agg = ProjectCalculator.Aggregate(lines.Select(l => l.ToCalcInput()).ToList());
 
@@ -126,22 +127,5 @@ public class FinanceExportService : IFinanceExportService
     {
         cell.Value = value;
         cell.Style.NumberFormat.Format = MoneyFormat;
-    }
-
-    /// Excel sheet names ≤31 chars, no []:*?/\, unique within the workbook.
-    private static string UniqueSheetName(string raw, HashSet<string> used)
-    {
-        // Excel also rejects a sheet name that starts/ends with an apostrophe, so strip it too.
-        var cleaned = new string((raw ?? "DA").Where(ch => !"[]:*?/\\'".Contains(ch)).ToArray()).Trim();
-        if (cleaned.Length == 0) cleaned = "DA";
-        if (cleaned.Length > 31) cleaned = cleaned[..31];
-        var name = cleaned;
-        var i = 2;
-        while (!used.Add(name))
-        {
-            var suffix = $" ({i++})";
-            name = cleaned.Length + suffix.Length > 31 ? cleaned[..(31 - suffix.Length)] + suffix : cleaned + suffix;
-        }
-        return name;
     }
 }
