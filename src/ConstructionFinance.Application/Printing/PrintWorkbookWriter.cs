@@ -35,11 +35,26 @@ public sealed class PrintWorkbookWriter : IPrintWorkbookWriter
 
     private const string FooterRight = "Trang &P/&N";
 
-    /// Excel (và ClosedXML — ném ArgumentOutOfRangeException ngay khi lưu) giới hạn cả
-    /// chuỗi chân trang ở 255 ký tự, tính luôn mã &L, &R và phần "Trang &P/&N" (15 ký tự cố
-    /// định). Dấu & phải viết đôi nên một tên toàn dấu & dài gấp đôi: 120 ký tự → tệ nhất
-    /// 240, cộng 15 vừa đúng 255.
-    private const int MaxFooterLeftChars = 120;
+    /// Excel (và ClosedXML — ném ArgumentOutOfRangeException ngay khi lưu) giới hạn cả chuỗi
+    /// chân trang ở 255 ký tự.
+    private const int MaxFooterChars = 255;
+
+    /// Mã phân vùng "&L" và "&R", mỗi mã hai ký tự.
+    private const int SectionCodeChars = 2;
+
+    /// Chân trang là "&L" + trái + "&R" + phải, nên phần dành cho tên bên trái là 255 trừ hai
+    /// mã phân vùng trừ FooterRight. Dấu & trong tên phải viết đôi, nên tệ nhất (tên toàn dấu
+    /// &) mỗi ký tự chiếm hai chỗ: chia đôi phần còn lại. Tính từ chính các hằng số dựng nên
+    /// chuỗi, để sửa FooterRight không thể làm vỡ giới hạn — lỗi đó chỉ nổ lúc lưu và chỉ với
+    /// tên dự án dài, rất khó bắt bằng test. `internal` để test lấy đúng mức trần này.
+    internal static readonly int MaxFooterLeftChars =
+        (MaxFooterChars - 2 * SectionCodeChars - FooterRight.Length) / 2;
+
+    // Nét kẻ và màu nền của bảng, đặt cạnh nhau vì đây là chỗ hay phải chỉnh sau khi xem bản
+    // in thật: mỗi thứ chỉ sửa đúng một dòng. Hai nét kẻ là `internal` để test đối chiếu với
+    // tệp đọc lại mà không phải chép giá trị, nên đổi độ đậm không phải sửa test.
+    internal const XLBorderStyleValues GridBorder = XLBorderStyleValues.Thin;
+    internal const XLBorderStyleValues HeaderBottomBorder = XLBorderStyleValues.Medium;
 
     /// Xám nhạt của Excel ("White, Background 1, Darker 15%"), cho dòng IsShaded.
     private static readonly XLColor ShadeColor = XLColor.FromHtml("#D9D9D9");
@@ -82,6 +97,8 @@ public sealed class PrintWorkbookWriter : IPrintWorkbookWriter
             // tệp rỗng/hỏng, và không đè mất bản in cũ cùng tên.
             using var buffer = new MemoryStream();
             Write(sheets, buffer, footer);
+            // Task.Run chỉ xét ct trước khi chạy; hủy giữa chừng thì dừng ở đây, trước khi chạm đĩa.
+            ct.ThrowIfCancellationRequested();
             File.WriteAllBytes(targetPath, buffer.ToArray());
         }, ct);
 
@@ -116,7 +133,13 @@ public sealed class PrintWorkbookWriter : IPrintWorkbookWriter
         var text = string.Join(" · ", parts);
 
         if (text.Length > MaxFooterLeftChars)
-            text = text[..(MaxFooterLeftChars - 1)] + "…";
+        {
+            // Cắt theo đơn vị UTF-16, chừa một chỗ cho "…". Nếu dao rơi giữa một cặp surrogate
+            // thì lùi một ký tự: surrogate lẻ không phải XML hợp lệ, ClosedXML ném khi lưu.
+            var cut = MaxFooterLeftChars - 1;
+            if (char.IsHighSurrogate(text[cut - 1])) cut--;
+            text = text[..cut] + "…";
+        }
         return text.Replace("&", "&&");
     }
 
@@ -126,7 +149,24 @@ public sealed class PrintWorkbookWriter : IPrintWorkbookWriter
 
         WriteHeader(ws, table.Columns);
         for (var r = 0; r < table.Rows.Count; r++)
-            WriteRow(ws, r + 2, table.Rows[r], table.Columns);   // dòng 1 là tiêu đề cột
+            WriteRow(ws, table, r);
+
+        DrawGrid(ws, lastRow: table.Rows.Count + 1, columnCount: table.Columns.Count);
+    }
+
+    /// Kẻ khung cả bảng (tiêu đề + dữ liệu). Excel mặc định không in đường lưới, nên không kẻ
+    /// thì bản in chỉ là chữ rời rạc. Cạnh dưới tiêu đề kẻ đậm hơn để tách phần đầu bảng.
+    private static void DrawGrid(IXLWorksheet ws, int lastRow, int columnCount)
+    {
+        var grid = ws.Range(1, 1, lastRow, columnCount).Style.Border;
+        grid.OutsideBorder = GridBorder;
+        grid.InsideBorder = GridBorder;
+
+        // Cạnh này là của cả hai ô liền kề (đáy tiêu đề, đỉnh dòng dữ liệu đầu). ClosedXML không
+        // tự đồng bộ hai bên, nên ghi cả hai để Excel không phải chọn giữa hai nét khác nhau.
+        ws.Range(1, 1, 1, columnCount).Style.Border.BottomBorder = HeaderBottomBorder;
+        if (lastRow > 1)
+            ws.Range(2, 1, 2, columnCount).Style.Border.TopBorder = HeaderBottomBorder;
     }
 
     private static void WriteHeader(IXLWorksheet ws, IReadOnlyList<PrintColumn> columns)
@@ -146,9 +186,16 @@ public sealed class PrintWorkbookWriter : IPrintWorkbookWriter
         style.Alignment.WrapText = true;
     }
 
-    private static void WriteRow(
-        IXLWorksheet ws, int sheetRow, PrintRow row, IReadOnlyList<PrintColumn> columns)
+    private static void WriteRow(IXLWorksheet ws, PrintTableSheet table, int index)
     {
+        var row = table.Rows[index];
+        var columns = table.Columns;
+        if (row.Cells.Count > columns.Count)
+            throw new ArgumentException(
+                $"Sheet \"{table.SheetName}\": Rows[{index}] có {row.Cells.Count} ô nhưng bảng chỉ có {columns.Count} cột.");
+
+        var sheetRow = index + 2;   // dòng 1 là tiêu đề cột
+
         // Đậm và nền đặt cho cả dải cột của bảng, không chỉ ô có chữ — để dải nền liền nhau.
         var rowStyle = ws.Range(sheetRow, 1, sheetRow, columns.Count).Style;
         if (row.IsBold) rowStyle.Font.Bold = true;

@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using ClosedXML.Excel;
@@ -18,6 +19,14 @@ public class PrintWorkbookWriterTests
     /// kể cả trước khi lưu. OddPages là chuỗi được ghi vào thẻ oddFooter — thẻ Excel in trên
     /// mọi trang khi không bật "khác nhau chẵn/lẻ".
     private const XLHFOccurrence PrintedOccurrence = XLHFOccurrence.OddPages;
+
+    private static string TempPath() =>
+        Path.Combine(Path.GetTempPath(), $"in-{Guid.NewGuid():N}.xlsx");
+
+    /// Độ dài chuỗi chân trang mà Excel thật sự nhận: "&L" + trái + "&R" + phải.
+    private static int FooterLength(IXLHeaderFooter footer) =>
+        "&L".Length + footer.Left.GetText(PrintedOccurrence).Length
+        + "&R".Length + footer.Right.GetText(PrintedOccurrence).Length;
 
     private static PrintTableSheet SampleSheet() => new(
         "Vị trí 1",
@@ -113,6 +122,7 @@ public class PrintWorkbookWriterTests
 
         cell.DataType.ShouldBe(XLDataType.DateTime);
         cell.GetDateTime().ShouldBe(new DateTime(2026, 3, 15));
+        cell.Style.NumberFormat.Format.ShouldBe("dd/MM/yyyy");
     }
 
     [Fact]
@@ -220,7 +230,7 @@ public class PrintWorkbookWriterTests
     [Fact]
     public async Task WriteAsync_ghi_tep_that_va_mo_lai_duoc()
     {
-        var path = Path.Combine(Path.GetTempPath(), $"in-{Guid.NewGuid():N}.xlsx");
+        var path = TempPath();
         try
         {
             await new PrintWorkbookWriter().WriteAsync(new PrintSheet[] { SampleSheet() }, path, Footer);
@@ -298,7 +308,7 @@ public class PrintWorkbookWriterTests
 
         cell.DataType.ShouldBe(XLDataType.Number);
         cell.GetDouble().ShouldBe(2026d);
-        cell.Style.NumberFormat.Format.ShouldNotBe("#,##0");   // năm 2026 không được in thành "2,026"
+        cell.Style.NumberFormat.NumberFormatId.ShouldBe(0);   // General: năm 2026 không được in thành "2,026"
     }
 
     [Theory]
@@ -347,21 +357,161 @@ public class PrintWorkbookWriterTests
     [Fact]
     public void Ten_chan_trang_dai_nhat_van_con_vua_gioi_han_255_ky_tu()
     {
-        // 120 dấu & là ca xấu nhất không bị cắt: mỗi dấu thành hai ký tự → 240, cộng 15 ký tự
-        // cố định của &L, &R và "Trang &P/&N" = 255. ClosedXML ném ngay khi lưu nếu hơn.
-        using var wb = WriteAndReopen(new PrintFooterInfo(new string('&', 120), null), SampleSheet());
+        // Tên toàn dấu & dài đúng mức trần: không bị cắt, và mỗi dấu viết đôi nên chuỗi chân
+        // trang chạm sát giới hạn — ClosedXML ném ngay khi lưu nếu hơn 255.
+        var max = PrintWorkbookWriter.MaxFooterLeftChars;
+        using var wb = WriteAndReopen(new PrintFooterInfo(new string('&', max), null), SampleSheet());
 
-        wb.Worksheet(1).PageSetup.Footer.Left.GetText(PrintedOccurrence)
-            .ShouldBe(new string('&', 240));
+        var footer = wb.Worksheet(1).PageSetup.Footer;
+        footer.Left.GetText(PrintedOccurrence).ShouldBe(new string('&', 2 * max));
+        // Mức trần phải dùng hết giới hạn của Excel, không chừa dư quá một ký tự.
+        FooterLength(footer).ShouldBeInRange(254, 255);
     }
 
     [Fact]
     public void Ten_chan_trang_qua_dai_bi_cat_va_ket_thuc_bang_dau_ba_cham()
     {
-        using var wb = WriteAndReopen(new PrintFooterInfo(new string('&', 400), null), SampleSheet());
+        var max = PrintWorkbookWriter.MaxFooterLeftChars;
+        using var wb = WriteAndReopen(new PrintFooterInfo(new string('&', max + 1), null), SampleSheet());
 
-        // Cắt còn 119 ký tự + "…"; 119 dấu & viết đôi thành 238.
-        wb.Worksheet(1).PageSetup.Footer.Left.GetText(PrintedOccurrence)
-            .ShouldBe(new string('&', 238) + "…");
+        var footer = wb.Worksheet(1).PageSetup.Footer;
+        // Cắt còn max - 1 ký tự rồi thêm "…"; dấu & viết đôi.
+        footer.Left.GetText(PrintedOccurrence).ShouldBe(new string('&', 2 * (max - 1)) + "…");
+        FooterLength(footer).ShouldBeLessThanOrEqualTo(255);
+    }
+
+    [Fact]
+    public void Cat_ten_chan_trang_khong_xe_doi_cap_surrogate()
+    {
+        // Emoji là một cặp surrogate (hai ký tự UTF-16). Đặt nó đúng chỗ dao rơi: cắt cứng theo
+        // đơn vị UTF-16 sẽ để lại một surrogate lẻ, mà surrogate lẻ không phải XML hợp lệ.
+        var max = PrintWorkbookWriter.MaxFooterLeftChars;
+        var name = new string('a', max - 2) + "\U0001F600" + "tail";   // surrogate cao nằm ở ký tự giữ lại cuối cùng
+        using var wb = WriteAndReopen(new PrintFooterInfo(name, null), SampleSheet());
+
+        var left = wb.Worksheet(1).PageSetup.Footer.Left.GetText(PrintedOccurrence);
+        left.ShouldBe(new string('a', max - 2) + "…");
+        left.Any(char.IsSurrogate).ShouldBeFalse();
+    }
+
+    [Fact]
+    public void Chan_trang_giong_nhau_o_moi_loai_trang_va_khong_bat_khac_nhau_chan_le()
+    {
+        using var wb = WriteAndReopen(SampleSheet());
+        var page = wb.Worksheet(1).PageSetup;
+
+        // Khi người dùng bật "khác nhau chẵn/lẻ" hay "trang đầu khác", Excel đọc chân trang từ thẻ
+        // riêng của loại trang đó: cả ba thẻ phải mang cùng chữ, không thì bật công tắc là mất.
+        foreach (var occurrence in new[] { XLHFOccurrence.OddPages, XLHFOccurrence.EvenPages, XLHFOccurrence.FirstPage })
+        {
+            page.Footer.Left.GetText(occurrence).ShouldBe("Dự án A · Vị trí 1", occurrence.ToString());
+            page.Footer.Right.GetText(occurrence).ShouldBe("Trang &P/&N", occurrence.ToString());
+        }
+
+        page.DifferentOddEvenPagesOnHF.ShouldBeFalse();
+        page.DifferentFirstPageOnHF.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void Ke_vien_mong_toan_bang_va_vien_duoi_tieu_de_dam_hon()
+    {
+        using var wb = WriteAndReopen(SampleSheet());   // 3 cột; tiêu đề + 4 dòng dữ liệu = A1:C5
+        var ws = wb.Worksheet(1);
+        const int lastRow = 5;
+        const int lastColumn = 3;
+        var grid = PrintWorkbookWriter.GridBorder;
+        var headerEdge = PrintWorkbookWriter.HeaderBottomBorder;
+
+        headerEdge.ShouldNotBe(grid);   // không thì tiêu đề chẳng có nét nào "đậm hơn"
+        for (var r = 1; r <= lastRow; r++)
+        {
+            for (var c = 1; c <= lastColumn; c++)
+            {
+                var border = ws.Cell(r, c).Style.Border;
+                var at = $"ô ({r}, {c})";
+                border.LeftBorder.ShouldBe(grid, $"{at} cạnh trái");
+                border.RightBorder.ShouldBe(grid, $"{at} cạnh phải");
+                // Cạnh giữa tiêu đề và dòng dữ liệu đầu tiên là của cả hai ô liền kề; ClosedXML
+                // không tự đồng bộ hai bên nên phải ghi cả hai, đừng để Excel chọn giữa hai nét.
+                border.BottomBorder.ShouldBe(r == 1 ? headerEdge : grid, $"{at} cạnh dưới");
+                border.TopBorder.ShouldBe(r == 2 ? headerEdge : grid, $"{at} cạnh trên");
+            }
+        }
+
+        // Nét kẻ không tràn ra ngoài bảng.
+        ws.Cell(1, lastColumn + 1).Style.Border.BottomBorder.ShouldBe(XLBorderStyleValues.None);
+        ws.Cell(lastRow + 1, 1).Style.Border.RightBorder.ShouldBe(XLBorderStyleValues.None);
+    }
+
+    [Fact]
+    public void Bang_chi_co_tieu_de_van_ke_vien_va_khong_dung_vao_dong_khong_ton_tai()
+    {
+        var sheet = SampleSheet() with { Rows = Array.Empty<PrintRow>() };
+
+        using var wb = WriteAndReopen(sheet);
+        var ws = wb.Worksheet(1);
+
+        for (var c = 1; c <= 3; c++)
+        {
+            ws.Cell(1, c).Style.Border.BottomBorder.ShouldBe(PrintWorkbookWriter.HeaderBottomBorder);
+            ws.Cell(1, c).Style.Border.LeftBorder.ShouldBe(PrintWorkbookWriter.GridBorder);
+        }
+
+        // Dòng 2 không có dữ liệu thì không được dính nét kẻ nào (sẽ kéo dài vùng in một dòng trống).
+        ws.Cell(2, 1).Style.Border.TopBorder.ShouldBe(XLBorderStyleValues.None);
+    }
+
+    [Fact]
+    public void Dong_nhieu_o_hon_so_cot_thi_bao_loi_neu_ro_sheet_va_so_luong()
+    {
+        var sheet = new PrintTableSheet(
+            "Vị trí 7",
+            PrintPageProfiles.YearSettlement,
+            new[] { new PrintColumn("Năm", 12, PrintAlign.Center), new PrintColumn("NSNN", 18, PrintAlign.Right) },
+            new[]
+            {
+                new PrintRow(new[] { PrintCell.OfText("2026"), PrintCell.Empty }),
+                new PrintRow(new[] { PrintCell.OfText("2027"), PrintCell.Empty, PrintCell.Empty }),   // thừa một ô
+            });
+        using var buffer = new MemoryStream();
+
+        var error = Should.Throw<ArgumentException>(
+            () => new PrintWorkbookWriter().Write(new PrintSheet[] { sheet }, buffer, Footer));
+
+        error.Message.ShouldContain("Vị trí 7");
+        error.Message.ShouldContain("Rows[1]");
+        error.Message.ShouldContain("3 ô");
+        error.Message.ShouldContain("2 cột");
+    }
+
+    [Fact]
+    public async Task WriteAsync_bi_huy_giua_chung_thi_khong_ghi_tep()
+    {
+        using var cts = new CancellationTokenSource();
+        var sheets = new CancelWhenRead(new PrintSheet[] { SampleSheet() }, cts);
+        var path = TempPath();
+        try
+        {
+            await Should.ThrowAsync<OperationCanceledException>(
+                () => new PrintWorkbookWriter().WriteAsync(sheets, path, Footer, cts.Token));
+
+            File.Exists(path).ShouldBeFalse();
+        }
+        finally { File.Delete(path); }
+    }
+
+    /// Danh sách sheet hủy token ngay khi bị đọc đến. Lúc bộ ghi bắt đầu liệt kê sheet thì
+    /// Task.Run đã chạy rồi, nên chỉ có kiểm tra ct SAU khi dựng xong mới bắt được — và test
+    /// này không cần canh giờ hay ngủ.
+    private sealed class CancelWhenRead(IReadOnlyList<PrintSheet> inner, CancellationTokenSource cts)
+        : IReadOnlyList<PrintSheet>
+    {
+        public int Count { get { cts.Cancel(); return inner.Count; } }
+
+        public PrintSheet this[int index] { get { cts.Cancel(); return inner[index]; } }
+
+        public IEnumerator<PrintSheet> GetEnumerator() { cts.Cancel(); return inner.GetEnumerator(); }
+
+        IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
     }
 }
