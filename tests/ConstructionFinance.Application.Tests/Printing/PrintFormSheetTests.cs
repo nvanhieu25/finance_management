@@ -250,8 +250,10 @@ public class PrintFormSheetTests
         var table = wb.Worksheet(1).PageSetup.Footer;
         var form = wb.Worksheet(2).PageSetup.Footer;
 
-        // So với sheet bảng chứ không so với một chuỗi cứng: bắt được cả việc ApplyPage bị gọi hai
-        // lần trên sheet biểu mẫu (chữ chân trang được nối thêm, không đặt lại).
+        // Chỉ kiểm SỰ TƯƠNG ĐƯƠNG: chân trang của biểu mẫu phải y hệt chân trang của sheet bảng. So với
+        // sheet bảng chứ không so với chuỗi cứng, nên đổi định dạng chân trang không làm đỏ test này.
+        // Áp hồ sơ hai lần lên một sheet có nhân đôi chân trang hay không là việc của
+        // ApplyPage_ap_hai_lan_len_cung_mot_sheet_cho_ket_qua_nhu_mot_lan, không phải của test này.
         form.Left.GetText(PrintedOccurrence).ShouldBe(table.Left.GetText(PrintedOccurrence));
         form.Right.GetText(PrintedOccurrence).ShouldBe(table.Right.GetText(PrintedOccurrence));
         // Hai bên cùng rỗng cũng là "giống nhau": hai dòng dưới ghim rằng chân trang có chữ thật.
@@ -312,7 +314,8 @@ public class PrintFormSheetTests
         using var wb = new XLWorkbook();
         var ws = wb.AddWorksheet("Vị trí 1");
 
-        // Hồ sơ có lặp dòng/cột và ép vừa trang, để cả những phần đó cũng bị kiểm.
+        // Hồ sơ có lặp dòng/cột, để phần đó cũng bị kiểm bên dưới. Ép vừa trang không kiểm ở đây: nó chỉ
+        // là một lời gọi đặt giá trị, và các test hồ sơ căn trang khác đã lo.
         PrintWorkbookWriter.ApplyPage(ws, PrintPageProfiles.ViTriLedger, Footer);
         PrintWorkbookWriter.ApplyPage(ws, PrintPageProfiles.ViTriLedger, Footer);
 
