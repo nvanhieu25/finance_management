@@ -125,7 +125,7 @@ public class PrintFormSheetTests
         wb.Worksheet(2).Name.ShouldBe("Thông tri");
         wb.Worksheet(2).Cell(4, 1).GetString().ShouldBe("THÔNG TRI");
         wb.Worksheet(2).PageSetup.PageOrientation.ShouldBe(XLPageOrientation.Portrait);
-        wb.Worksheet(2).PageSetup.PagesTall.ShouldBe(1);
+        wb.Worksheet(2).PageSetup.PagesTall.ShouldBe(0);   // chỉ ép vừa bề ngang; dọc bao nhiêu trang cũng được
     }
 
     [Fact]
@@ -144,17 +144,44 @@ public class PrintFormSheetTests
     [Fact]
     public void FormPayload_co_hon_mot_bieu_mau_thi_nem_loi_neu_ten_sheet()
     {
-        var sheets = new PrintSheet[]
+        var thongTri = SampleThongTriForm();
+        var ksChi = SampleKsChiForm();
+        var gdntt = SampleGdnttForm();
+
+        // Mọi cách có từ hai biểu mẫu trở lên, không chỉ cặp đầu tiên.
+        var payloads = new (string Label, FormPayload Payload)[]
         {
-            new PrintFormSheet("Hai biểu mẫu", PrintPageProfiles.ThongTri,
-                new FormPayload(ThongTri: SampleThongTriForm(), KsChi: SampleKsChiForm())),
+            ("ThongTri + KsChi", new FormPayload(ThongTri: thongTri, KsChi: ksChi)),
+            ("ThongTri + Gdntt", new FormPayload(ThongTri: thongTri, Gdntt: gdntt)),
+            ("KsChi + Gdntt", new FormPayload(KsChi: ksChi, Gdntt: gdntt)),
+            ("cả ba", new FormPayload(ThongTri: thongTri, KsChi: ksChi, Gdntt: gdntt)),
         };
 
-        using var buffer = new MemoryStream();
-        var error = Should.Throw<ArgumentException>(() =>
-            new PrintWorkbookWriter().Write(sheets, buffer, Footer));
+        foreach (var (label, payload) in payloads)
+        {
+            var sheets = new PrintSheet[] { new PrintFormSheet("Hai biểu mẫu", PrintPageProfiles.ThongTri, payload) };
+            using var buffer = new MemoryStream();
 
-        error.Message.ShouldContain("Hai biểu mẫu");
+            var error = Should.Throw<ArgumentException>(() =>
+                new PrintWorkbookWriter().Write(sheets, buffer, Footer), label);
+
+            error.Message.ShouldContain("Hai biểu mẫu");
+            // ParamName là chỗ người gọi lọc lỗi do model in dựng sai ra khỏi ArgumentException của ClosedXML.
+            error.ParamName.ShouldBe("sheets", label);
+        }
+    }
+
+    [Fact]
+    public void FormPayload_chi_co_ba_bieu_mau_ma_bo_ghi_biet_ve()
+    {
+        // Tripwire. PrintWorkbookWriter.WriteForm dựng danh sách hàm vẽ từ TỪNG thành viên của
+        // FormPayload. Thêm biểu mẫu thứ tư (KH vốn / Vốn / QĐ...) mà quên thêm hàm vẽ thì payload
+        // mang nó cùng một biểu mẫu cũ sẽ chỉ vẽ biểu mẫu cũ, lặng lẽ bỏ biểu mẫu mới. Test này đỏ
+        // để ai thêm thành viên phải mở WriteForm ra: thêm hàm vẽ ở đó rồi sửa danh sách bên dưới.
+        typeof(FormPayload).GetProperties()
+            .Select(property => property.Name)
+            .OrderBy(name => name)
+            .ShouldBe(new[] { "Gdntt", "KsChi", "ThongTri" });
     }
 
     [Fact]
@@ -172,14 +199,15 @@ public class PrintFormSheetTests
         wb.Worksheet(2).Cell(1, 1).GetString().ShouldBe("PHẦN GHI CỦA CƠ QUAN KIỂM SOÁT, THANH TOÁN");
         wb.Worksheet(3).Cell(4, 1).GetString().ShouldBe("GIẤY ĐỀ NGHỊ THANH TOÁN VỐN ĐẦU TƯ");
 
-        // GĐNTT có chín cột nên in ngang; hai biểu mẫu kia in dọc. Cả ba ép vừa đúng một trang.
+        // GĐNTT có chín cột nên in ngang; hai biểu mẫu kia in dọc. Cả ba chỉ ép vừa bề ngang: ép luôn
+        // chiều dọc thì Excel thu nhỏ vô hạn, một Thông tri dài co đến không đọc nổi thay vì sang trang.
         wb.Worksheet(1).PageSetup.PageOrientation.ShouldBe(XLPageOrientation.Portrait);
         wb.Worksheet(2).PageSetup.PageOrientation.ShouldBe(XLPageOrientation.Portrait);
         wb.Worksheet(3).PageSetup.PageOrientation.ShouldBe(XLPageOrientation.Landscape);
         foreach (var ws in wb.Worksheets)
         {
             ws.PageSetup.PagesWide.ShouldBe(1, ws.Name);
-            ws.PageSetup.PagesTall.ShouldBe(1, ws.Name);
+            ws.PageSetup.PagesTall.ShouldBe(0, ws.Name);
         }
     }
 
@@ -240,5 +268,55 @@ public class PrintFormSheetTests
 
         wb.Worksheet(2).Name.ShouldBe("THÔNG TRI (2)");
         wb.Worksheet(2).Cell(4, 1).GetString().ShouldBe("THÔNG TRI");
+    }
+
+    [Fact]
+    public void Bieu_mau_giu_chu_dam_va_font_Times_New_Roman_13_sau_khi_ap_ho_so()
+    {
+        using var wb = WriteAndReopen(
+            new PrintFormSheet("Thông tri", PrintPageProfiles.ThongTri, new FormPayload(ThongTri: SampleThongTriForm())),
+            new PrintFormSheet("KS chi", PrintPageProfiles.KsChi, new FormPayload(KsChi: SampleKsChiForm())),
+            new PrintFormSheet("GĐNTT", PrintPageProfiles.Gdntt, new FormPayload(Gdntt: SampleGdnttForm())));
+
+        // Bộ ghi áp hồ sơ SAU khi hàm vẽ đã vẽ ô, và hồ sơ đặt lại FontName/FontSize của cả sheet.
+        // Ô tiêu đề do hàm vẽ in đậm phải vẫn đậm, và phải đúng font của Mẫu.
+        foreach (var (sheet, row) in new[] { (1, 4), (2, 1), (3, 4) })
+        {
+            var ws = wb.Worksheet(sheet);
+            var font = ws.Cell(row, 1).Style.Font;
+            font.Bold.ShouldBeTrue(ws.Name);
+            font.FontName.ShouldBe("Times New Roman", ws.Name);
+            font.FontSize.ShouldBe(13d, ws.Name);
+        }
+    }
+
+    [Fact]
+    public void ApplyPage_ap_hai_lan_len_cung_mot_sheet_cho_ket_qua_nhu_mot_lan()
+    {
+        using var wb = new XLWorkbook();
+        var ws = wb.AddWorksheet("Vị trí 1");
+
+        // Hồ sơ có lặp dòng/cột và ép vừa trang, để cả những phần đó cũng bị kiểm.
+        PrintWorkbookWriter.ApplyPage(ws, PrintPageProfiles.ViTriLedger, Footer);
+        PrintWorkbookWriter.ApplyPage(ws, PrintPageProfiles.ViTriLedger, Footer);
+
+        using var buffer = new MemoryStream();
+        wb.SaveAs(buffer);
+        buffer.Position = 0;
+        using var reopened = new XLWorkbook(buffer);
+        var page = reopened.Worksheet(1).PageSetup;
+
+        // AddText nối thêm vào chữ đã có, nên ApplyPage phải xóa chân trang cũ trước khi thêm. Kiểm đủ
+        // ba loại trang vì AddText chép chữ ra cả ba thẻ lẻ / chẵn / đầu.
+        foreach (var occurrence in new[] { XLHFOccurrence.OddPages, XLHFOccurrence.EvenPages, XLHFOccurrence.FirstPage })
+        {
+            page.Footer.Left.GetText(occurrence).ShouldBe("Dự án A · Vị trí 1", occurrence.ToString());
+            page.Footer.Right.GetText(occurrence).ShouldBe("Trang &P/&N", occurrence.ToString());
+        }
+
+        page.FirstRowToRepeatAtTop.ShouldBe(1);
+        page.LastRowToRepeatAtTop.ShouldBe(2);
+        page.FirstColumnToRepeatAtLeft.ShouldBe(1);
+        page.LastColumnToRepeatAtLeft.ShouldBe(2);
     }
 }

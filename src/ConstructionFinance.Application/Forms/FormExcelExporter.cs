@@ -25,7 +25,8 @@ public partial class FormExcelExporter : IFormExcelExporter
     /// Vẽ biểu mẫu lên một worksheet CÓ SẴN. Tách ra để PrintWorkbookWriter ghép được
     /// biểu mẫu vào workbook nhiều sheet mà không phải chép lại bố cục. Gồm cả font
     /// Times New Roman 13, khổ A4 và lề trái/phải 0.5: bề rộng cột, ô gộp và chỗ xuống
-    /// dòng được canh theo chúng, nên vẽ thiếu thì không còn là cùng một biểu mẫu.
+    /// dòng được canh theo chúng, nên vẽ thiếu thì không còn là cùng một biểu mẫu. Đừng tự đặt
+    /// FontName/FontSize riêng cho ô: bản in đặt lại font cả sheet sau khi vẽ (PrintWorkbookWriter.ApplyPage).
     internal static void WriteThongTriSheet(IXLWorksheet ws, ThongTriForm form)
     {
         ApplyPageDefaults(ws, XLPageOrientation.Portrait);

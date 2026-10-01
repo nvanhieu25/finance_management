@@ -77,7 +77,7 @@ public sealed class PrintWorkbookWriter : IPrintWorkbookWriter
                     WriteTable(ws, table, footer);
                     break;
                 case PrintFormSheet form:
-                    WriteForm(ws, form, footer);
+                    WriteForm(ws, form, footer, nameof(sheets));
                     break;
                 default:
                     throw new NotSupportedException($"Không hỗ trợ loại sheet {sheet.GetType().Name}.");
@@ -104,11 +104,14 @@ public sealed class PrintWorkbookWriter : IPrintWorkbookWriter
         }, ct);
 
     /// Căn trang + chân trang theo hồ sơ. Một chỗ duy nhất cho mọi loại sheet, để bảng và
-    /// biểu mẫu không có hai đường căn trang. Gọi đúng MỘT lần cho mỗi sheet: chân trang được
-    /// nối thêm chứ không đặt lại, gọi hai lần là chân trang in hai lần.
-    private static void ApplyPage(IXLWorksheet ws, PrintPageProfile page, PrintFooterInfo footer)
+    /// biểu mẫu không có hai đường căn trang. Áp lại lên cùng một sheet cho kết quả như áp một
+    /// lần; `internal` để test kiểm đúng điều đó.
+    internal static void ApplyPage(IXLWorksheet ws, PrintPageProfile page, PrintFooterInfo footer)
     {
-        // Font, khổ A4, hướng giấy, lề trái/phải — dùng lại đúng bộ đang áp cho ba biểu mẫu.
+        // Font, khổ A4, hướng giấy, lề trái/phải — dùng lại đúng bộ đang áp cho ba biểu mẫu. Với sheet
+        // biểu mẫu dòng này chạy SAU khi ô đã vẽ và đặt lại FontName/FontSize của cả sheet (đo bằng
+        // ClosedXML: ô, dòng, cột tự đặt cỡ 9 đều về 13), nên hàm vẽ biểu mẫu không được tự đặt
+        // FontName/FontSize riêng cho ô — Bold thì không sao.
         FormExcelExporter.ApplyPageDefaults(ws, ToExcel(page.Orientation));
 
         var setup = ws.PageSetup;
@@ -122,6 +125,9 @@ public sealed class PrintWorkbookWriter : IPrintWorkbookWriter
         if (page.RepeatRowsTop > 0) setup.SetRowsToRepeatAtTop(1, page.RepeatRowsTop);
         if (page.RepeatColsLeft > 0) setup.SetColumnsToRepeatAtLeft(1, page.RepeatColsLeft);
 
+        // AddText nối thêm vào chữ đã có, nên phải xóa trước: áp lại hồ sơ lên cùng một sheet
+        // không được nhân đôi chân trang.
+        setup.Footer.Clear();
         setup.Footer.Left.AddText(FooterLeftText(footer));
         setup.Footer.Right.AddText(FooterRight);
     }
@@ -142,25 +148,30 @@ public sealed class PrintWorkbookWriter : IPrintWorkbookWriter
     /// Sheet biểu mẫu. Hàm vẽ tự đặt font, khổ giấy và HƯỚNG GIẤY bằng hằng số của nó, nên vẽ
     /// TRƯỚC rồi mới áp hồ sơ căn trang: để hồ sơ có tiếng nói cuối cùng. Cố ý KHÔNG kẻ lưới như
     /// sheet bảng — biểu mẫu đã tự kẻ khung đúng chỗ Mẫu có, kẻ cả vùng dùng sẽ bao khung luôn
-    /// những ô Mẫu để trắng.
-    private static void WriteForm(IXLWorksheet ws, PrintFormSheet form, PrintFooterInfo footer)
+    /// những ô Mẫu để trắng. `sheetsParamName` là tên tham số `sheets` của Write, đặt vào
+    /// ArgumentException.ParamName để người gọi lọc được lỗi do model in dựng sai ra khỏi
+    /// ArgumentException của ClosedXML.
+    private static void WriteForm(
+        IXLWorksheet ws, PrintFormSheet form, PrintFooterInfo footer, string sheetsParamName)
     {
-        switch (form.Form)
-        {
-            case { ThongTri: { } thongTri, KsChi: null, Gdntt: null }:
-                FormExcelExporter.WriteThongTriSheet(ws, thongTri);
-                break;
-            case { ThongTri: null, KsChi: { } ksChi, Gdntt: null }:
-                FormExcelExporter.WriteKsChiSheet(ws, ksChi);
-                break;
-            case { ThongTri: null, KsChi: null, Gdntt: { } gdntt }:
-                FormExcelExporter.WriteGdnttSheet(ws, gdntt);
-                break;
-            default:
-                throw new ArgumentException(
-                    $"Sheet \"{form.SheetName}\": FormPayload phải có đúng một biểu mẫu khác null (ThongTri, KsChi hoặc Gdntt).");
-        }
+        // Mỗi biểu mẫu khác null thêm đúng một hàm vẽ; số hàm vẽ CHÍNH LÀ số biểu mẫu, nên điều kiện
+        // "đúng một" và việc chọn hàm vẽ không thể lệch nhau. Thêm biểu mẫu thứ tư vào FormPayload
+        // là thêm một dòng `if` ở đây — test FormPayload_chi_co_ba_bieu_mau_ma_bo_ghi_biet_ve nhắc.
+        var payload = form.Form;
+        var drawers = new List<Action>();
+        if (payload is { ThongTri: { } thongTri })
+            drawers.Add(() => FormExcelExporter.WriteThongTriSheet(ws, thongTri));
+        if (payload is { KsChi: { } ksChi })
+            drawers.Add(() => FormExcelExporter.WriteKsChiSheet(ws, ksChi));
+        if (payload is { Gdntt: { } gdntt })
+            drawers.Add(() => FormExcelExporter.WriteGdnttSheet(ws, gdntt));
 
+        if (drawers.Count != 1)
+            throw new ArgumentException(
+                $"Sheet \"{form.SheetName}\": FormPayload phải có đúng một biểu mẫu khác null, hiện có {drawers.Count}.",
+                sheetsParamName);
+
+        drawers[0]();
         ApplyPage(ws, form.Page, footer);
     }
 
