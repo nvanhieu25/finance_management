@@ -467,6 +467,39 @@ public class MainWindowPrintCommandTests
         launcher.Opened.ShouldBe("/tmp/all.xlsx");
     }
 
+    // Cảnh báo phải được ĐỢI (await), không bắn rồi quên. Lý do hiện nó TRƯỚC khi mở tệp là một cửa sổ Excel vừa bật lên sẽ nằm
+    // đè lên hộp thoại của app; nếu một lần sửa sau này đổi `await` thành `_ =`, tệp sẽ mở ngay trong lúc hộp thoại còn treo và đúng cái lỗi
+    // mục này sinh ra để sửa quay lại mà không ai thấy. Test thứ tự ở trên KHÔNG bắt được chuyện đó: FakeDialogService mặc định trả một Task đã
+    // hoàn tất, nên có await hay không thì chuỗi vẫn ra write → warn → open. Test này giữ hộp thoại ĐANG MỞ (một TaskCompletionSource): tệp chưa
+    // được mở chừng nào hộp thoại còn mở, và được mở ngay khi nó đóng.
+    [Fact]
+    public async Task Tep_chua_duoc_mo_chung_nao_hop_thoai_canh_bao_bo_qua_con_mo()
+    {
+        var closeDialog = new TaskCompletionSource();
+        var launcher = new FakeLauncher();
+        var dialog = new FakeDialogService { ShowMessageGate = _ => closeDialog.Task };
+        var vm = CreateMainWindowViewModel(launcher: launcher, dialog: dialog, savePath: "/tmp/all.xlsx");
+        vm.CurrentContent = WorkbookSkipping(new SkippedPrintPage("GĐNTT", "chưa chọn gói thầu"));
+        try
+        {
+            var printing = vm.PrintAllCommand.ExecuteAsync(null);
+
+            // Hộp thoại cảnh báo đã hiện và đang chờ người dùng bấm Đóng: lệnh chưa xong và tệp CHƯA được mở.
+            dialog.ShownMessages.ShouldBe(new[] { SkippedGdnttMessage });
+            printing.IsCompleted.ShouldBeFalse();
+            launcher.Opened.ShouldBeNull();
+
+            closeDialog.SetResult();                                       // người dùng bấm Đóng
+            await printing.WaitAsync(TimeSpan.FromSeconds(10));            // đừng treo cả bộ test nếu lệnh kẹt
+
+            launcher.Opened.ShouldBe("/tmp/all.xlsx");
+        }
+        finally
+        {
+            closeDialog.TrySetResult();      // lỡ một khẳng định đỏ giữa chừng thì cũng không để hộp thoại treo mãi
+        }
+    }
+
     [Fact]
     public async Task In_toan_bo_bo_qua_nhieu_trang_thi_liet_ke_tung_trang_kem_ly_do()
     {

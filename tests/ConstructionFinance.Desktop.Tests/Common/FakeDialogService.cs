@@ -25,11 +25,16 @@ public class FakeDialogService : IDialogService
     /// (ghi tệp, mở tệp) mà ShownMessages một mình không cho thấy.
     public Action<string>? OnMessage { get; set; }
 
+    /// Khác null thì hộp thoại thông báo CHƯA đóng cho tới khi Task nó trả về hoàn tất (tham số là nội dung): như ContentDialog
+    /// thật, chờ người dùng bấm Đóng. Mặc định hộp thoại đóng ngay (Task đã hoàn tất), nên nếu không có cái này thì không test nào
+    /// phân biệt được `await dialog.ShowMessageAsync(...)` với bắn rồi quên.
+    public Func<string, Task>? ShowMessageGate { get; set; }
+
     public Task ShowMessageAsync(string title, string message)
     {
         ShownMessages.Add($"MSG: {title} — {message}");
         OnMessage?.Invoke(message);
-        return Task.CompletedTask;
+        return ShowMessageGate?.Invoke(message) ?? Task.CompletedTask;
     }
 
     public string? PickOpenFileResult { get; set; }
