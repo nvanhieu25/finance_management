@@ -375,7 +375,7 @@
                                     <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.SoDuTu}"/>
                                     <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.TongDaGn}"/>
                                 </Grid.ColumnDefinitions>
-                                <TextBlock Grid.Column="1" Text="TỔNG CỘNG" Classes="gridTotalCell"/>
+                                <TextBlock Grid.Column="1" Text="{x:Static vm:VitriLedgerViewModel.TotalLabel}" Classes="gridTotalCell"/>
                                 <TextBlock Grid.Column="10" Text="{Binding DisbursedNsnnText}" Classes="gridTotalCell" TextAlignment="Right"/>
                                 <TextBlock Grid.Column="11" Text="{Binding DisbursedNgoaiHoiText}" Classes="gridTotalCell" TextAlignment="Right"/>
                                 <TextBlock Grid.Column="12" Text="{Binding UnrecoveredAdvanceText}" Classes="gridTotalCell" TextAlignment="Right"/>

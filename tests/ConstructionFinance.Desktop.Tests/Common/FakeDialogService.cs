@@ -21,9 +21,14 @@ public class FakeDialogService : IDialogService
         return Task.FromResult(ConfirmResult);
     }
 
+    /// Gọi mỗi khi một thông báo được hiện (tham số là nội dung), để test ghi lại THỨ TỰ giữa thông báo và các việc khác
+    /// (ghi tệp, mở tệp) mà ShownMessages một mình không cho thấy.
+    public Action<string>? OnMessage { get; set; }
+
     public Task ShowMessageAsync(string title, string message)
     {
         ShownMessages.Add($"MSG: {title} — {message}");
+        OnMessage?.Invoke(message);
         return Task.CompletedTask;
     }
 

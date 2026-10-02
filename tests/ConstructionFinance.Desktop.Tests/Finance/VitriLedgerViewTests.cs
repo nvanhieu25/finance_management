@@ -6,6 +6,7 @@ using Avalonia.Headless;
 using Avalonia.Input;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
+using ConstructionFinance.Application.Printing;
 using ConstructionFinance.Desktop.Common;
 using ConstructionFinance.Desktop.ViewModels.Finance;
 using ConstructionFinance.Desktop.Views.Finance;
@@ -335,6 +336,37 @@ public class VitriLedgerViewTests
 
             dateBox.Text.ShouldBe("01/06/2026");
             entryRow.Date.ShouldBe(new DateOnly(2026, 6, 1));
+
+            window.Close();
+        });
+    }
+
+    // ===== Nhãn dòng TỔNG CỘNG: màn hình và bản in phải viết cùng một chữ =====
+    //
+    // Bản in phải khớp màn hình, mà nhãn này là chữ viết thẳng ở hai nơi (XAML của lưới và ViTriPageViewModel, vì Name của dòng
+    // TỔNG CỘNG là null nên không lấy từ dòng được). Test đọc nhãn THẬT đang hiện trên lưới và nhãn trong sheet in của chính Vị trí
+    // đó rồi so với nhau: nhãn nào trôi khỏi nhãn kia là bản in thôi khớp màn hình, và chỉ có test này thấy.
+
+    [Fact]
+    public void Dong_TONG_CONG_tren_man_hinh_va_ban_in_viet_cung_mot_chu()
+    {
+        HeadlessTestSession.Run(() =>
+        {
+            var (window, view, vm) = CreateLedger(BuildOneOfEachRowKindFixture());
+
+            // Hàng TỔNG CỘNG cố định có đúng một ô chữ ở cột 1 (các ô chữ khác của hàng nằm ở cột 10-13, bind vào số liệu).
+            var onScreen = view.GetVisualDescendants().OfType<TextBlock>()
+                .Where(t => t.Classes.Contains("gridTotalCell") && Grid.GetColumn(t) == 1)
+                .ShouldHaveSingleItem().Text;
+
+            // Dòng TỔNG CỘNG (Rows[0]) của sheet in, ô ở cột "Nội dung".
+            var sheet = (PrintTableSheet)new ViTriPageViewModel(vm).BuildPrintSheet()!;
+            var contentColumn = sheet.Columns.ToList().FindIndex(c => c.Header == "Nội dung");
+            var onPaper = sheet.Rows[0].Cells[contentColumn].Text;
+
+            onScreen.ShouldNotBeNullOrWhiteSpace();      // không để "rỗng == rỗng" làm test xanh suông
+            onPaper.ShouldNotBeNullOrWhiteSpace();
+            onScreen.ShouldBe(onPaper);
 
             window.Close();
         });

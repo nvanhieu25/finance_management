@@ -146,24 +146,12 @@ public class PrintFormSheetTests
     }
 
     [Fact]
-    public void FormPayload_rong_thi_nem_loi_ro_rang()
-    {
-        var sheets = new PrintSheet[]
-        {
-            new PrintFormSheet("Trống", PrintPageProfiles.ThongTri, new FormPayload()),
-        };
-
-        using var buffer = new MemoryStream();
-        Should.Throw<ArgumentException>(() =>
-            new PrintWorkbookWriter().Write(sheets, buffer, new PrintFooterInfo("Dự án A", null)));
-    }
-
-    [Fact]
     public void FormPayload_rong_thi_nem_loi_neu_ten_sheet()
     {
-        // Bản của brief ở trên chỉ kiểm kiểu ngoại lệ nên không phân biệt được lời bảo vệ với một
-        // ArgumentOutOfRangeException văng ra khi lấy hàm vẽ trên danh sách rỗng. Test này đòi đúng
-        // kiểu và đòi thông báo gọi đúng tên sheet.
+        // Đòi đúng kiểu ArgumentException (so GetType, trong AssertRejectsPayload) và thông báo gọi đúng tên sheet. Should.Throw<T>
+        // một mình không đủ: nó chấp nhận cả lớp con, nên một ArgumentOutOfRangeException văng ra khi lấy hàm vẽ trên danh
+        // sách rỗng cũng làm nó xanh. Bản đầu của test này chỉ làm đúng việc đó (đo: nó vẫn xanh khi bộ ghi ném
+        // ArgumentOutOfRangeException) nên đã bị xóa, để không ai chép nhầm nó.
         AssertRejectsPayload("Trống", new FormPayload(), "không có biểu mẫu nào");
     }
 

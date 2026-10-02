@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Text;
 using ConstructionFinance.Desktop.Common;
 using Shouldly;
 using Xunit;
@@ -64,6 +65,75 @@ public class PrintFileNameTests
     public void Cap_surrogate_nguyen_ven_duoc_giu()
     {
         PrintFileName.Suggest("", "Ca😀", Now).ShouldBe("Ca😀-20260910-1432.xlsx");
+    }
+
+    // ===== Độ dài =====
+    //
+    // ViTri.Name và FinanceProject.Name đều HasMaxLength(255), nên tên gợi ý (mã/tên dự án + tên Vị trí + mốc giờ) có thể dài ~530 ký
+    // tự, vượt giới hạn 255 của MỘT thành phần tên tệp ở mọi hệ điều hành. Mỗi phần tên bị cắt còn 60 ký tự; mốc giờ thì không bao giờ.
+
+    /// Chuỗi dài n ký tự mà mỗi vị trí một chữ cái khác nhau (a..z lặp lại), để một lát cắt lệch một ký tự đổi hẳn kết quả:
+    /// chuỗi toàn một chữ không phân biệt được cắt ở 59, 60 hay 61.
+    private static string Letters(int n) =>
+        new(Enumerable.Range(0, n).Select(i => (char)('a' + i % 26)).ToArray());
+
+    [Fact]
+    public void Moi_phan_ten_bi_cat_con_60_ky_tu_con_moc_gio_giu_nguyen()
+    {
+        var prefix = Letters(255);
+        var sheet = Letters(255).ToUpperInvariant();
+
+        var name = PrintFileName.Suggest(prefix, sheet, Now);
+
+        name.ShouldBe($"{prefix[..60]}-{sheet[..60]}-20260910-1432.xlsx");
+        name.Length.ShouldBeLessThan(255);
+    }
+
+    [Fact]
+    public void Dung_60_ky_tu_thi_giu_nguyen_61_ky_tu_thi_cat_con_60()
+    {
+        PrintFileName.Suggest("", Letters(60), Now).ShouldBe($"{Letters(60)}-20260910-1432.xlsx");
+        PrintFileName.Suggest("", Letters(61), Now).ShouldBe($"{Letters(60)}-20260910-1432.xlsx");
+        PrintFileName.Suggest(Letters(61), "", Now).ShouldBe($"{Letters(60)}-20260910-1432.xlsx");
+    }
+
+    // Dao cắt không được xé đôi cặp surrogate: một surrogate cao lẻ ở cuối là chuỗi hỏng, sinh ra tên tệp hỏng.
+    [Fact]
+    public void Cat_con_60_ky_tu_khong_xe_doi_cap_surrogate()
+    {
+        var straddling = new string('a', 59) + "\U0001F600" + "tail";   // emoji chiếm ký tự 60 và 61: dao rơi giữa cặp
+        var fitting = new string('a', 58) + "\U0001F600" + "tail";     // emoji kết thúc đúng ở ký tự 60: còn nguyên
+
+        var cutBefore = PrintFileName.Suggest("", straddling, Now);
+        var kept = PrintFileName.Suggest("", fitting, Now);
+
+        cutBefore.ShouldBe(new string('a', 59) + "-20260910-1432.xlsx");
+        kept.ShouldBe(new string('a', 58) + "\U0001F600" + "-20260910-1432.xlsx");
+        cutBefore.EnumerateRunes().ShouldNotContain(Rune.ReplacementChar);   // chuỗi hợp lệ, không surrogate lẻ
+    }
+
+    // Dao cắt có thể rơi ngay sau một dấu cách, để lại khoảng trắng cuối phần tên ("...a -2026").
+    [Fact]
+    public void Dau_cach_con_sot_o_cuoi_phan_ten_sau_khi_cat_bi_bo()
+    {
+        var sheet = new string('a', 59) + " " + "bbb";
+
+        PrintFileName.Suggest("", sheet, Now).ShouldBe(new string('a', 59) + "-20260910-1432.xlsx");
+    }
+
+    // ===== Ký tự điều khiển =====
+    //
+    // Không gõ được từ bàn phím nhưng vào được qua nhập Excel. \t \n \r đã được nhánh khoảng trắng gộp thành một dấu cách; các ký
+    // tự điều khiển còn lại (C0 như \u0001..\u0008, DEL, C1) phải bị loại hẳn, và KHÔNG được loại trước nhánh khoảng trắng,
+    // nếu không "a\tb" thành "ab" thay vì "a b" (test Gop_moi_day_khoang_trang... giữ chỗ đó).
+
+    [Fact]
+    public void Loai_ky_tu_dieu_khien_con_tab_xuong_dong_van_thanh_dau_cach()
+    {
+        const string withControls = "a\0b\u0001c\u0008d\u000Ee\u001Ff\u007Fg\u0080h\u009Fi";
+
+        PrintFileName.Suggest("", withControls, Now).ShouldBe("abcdefghi-20260910-1432.xlsx");
+        PrintFileName.Suggest("", "a\u0001\tb\u0002\nc", Now).ShouldBe("a b c-20260910-1432.xlsx");
     }
 
     // Máy đặt vùng th-TH dùng lịch Phật giáo theo mặc định: "yyyy" sẽ ra 2569 chứ không phải 2026. Tên tệp gợi ý

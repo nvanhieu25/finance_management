@@ -26,6 +26,10 @@ public abstract partial class WorkbookPageViewModel : ViewModelBase, IPrintableP
     public virtual string? PrintSheetName => null;
     public virtual PrintSheet? BuildPrintSheet() => null;
 
+    /// Trang có lúc in được, có lúc không (vd. biểu mẫu GĐNTT cần chọn gói thầu) thì override để nói vì sao lúc này chưa in được.
+    /// Mặc định null: không có gì để nói.
+    public virtual string? PrintUnavailableReason => null;
+
     partial void OnTitleChanged(string value) => OnPropertyChanged(nameof(Header));
     partial void OnIsDirtyChanged(bool value) => OnPropertyChanged(nameof(Header));
 }

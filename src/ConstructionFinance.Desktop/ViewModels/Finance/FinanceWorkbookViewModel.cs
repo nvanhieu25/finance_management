@@ -720,6 +720,10 @@ public partial class FinanceWorkbookViewModel : ViewModelBase, IPrintablePage, I
         ? code
         : SelectedProjectName;
 
+    /// Tên dự án in ở chân trang: TÊN dự án, không phải mã (PrintWorkbookName ưu tiên mã vì nó đặt tên tệp). Người nhận
+    /// bản in không biết mã nội bộ nên chân trang phải đọc được mà không cần biết mã.
+    public string PrintFooterProjectName => SelectedProjectName;
+
     /// Có gì để In toàn bộ không: ít nhất một trang báo tên sheet in được. Nút In hỏi cái này mỗi lần cập nhật
     /// bật/mờ nên chỉ ĐỌC tên (rẻ): tuyệt đối không dựng sheet, không làm mới tab nào. Việc đó là của BuildAllSheets,
     /// chạy một lần mỗi lần in thật.
@@ -727,8 +731,9 @@ public partial class FinanceWorkbookViewModel : ViewModelBase, IPrintablePage, I
 
     /// Đường HÀNH ĐỘNG của "In toàn bộ", chạy một lần mỗi lần in thật (còn bật/mờ nút thì hỏi CanPrintAll, không hỏi
     /// hàm này). Thứ tự sheet theo Mẫu.xlsx: Tổng hợp → Vị trí 1..N → Quyết toán năm → 3 biểu mẫu — đúng thứ tự dải
-    /// tab ViTriPages. Trang nào trả null (ví dụ GĐNTT chưa chọn gói thầu) thì bỏ qua, không chặn cả lô.
-    public IReadOnlyList<PrintSheet> BuildAllSheets()
+    /// tab ViTriPages. Trang nào trả null (ví dụ GĐNTT chưa chọn gói thầu) thì không chặn cả lô nhưng cũng KHÔNG bị bỏ
+    /// lặng lẽ: nó được liệt kê trong Skipped (tên tab + lý do) để người gọi nói với người dùng bộ tệp này thiếu gì.
+    public PrintAllResult BuildAllSheets()
     {
         // Làm mới các tab Tổng hợp, Quyết toán năm và biểu mẫu TRƯỚC khi gom. Chúng chỉ tự làm mới khi được
         // chọn và ở lần sửa ĐẦU TIÊN của mỗi sổ Vị trí (lúc IsDirty lật false→true, xem AddViTriPage). Đứng ở
@@ -736,9 +741,17 @@ public partial class FinanceWorkbookViewModel : ViewModelBase, IPrintablePage, I
         // số cũ mà không có gì cảnh báo.
         RefreshAggregateTabs();
 
-        return ViTriPages.Select(p => p.BuildPrintSheet())
-                         .OfType<PrintSheet>()
-                         .ToList();
+        var sheets = new List<PrintSheet>();
+        var skipped = new List<SkippedPrintPage>();
+        foreach (var page in ViTriPages)
+        {
+            if (page.BuildPrintSheet() is { } sheet)
+                sheets.Add(sheet);
+            else
+                // Gọi trang bằng Title (chữ trên tab): PrintSheetName của nó là null nên không có tên sheet nào để gọi.
+                skipped.Add(new SkippedPrintPage(page.Title, page.PrintUnavailableReason));
+        }
+        return new PrintAllResult(sheets, skipped);
     }
 
     /// Trạng thái in của workbook gồm PrintSheetName (của tab đang mở) và CanPrintAll: hai thứ nút In đọc. Một trong

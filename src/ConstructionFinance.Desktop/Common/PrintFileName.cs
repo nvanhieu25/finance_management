@@ -12,14 +12,30 @@ public static class PrintFileName
     /// mở được trên Windows dù app được chạy ở đâu.
     private static readonly char[] WindowsForbidden = { '\\', '/', ':', '*', '?', '"', '<', '>', '|' };
 
+    /// Mỗi phần tên (mã/tên dự án, tên Vị trí) tối đa chừng này ký tự. ViTri.Name và FinanceProject.Name đều HasMaxLength(255),
+    /// nên không cắt thì tên gợi ý có thể dài ~530 ký tự, vượt giới hạn 255 của MỘT thành phần tên tệp ở mọi hệ điều hành.
+    /// Có cắt thì tối đa 60 + 1 + 60 + 1 + 13 (mốc giờ) + 5 (.xlsx) = 140.
+    private const int MaxPartLength = 60;
+
     /// `<prefix>-<sheetName>-<yyyyMMdd-HHmm>.xlsx`. Phần nào rỗng sau khi làm sạch thì bỏ luôn
-    /// cả dấu gạch nối nó. Hàm thuần: với bất kỳ chuỗi nào cũng trả về một tên, không ném.
+    /// cả dấu gạch nối nó. Mỗi phần tên bị cắt còn MaxPartLength ký tự; mốc giờ thì không bao giờ. Hàm thuần: với bất kỳ chuỗi
+    /// nào cũng trả về một tên, không ném.
     public static string Suggest(string? prefix, string sheetName, DateTime now)
     {
         // Invariant: yyyy theo lịch Gregorian dù máy đặt vùng nào (th-TH sẽ ra năm Phật lịch).
         var stamp = now.ToString("yyyyMMdd-HHmm", CultureInfo.InvariantCulture);
-        var parts = new[] { Clean(prefix), Clean(sheetName), stamp }.Where(part => part.Length > 0);
+        var parts = new[] { Cap(Clean(prefix)), Cap(Clean(sheetName)), stamp }.Where(part => part.Length > 0);
         return string.Join("-", parts) + ".xlsx";
+    }
+
+    /// Cắt còn tối đa MaxPartLength đơn vị UTF-16 mà không xé đôi cặp surrogate (một surrogate cao lẻ ở cuối là chuỗi hỏng),
+    /// rồi bỏ dấu cách mà lần cắt có thể để lại ở cuối ("...a -2026"). Đầu chuỗi đã được Clean cắt sạch.
+    private static string Cap(string text)
+    {
+        if (text.Length <= MaxPartLength) return text;
+
+        var end = char.IsHighSurrogate(text[MaxPartLength - 1]) ? MaxPartLength - 1 : MaxPartLength;
+        return text[..end].TrimEnd();
     }
 
     private static string Clean(string? text)
@@ -52,6 +68,11 @@ public static class PrintFileName
                 pendingSpace = cleaned.Length > 0;
                 continue;
             }
+            // Ký tự điều khiển còn lại (C0 như \u0001..\u0008, DEL, C1): không gõ được từ bàn phím nhưng vào được qua nhập Excel, và
+            // hệ tệp Windows từ chối chúng trong tên tệp. Phải đứng SAU nhánh khoảng trắng ở trên: \t \n \r cũng là ký tự điều
+            // khiển, nhưng được gộp thành một dấu cách chứ không bị bỏ ("a\tb" thành "a b", không phải "ab").
+            if (char.IsControl(ch)) continue;
+
             if (pendingSpace)
             {
                 cleaned.Append(' ');

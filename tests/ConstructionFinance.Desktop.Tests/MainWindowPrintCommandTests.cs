@@ -321,16 +321,19 @@ public class MainWindowPrintCommandTests
         request.DefaultFileName.ShouldMatch(@"^DA-01-Vi tri 1-\d{8}-\d{4}\.xlsx$");
     }
 
+    // Mã dự án là để đặt TÊN TỆP (xem test Hop_thoai_chon_noi_luu...); chân trang là thứ người nhận bản in đọc, cấp trên hoặc kiểm
+    // toán không biết mã nội bộ, nên ở đó phải là TÊN dự án (spec §5: "tên dự án · tên vị trí").
     [Fact]
-    public async Task Chan_trang_ghi_ten_du_an_va_ten_Vi_tri_khi_in_mot_sheet()
+    public async Task Chan_trang_ghi_TEN_du_an_chu_khong_phai_ma_va_ten_Vi_tri_khi_in_mot_sheet()
     {
         var writer = new FakeWriter();
         var vm = CreateMainWindowViewModel(writer, savePath: "/tmp/x.xlsx");
-        vm.CurrentContent = new FakePrintableWorkbook("Vị trí 1") { PrintWorkbookName = "DA-01" };
+        vm.CurrentContent = new FakePrintableWorkbook("Vị trí 1")
+        { PrintWorkbookName = "DA-01", PrintFooterProjectName = "Cầu Thủ Thiêm" };
 
         await vm.PrintCurrentSheetCommand.ExecuteAsync(null);
 
-        writer.WrittenFooter.ShouldBe(new PrintFooterInfo("DA-01", "Vị trí 1"));
+        writer.WrittenFooter.ShouldBe(new PrintFooterInfo("Cầu Thủ Thiêm", "Vị trí 1"));
     }
 
     [Fact]
@@ -377,6 +380,7 @@ public class MainWindowPrintCommandTests
         workbook.BuildAllCalls.ShouldBe(1);                       // dựng một lần mỗi lần in thật
         dialog.SaveFileRequests.ShouldHaveSingleItem().DefaultFileName
             .ShouldMatch(@"^DA-01-Toan bo-\d{8}-\d{4}\.xlsx$");
+        dialog.ShownMessages.ShouldBeEmpty();                     // không bỏ qua trang nào thì không có gì để cảnh báo
     }
 
     // In cả sổ thì chân trang chỉ có tên dự án: không có Vị trí nào để nêu tên.
@@ -385,13 +389,14 @@ public class MainWindowPrintCommandTests
     {
         var writer = new FakeWriter();
         var vm = CreateMainWindowViewModel(writer, savePath: "/tmp/all.xlsx");
-        var workbook = new FakePrintableWorkbook("Vị trí 1") { PrintWorkbookName = "DA-01" };
+        var workbook = new FakePrintableWorkbook("Vị trí 1")
+        { PrintWorkbookName = "DA-01", PrintFooterProjectName = "Cầu Thủ Thiêm" };
         workbook.AllSheets.AddRange(new[] { Sheet("Tổng hợp"), Sheet("Vị trí 1") });
         vm.CurrentContent = workbook;
 
         await vm.PrintAllCommand.ExecuteAsync(null);
 
-        writer.WrittenFooter.ShouldBe(new PrintFooterInfo("DA-01", null));
+        writer.WrittenFooter.ShouldBe(new PrintFooterInfo("Cầu Thủ Thiêm", null));
     }
 
     // Chỉ còn đúng một sheet in được thì "In toàn bộ" vẫn là in cả sổ: nhãn tệp "Toan bo" không phải tên một Vị trí
@@ -401,14 +406,15 @@ public class MainWindowPrintCommandTests
     {
         var writer = new FakeWriter();
         var vm = CreateMainWindowViewModel(writer, savePath: "/tmp/all.xlsx");
-        var workbook = new FakePrintableWorkbook("Vị trí 1") { PrintWorkbookName = "DA-01" };
+        var workbook = new FakePrintableWorkbook("Vị trí 1")
+        { PrintWorkbookName = "DA-01", PrintFooterProjectName = "Cầu Thủ Thiêm" };
         workbook.AllSheets.Add(Sheet("Tổng hợp"));
         vm.CurrentContent = workbook;
 
         await vm.PrintAllCommand.ExecuteAsync(null);
 
         writer.WrittenSheets.Count.ShouldBe(1);
-        writer.WrittenFooter.ShouldBe(new PrintFooterInfo("DA-01", null));
+        writer.WrittenFooter.ShouldBe(new PrintFooterInfo("Cầu Thủ Thiêm", null));
     }
 
     [Fact]
@@ -424,6 +430,129 @@ public class MainWindowPrintCommandTests
         dialog.ShownMessages.ShouldBe(new[] { NothingToPrintMessage });
         dialog.SaveFileRequests.ShouldBeEmpty();                   // chưa có gì để in thì không hỏi nơi lưu
         writer.WriteCalls.ShouldBe(0);
+    }
+
+    // ===== "In toàn bộ" phải nói ra những sheet nó bỏ qua =====
+    //
+    // Spec §8: sheet GĐNTT bị bỏ qua khi In toàn bộ "kèm cảnh báo cuối". Người dùng In toàn bộ để gom bộ hồ sơ: không nói gì thì họ
+    // nhận sáu sheet thay vì bảy và người nhận hồ sơ mới là người phát hiện thiếu. Một cảnh báo mà không ai nhìn thấy cũng như không
+    // có cảnh báo, nên các test dưới đây kiểm cả NỘI DUNG lẫn THỜI ĐIỂM: sau khi ghi xong và TRƯỚC khi mở tệp (mở tệp đưa Excel lên
+    // trên cùng, che mất hộp thoại của app), và cả những lúc cảnh báo KHÔNG được hiện.
+
+    private const string SkippedGdnttMessage = "MSG: In ra Excel — Đã bỏ qua GĐNTT: chưa chọn gói thầu.";
+
+    /// Workbook in được một sheet mà bỏ qua các trang `skipped`.
+    private static FakePrintableWorkbook WorkbookSkipping(params SkippedPrintPage[] skipped)
+    {
+        var workbook = new FakePrintableWorkbook("Vị trí 1");
+        workbook.AllSheets.Add(Sheet("Tổng hợp"));
+        workbook.Skipped.AddRange(skipped);
+        return workbook;
+    }
+
+    [Fact]
+    public async Task In_toan_bo_bo_qua_mot_trang_thi_bao_dung_cau_cua_spec_sau_khi_ghi_xong_va_truoc_khi_mo_tep()
+    {
+        var order = new List<string>();
+        var writer = new FakeWriter { OnWrite = () => order.Add("write") };
+        var launcher = new FakeLauncher { OnOpen = () => order.Add("open") };
+        var dialog = new FakeDialogService { OnMessage = _ => order.Add("warn") };
+        var vm = CreateMainWindowViewModel(writer, launcher, dialog, savePath: "/tmp/all.xlsx");
+        vm.CurrentContent = WorkbookSkipping(new SkippedPrintPage("GĐNTT", "chưa chọn gói thầu"));
+
+        await vm.PrintAllCommand.ExecuteAsync(null);
+
+        dialog.ShownMessages.ShouldBe(new[] { SkippedGdnttMessage });
+        order.ShouldBe(new[] { "write", "warn", "open" });
+        launcher.Opened.ShouldBe("/tmp/all.xlsx");
+    }
+
+    [Fact]
+    public async Task In_toan_bo_bo_qua_nhieu_trang_thi_liet_ke_tung_trang_kem_ly_do()
+    {
+        var dialog = new FakeDialogService();
+        var vm = CreateMainWindowViewModel(dialog: dialog, savePath: "/tmp/all.xlsx");
+        vm.CurrentContent = WorkbookSkipping(
+            new SkippedPrintPage("GĐNTT", "chưa chọn gói thầu"),
+            new SkippedPrintPage("KS chi", null));
+
+        await vm.PrintAllCommand.ExecuteAsync(null);
+
+        dialog.ShownMessages.ShouldBe(new[]
+        {
+            "MSG: In ra Excel — Đã bỏ qua 2 sheet:\n- GĐNTT: chưa chọn gói thầu\n- KS chi",
+        });
+    }
+
+    [Fact]
+    public async Task Trang_bi_bo_qua_khong_neu_ly_do_thi_chi_nhac_ten_trang()
+    {
+        var dialog = new FakeDialogService();
+        var vm = CreateMainWindowViewModel(dialog: dialog, savePath: "/tmp/all.xlsx");
+        vm.CurrentContent = WorkbookSkipping(new SkippedPrintPage("Trang thử", null));
+
+        await vm.PrintAllCommand.ExecuteAsync(null);
+
+        dialog.ShownMessages.ShouldBe(new[] { "MSG: In ra Excel — Đã bỏ qua Trang thử." });
+    }
+
+    [Fact]
+    public async Task Ghi_that_bai_thi_khong_hien_canh_bao_bo_qua_chi_hien_loi_ghi()
+    {
+        var writer = new FakeWriter { FailWith = new IOException("The process cannot access the file") };
+        var launcher = new FakeLauncher();
+        var dialog = new FakeDialogService();
+        var vm = CreateMainWindowViewModel(writer, launcher, dialog, savePath: "/tmp/all.xlsx");
+        vm.CurrentContent = WorkbookSkipping(new SkippedPrintPage("GĐNTT", "chưa chọn gói thầu"));
+
+        await vm.PrintAllCommand.ExecuteAsync(null);
+
+        // Tệp chưa có thì "đã bỏ qua sheet nào" chưa có nghĩa gì: chỉ báo lỗi ghi.
+        dialog.ShownMessages.ShouldBe(new[] { IoFailureMessage });
+        launcher.Opened.ShouldBeNull();
+    }
+
+    [Fact]
+    public async Task Nguoi_dung_huy_hop_thoai_thi_khong_hien_canh_bao_bo_qua()
+    {
+        var writer = new FakeWriter();
+        var dialog = new FakeDialogService();
+        var vm = CreateMainWindowViewModel(writer, dialog: dialog, savePath: null);   // null = bấm Hủy
+        vm.CurrentContent = WorkbookSkipping(new SkippedPrintPage("GĐNTT", "chưa chọn gói thầu"));
+
+        await vm.PrintAllCommand.ExecuteAsync(null);
+
+        writer.WriteCalls.ShouldBe(0);
+        dialog.ShownMessages.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task Khong_mo_duoc_tep_thi_van_hien_ca_canh_bao_bo_qua_lan_duong_dan_theo_thu_tu()
+    {
+        var launcher = new FakeLauncher { Result = false };
+        var dialog = new FakeDialogService();
+        var vm = CreateMainWindowViewModel(launcher: launcher, dialog: dialog, savePath: "/tmp/all.xlsx");
+        vm.CurrentContent = WorkbookSkipping(new SkippedPrintPage("GĐNTT", "chưa chọn gói thầu"));
+
+        await vm.PrintAllCommand.ExecuteAsync(null);
+
+        dialog.ShownMessages.ShouldBe(new[]
+        {
+            SkippedGdnttMessage,
+            "MSG: In ra Excel — Đã lưu tệp tại:\n/tmp/all.xlsx",
+        });
+    }
+
+    [Fact]
+    public async Task In_sheet_nay_khong_bao_trang_bi_bo_qua_vi_chi_in_mot_sheet()
+    {
+        var dialog = new FakeDialogService();
+        var vm = CreateMainWindowViewModel(dialog: dialog, savePath: "/tmp/x.xlsx");
+        vm.CurrentContent = WorkbookSkipping(new SkippedPrintPage("GĐNTT", "chưa chọn gói thầu"));
+
+        await vm.PrintCurrentSheetCommand.ExecuteAsync(null);
+
+        dialog.ShownMessages.ShouldBeEmpty();
     }
 
     // ===== Khi ghi/mở tệp không thành =====
@@ -1008,20 +1137,26 @@ public class MainWindowPrintCommandTests
 
         public string PrintWorkbookName { get; init; } = "DA-01";
 
+        /// Tên dự án (KHÁC mã trong PrintWorkbookName, cố ý) cho chân trang, để test thấy lỗi dùng nhầm cái này thay cái kia.
+        public string PrintFooterProjectName { get; init; } = "Cầu Thủ Thiêm";
+
         public bool CanPrintAll => _canPrintAll;
 
         public List<PrintSheet> AllSheets { get; } = new();
+
+        /// Các trang "In toàn bộ" đã bỏ qua vì không dựng được sheet.
+        public List<SkippedPrintPage> Skipped { get; } = new();
 
         public int BuildAllCalls { get; private set; }
 
         /// Khác null thì BuildAllSheets ném (vd. làm mới một tab tổng hợp hỏng).
         public Exception? BuildAllFailure { get; init; }
 
-        public IReadOnlyList<PrintSheet> BuildAllSheets()
+        public PrintAllResult BuildAllSheets()
         {
             BuildAllCalls++;
             if (BuildAllFailure is not null) throw BuildAllFailure;
-            return AllSheets;
+            return new PrintAllResult(AllSheets, Skipped);
         }
 
         public void SetCanPrintAll(bool value)
@@ -1041,6 +1176,9 @@ public class MainWindowPrintCommandTests
 
         public int WriteCalls { get; private set; }
 
+        /// Gọi mỗi lần WriteAsync được gọi, để test ghi lại THỨ TỰ so với việc hiện thông báo và mở tệp.
+        public Action? OnWrite { get; init; }
+
         /// Khác null thì WriteAsync trả một Task lỗi (như bộ ghi thật, vốn chạy trong Task.Run).
         public Exception? FailWith { get; init; }
 
@@ -1054,6 +1192,7 @@ public class MainWindowPrintCommandTests
             CancellationToken ct = default)
         {
             WriteCalls++;
+            OnWrite?.Invoke();
             if (FailWith is not null) return Task.FromException(FailWith);
 
             WrittenSheets.AddRange(sheets);
@@ -1069,9 +1208,13 @@ public class MainWindowPrintCommandTests
 
         public bool Result { get; init; } = true;
 
+        /// Gọi mỗi lần TryOpen được gọi, để test ghi lại THỨ TỰ so với ghi tệp và hiện thông báo.
+        public Action? OnOpen { get; init; }
+
         public bool TryOpen(string path)
         {
             Opened = path;
+            OnOpen?.Invoke();
             return Result;
         }
     }

@@ -20,6 +20,16 @@
     <Using Include="Xunit" />
   </ItemGroup>
 
+  <!-- xunit.runner.json tắt chạy song song giữa các lớp test (parallelizeTestCollections=false). ĐỪNG bật lại mà chưa chạy cả bộ
+       test 30 lần liền không lỗi. Lý do: ClosedXML ghi và đọc lại gói .xlsx qua System.IO.Packaging; khi nhiều lớp test cùng dựng gói,
+       lúc mở lại gói vừa ghi, System.IO.Packaging.ZipPackage.ContentTypeHelper thỉnh thoảng (~7% số lần chạy cả bộ) thêm content-type
+       "rels" hai lần và ném ArgumentException "An item with the same key has already been added. Key: rels". Đó là lỗi đồng thời
+       của thư viện, không phải của ứng dụng (app chỉ ghi MỘT workbook mỗi lần, trong Task.Run, và AsyncRelayCommand chặn vào lại).
+       Một cổng test đỏ ~7% số lần sẽ bị bỏ qua đúng vào lần nó đỏ vì lỗi thật. -->
+  <ItemGroup>
+    <Content Include="xunit.runner.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
   <ItemGroup>
     <None Include="..\..\reference\H.xlsx" Link="TestData\H.xlsx" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\..\reference\Hieu_sample.xlsx" Link="TestData\Hieu.xlsx" CopyToOutputDirectory="PreserveNewest" />

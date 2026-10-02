@@ -25,9 +25,17 @@ public static class ExcelSheetName
     /// " (2)", " (3)"… (cắt bớt phần tên để cả tên lẫn hậu tố vẫn vừa 31 ký tự). Tên trả
     /// về được ghi vào `used`. Excel coi tên sheet là KHÔNG phân biệt hoa thường ("Abc"
     /// và "abc" trùng nhau, ClosedXML ném ArgumentException), nên `used` phải dựng bằng
-    /// StringComparer.OrdinalIgnoreCase.
+    /// StringComparer.OrdinalIgnoreCase. Điều kiện đó nằm ở comparer chứ không ở kiểu, trình biên dịch không giữ được,
+    /// nên hàm TỰ KIỂM và ném ArgumentException nói rõ cách sửa thay vì để triệu chứng nổ muộn ở AddWorksheet.
     public static string Unique(string? raw, HashSet<string> used)
     {
+        if (!StringComparer.OrdinalIgnoreCase.Equals(used.Comparer))
+            throw new ArgumentException(
+                "Tập tên đã dùng phải dựng bằng StringComparer.OrdinalIgnoreCase: Excel coi tên sheet là không phân biệt hoa thường, " +
+                "nên với comparer khác \"Abc\" và \"abc\" không bị nhận ra là trùng và ClosedXML sẽ ném khi thêm sheet. " +
+                "Dựng tập bằng new HashSet<string>(StringComparer.OrdinalIgnoreCase).",
+                nameof(used));
+
         var cleaned = Clean(raw);
         if (used.Add(cleaned)) return cleaned;
 

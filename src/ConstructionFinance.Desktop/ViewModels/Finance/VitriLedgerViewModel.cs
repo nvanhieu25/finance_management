@@ -31,6 +31,11 @@ public partial class VitriLedgerViewModel : ViewModelBase
         public GroupNode(LedgerRowViewModel row) => Row = row;
     }
 
+    /// Nhãn của dòng TỔNG CỘNG. Nguồn DUY NHẤT cho cả màn hình (VitriLedgerView.axaml lấy bằng {x:Static}) lẫn bản in
+    /// (ViTriPageViewModel): hai nơi phải viết cùng một chữ, không thì bản in thôi khớp màn hình. Không lấy từ chính dòng
+    /// được vì Name của dòng TỔNG CỘNG là null.
+    public const string TotalLabel = "TỔNG CỘNG";
+
     private readonly LedgerRowViewModel _totalRow = new(RowKind.Total);
     private readonly List<GroupNode> _groups = new();
     private bool _loading;

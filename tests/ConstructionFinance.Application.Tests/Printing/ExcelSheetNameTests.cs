@@ -15,6 +15,49 @@ namespace ConstructionFinance.Application.Tests.Printing;
 /// là chốt duy nhất của hai hành vi này.
 public class ExcelSheetNameTests
 {
+    /// Tập tên đã dùng đúng cách: Excel coi tên sheet là KHÔNG phân biệt hoa thường. Mọi test gọi Unique đều lấy tập từ đây,
+    /// để không test nào vô tình dựng sai comparer (chính lỗi mà Unique nay tự chặn).
+    private static HashSet<string> NewUsed() => new(StringComparer.OrdinalIgnoreCase);
+
+    // Điều kiện đúng của Unique nằm ở comparer của tập `used`, không ở chữ ký hàm: cùng là HashSet<string> nhưng dựng bằng
+    // new HashSet<string>() thì "Abc" và "abc" không bị nhận ra là trùng, và triệu chứng là ClosedXML ném ở AddWorksheet, xa chỗ
+    // gây ra lỗi. Nên hàm tự kiểm và nói rõ cách sửa. Ba ca là ba cách dựng sai thật: mặc định, Ordinal, và một comparer
+    // KHÔNG phân biệt hoa thường nhưng không phải OrdinalIgnoreCase.
+    [Theory]
+    [InlineData("mặc định: new HashSet<string>()")]
+    [InlineData("StringComparer.Ordinal")]
+    [InlineData("StringComparer.InvariantCultureIgnoreCase")]
+    public void Tap_used_khong_phai_OrdinalIgnoreCase_thi_nem_loi_noi_ro_cach_sua(string kind)
+    {
+        var used = kind switch
+        {
+            "StringComparer.Ordinal" => new HashSet<string>(StringComparer.Ordinal),
+            "StringComparer.InvariantCultureIgnoreCase" => new HashSet<string>(StringComparer.InvariantCultureIgnoreCase),
+            _ => new HashSet<string>(),
+        };
+
+        var error = Should.Throw<ArgumentException>(() => ExcelSheetName.Unique("Vị trí 1", used), kind);
+
+        // Đúng kiểu (so GetType): Should.Throw<T> một mình chấp nhận cả lớp con như ArgumentOutOfRangeException.
+        error.GetType().ShouldBe(typeof(ArgumentException), kind);
+        error.ParamName.ShouldBe("used", kind);
+        error.Message.ShouldContain("OrdinalIgnoreCase", Case.Sensitive, kind);
+        used.ShouldBeEmpty(kind);     // kiểm TRƯỚC khi động vào tập
+    }
+
+    // Tiền đề của cả điều kiện trên: ClosedXML thật sự từ chối hai sheet chỉ khác hoa thường. Nếu một ngày nó thôi từ chối thì
+    // điều kiện comparer không còn cần, và test này đỏ trước để nói vậy.
+    [Fact]
+    public void ClosedXML_tu_choi_hai_sheet_chi_khac_hoa_thuong()
+    {
+        using var workbook = new XLWorkbook();
+        workbook.AddWorksheet("Cầu A");
+
+        var error = Should.Throw<Exception>(() => workbook.AddWorksheet("CẦU A"));
+
+        error.GetType().ShouldBe(typeof(ArgumentException));
+    }
+
     [Theory]
     [InlineData("Vị trí 1", "Vị trí 1")]
     [InlineData("A/B:C*D?E[F]G\\H", "ABCDEFGH")]   // ký tự Excel cấm bị loại
@@ -25,7 +68,7 @@ public class ExcelSheetNameTests
     [InlineData(null, "DA")]                        // null → cùng tên dự phòng, không ném
     public void Lam_sach_ten_sheet(string? raw, string expected)
     {
-        ExcelSheetName.Unique(raw, new HashSet<string>()).ShouldBe(expected);
+        ExcelSheetName.Unique(raw, NewUsed()).ShouldBe(expected);
     }
 
     [Fact]
@@ -35,13 +78,13 @@ public class ExcelSheetNameTests
         // không thể trùng với giá trị mong đợi — điều mà chuỗi toàn chữ x không phân biệt được.
         var raw = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
-        ExcelSheetName.Unique(raw, new HashSet<string>()).ShouldBe("0123456789ABCDEFGHIJKLMNOPQRSTU");
+        ExcelSheetName.Unique(raw, NewUsed()).ShouldBe("0123456789ABCDEFGHIJKLMNOPQRSTU");
     }
 
     [Fact]
     public void Ten_trung_duoc_danh_so_va_van_khong_qua_31_ky_tu()
     {
-        var used = new HashSet<string>();
+        var used = NewUsed();
 
         ExcelSheetName.Unique("Vị trí 1", used).ShouldBe("Vị trí 1");
         ExcelSheetName.Unique("Vị trí 1", used).ShouldBe("Vị trí 1 (2)");
@@ -77,7 +120,7 @@ public class ExcelSheetNameTests
         // trở thành dấu CUỐI sau khi cắt còn 31 ký tự, mà ClosedXML từ chối tên kết thúc bằng '.
         var raw = new string('a', 30) + "'bc";
 
-        var result = ExcelSheetName.Unique(raw, new HashSet<string>());
+        var result = ExcelSheetName.Unique(raw, NewUsed());
 
         result.ShouldBe(new string('a', 30) + "b");
         result.ShouldNotStartWith("'");
@@ -94,7 +137,7 @@ public class ExcelSheetNameTests
     {
         var raw = new string('a', 30) + "\U0001F600" + "tail";   // surrogate cao đúng ở ký tự thứ 31
 
-        var name = ExcelSheetName.Unique(raw, new HashSet<string>());
+        var name = ExcelSheetName.Unique(raw, NewUsed());
 
         name.ShouldBe(new string('a', 30));
         name.Any(char.IsSurrogate).ShouldBeFalse();
@@ -106,7 +149,7 @@ public class ExcelSheetNameTests
     {
         // Tên 30 ký tự thì hợp lệ. Thêm " (2)" phải cắt còn 27 ký tự, và dao rơi đúng giữa cặp
         // surrogate nằm ở ký tự thứ 27-28.
-        var used = new HashSet<string>();
+        var used = NewUsed();
         var raw = new string('a', 26) + "\U0001F600" + "bc";
 
         ExcelSheetName.Unique(raw, used).ShouldBe(raw);
@@ -124,7 +167,7 @@ public class ExcelSheetNameTests
         // không được lùi. Lùi nhầm ở đây để lại surrogate cao lẻ — đúng lỗi đang cần tránh.
         var raw = new string('a', 29) + "\U0001F600" + "tail";
 
-        var name = ExcelSheetName.Unique(raw, new HashSet<string>());
+        var name = ExcelSheetName.Unique(raw, NewUsed());
 
         name.ShouldBe(new string('a', 29) + "\U0001F600");
         name.Length.ShouldBe(31);
@@ -144,7 +187,7 @@ public class ExcelSheetNameTests
     [Fact]
     public void Ghi_ten_da_dung_vao_tap_used()
     {
-        var used = new HashSet<string>();
+        var used = NewUsed();
         ExcelSheetName.Unique("Tổng hợp", used);
         used.ShouldContain("Tổng hợp");
     }

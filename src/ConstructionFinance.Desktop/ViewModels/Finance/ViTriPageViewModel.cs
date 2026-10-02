@@ -67,9 +67,6 @@ public sealed class ViTriPageViewModel : WorkbookPageViewModel
         ColSoCt = 5, ColTamUng = 6, ColKlht = 7, ColThuHoi = 8, ColNguon = 9,
         ColGnNsnn = 10, ColGnNgoaiHoi = 11, ColSoDuTu = 12, ColTongDaGn = 13;
 
-    // Màn hình viết chữ này thẳng trong XAML; Name của dòng TỔNG CỘNG là null nên không lấy từ đó được.
-    private const string TotalLabel = "TỔNG CỘNG";
-
     public override string? PrintSheetName => DisplayName(Ledger.Name);
 
     public override PrintSheet? BuildPrintSheet() => new PrintTableSheet(
@@ -87,7 +84,8 @@ public sealed class ViTriPageViewModel : WorkbookPageViewModel
         switch (row.Kind)
         {
             case RowKind.Total:
-                cells[ColNoiDung] = PrintCell.OfText(TotalLabel);
+                // Cùng hằng mà lưới trên màn hình bind tới (xem VitriLedgerViewModel.TotalLabel).
+                cells[ColNoiDung] = PrintCell.OfText(VitriLedgerViewModel.TotalLabel);
                 FillComputedColumns(cells, row.Aggregate);
                 return new PrintRow(cells, IndentLevel: 0, IsBold: true, Shade: PrintShade.Light);
 

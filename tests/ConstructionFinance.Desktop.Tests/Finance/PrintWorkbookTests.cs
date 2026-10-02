@@ -7,6 +7,7 @@ using ConstructionFinance.Application.Services.Interfaces;
 using ConstructionFinance.Desktop.Common;
 using ConstructionFinance.Desktop.Services;
 using ConstructionFinance.Desktop.Tests.Common;
+using ConstructionFinance.Desktop.ViewModels;
 using ConstructionFinance.Desktop.ViewModels.Finance;
 using ConstructionFinance.Desktop.ViewModels.Finance.Forms;
 using ConstructionFinance.Domain.Finance;
@@ -134,13 +135,14 @@ public class PrintWorkbookTests
     {
         var workbook = BuildWorkbookWithTwoViTri();          // helper riêng của tệp test này
 
-        var names = workbook.BuildAllSheets().Select(s => s.SheetName).ToList();
+        var all = workbook.BuildAllSheets();
 
-        names.ShouldBe(new[]
+        all.Sheets.Select(s => s.SheetName).ShouldBe(new[]
         {
             "Tổng hợp", "Vị trí 1", "Vị trí 2", "Quyết toán năm",
             "Thông tri", "KS chi", "GĐNTT",
         });
+        all.Skipped.ShouldBeEmpty("đủ bảy sheet thì không có gì bị bỏ qua");
     }
 
     [Fact]
@@ -170,7 +172,7 @@ public class PrintWorkbookTests
     {
         var workbook = BuildWorkbookWhereGdnttHasNoPackage();
 
-        var names = workbook.BuildAllSheets().Select(s => s.SheetName).ToList();
+        var names = workbook.BuildAllSheets().Sheets.Select(s => s.SheetName).ToList();
 
         names.ShouldNotContain("GĐNTT");
         names.ShouldContain("Thông tri");     // các sheet khác vẫn ra bình thường
@@ -192,6 +194,8 @@ public class PrintWorkbookTests
     /// không thử được chỗ này: một BuildAllSheets dừng ở trang null đầu tiên vẫn qua được test GĐNTT.
     private sealed class TrangKhongIn : WorkbookPageViewModel
     {
+        public TrangKhongIn() => Title = "Trang thử";
+
         public override object Content => new object();
     }
 
@@ -201,9 +205,11 @@ public class PrintWorkbookTests
         var workbook = BuildWorkbookWithTwoViTri();
         workbook.ViTriPages.Insert(1, new TrangKhongIn());
 
-        var names = workbook.BuildAllSheets().Select(s => s.SheetName).ToList();
+        var all = workbook.BuildAllSheets();
 
-        names.ShouldBe(AllSheetNames);
+        all.Sheets.Select(s => s.SheetName).ShouldBe(AllSheetNames);
+        // Trang bị bỏ qua được gọi bằng Title (chữ trên tab), không phải PrintSheetName: trang không in được thì PrintSheetName là null.
+        all.Skipped.ShouldHaveSingleItem().ShouldBe(new SkippedPrintPage("Trang thử", null));
     }
 
     [Fact]
@@ -214,7 +220,9 @@ public class PrintWorkbookTests
 
         printable.PrintSheetName.ShouldBeNull();
         printable.BuildPrintSheet().ShouldBeNull();
-        workbook.BuildAllSheets().ShouldBeEmpty();
+        var all = workbook.BuildAllSheets();
+        all.Sheets.ShouldBeEmpty();
+        all.Skipped.ShouldBeEmpty("chưa có dự án thì chưa có trang nào để bỏ qua, nút In vốn đã mờ");
     }
 
     [Theory]
@@ -228,6 +236,151 @@ public class PrintWorkbookTests
         ((IPrintableWorkbook)workbook).PrintWorkbookName.ShouldBe(expected);
     }
 
+    // ===== "In toàn bộ" nói ra sheet bị bỏ qua (spec §8) =====
+    //
+    // Ba trạng thái của trang GĐNTT, nhìn từ workbook: chưa chọn gì, chọn đợt của hai gói, chọn đúng một gói. Hai trạng thái đầu cùng
+    // không in được nhưng KHÁC lý do, và lý do phải đúng với việc người dùng đã làm: người đã chọn đợt của hai gói mà nghe "chưa chọn
+    // gói thầu" thì bị nói sai.
+
+    [Fact]
+    public void GDNTT_chua_chon_goi_thau_thi_duoc_bao_la_bi_bo_qua_kem_ly_do()
+    {
+        var workbook = BuildWorkbookWhereGdnttHasNoPackage();
+
+        var skipped = workbook.BuildAllSheets().Skipped;
+
+        skipped.ShouldHaveSingleItem().ShouldBe(new SkippedPrintPage("GĐNTT", "chưa chọn gói thầu"));
+    }
+
+    [Fact]
+    public void GDNTT_chon_dot_cua_hai_goi_thi_ly_bo_qua_noi_la_nhieu_goi_chu_khong_phai_chua_chon()
+    {
+        var workbook = LoadWorkbook(ProjectWithTwoViTri());
+        var gdntt = workbook.ViTriPages.OfType<GdnttFormPageViewModel>().Single();
+        gdntt.Inner.Picker.SelectAllCommand.Execute(null);          // đợt Ngoại hối của cả hai Vị trí = hai gói thầu
+        gdntt.Inner.CanExport.ShouldBeFalse("tiền đề: hai gói thầu thì không dựng được một giấy");
+
+        workbook.BuildAllSheets().Skipped.ShouldHaveSingleItem()
+            .ShouldBe(new SkippedPrintPage("GĐNTT", "đã chọn đợt của nhiều gói thầu"));
+    }
+
+    // ===== Đường đi thật: workbook thật → lệnh In toàn bộ → hộp thoại =====
+    //
+    // Không bản giả nào ở giữa workbook và lệnh: GĐNTT chưa chọn gói thầu thật sự làm BuildAllSheets báo bỏ qua, và lệnh thật sự
+    // hiện cảnh báo đó. Đây là chỗ chứng minh người dùng nhìn thấy nó: một cảnh báo mà không ai đọc cũng như không có cảnh báo.
+
+    private static MainWindowViewModel NewMainWindowViewModel(
+        FinanceWorkbookViewModel workbook, IPrintWorkbookWriter writer, FakeDialogService dialog, IFileLauncher launcher)
+    {
+        var services = new ServiceCollection();
+        services.AddSingleton<IDialogService>(dialog);
+        services.AddSingleton(writer);
+        services.AddSingleton(launcher);
+        return new MainWindowViewModel(services.BuildServiceProvider(), new FakeNavigationService())
+        {
+            CurrentContent = workbook,
+        };
+    }
+
+    /// Bộ ghi và bộ mở tệp giả (Moq) ghi lại thứ tự "write" / "open" vào `order`, và sheet được ghi vào `written`.
+    private static (IPrintWorkbookWriter Writer, IFileLauncher Launcher) RecordingWriterAndLauncher(
+        List<string> order, Action<IReadOnlyList<PrintSheet>> onWritten)
+    {
+        var writer = new Mock<IPrintWorkbookWriter>();
+        writer.Setup(w => w.WriteAsync(
+                  It.IsAny<IReadOnlyList<PrintSheet>>(), It.IsAny<string>(), It.IsAny<PrintFooterInfo>(), It.IsAny<CancellationToken>()))
+              .Callback<IReadOnlyList<PrintSheet>, string, PrintFooterInfo, CancellationToken>((sheets, _, _, _) =>
+              {
+                  onWritten(sheets);
+                  order.Add("write");
+              })
+              .Returns(Task.CompletedTask);
+        var launcher = new Mock<IFileLauncher>();
+        launcher.Setup(l => l.TryOpen(It.IsAny<string>())).Callback<string>(_ => order.Add("open")).Returns(true);
+        return (writer.Object, launcher.Object);
+    }
+
+    [Fact]
+    public async Task In_toan_bo_that_khi_GDNTT_chua_chon_goi_thau_ra_sau_sheet_va_bao_da_bo_qua_GDNTT_truoc_khi_mo_tep()
+    {
+        var order = new List<string>();
+        IReadOnlyList<PrintSheet>? written = null;
+        var (writer, launcher) = RecordingWriterAndLauncher(order, sheets => written = sheets);
+        var dialog = new FakeDialogService { PickSaveFileResult = "/tmp/all.xlsx", OnMessage = _ => order.Add("warn") };
+        var vm = NewMainWindowViewModel(BuildWorkbookWhereGdnttHasNoPackage(), writer, dialog, launcher);
+
+        await vm.PrintAllCommand.ExecuteAsync(null);
+
+        // Sáu sheet chứ không phải bảy: thiếu GĐNTT. Người dùng phải được NÓI điều đó, ngay sau khi ghi xong và trước khi Excel bật lên.
+        written.ShouldNotBeNull().Select(sh => sh.SheetName).ShouldBe(AllSheetNames.Where(n => n != "GĐNTT"));
+        dialog.ShownMessages.ShouldBe(new[] { "MSG: In ra Excel — Đã bỏ qua GĐNTT: chưa chọn gói thầu." });
+        order.ShouldBe(new[] { "write", "warn", "open" });
+    }
+
+    // Đối chứng, cùng một đường ống: đủ gói thầu thì ra đủ bảy sheet và KHÔNG có cảnh báo nào.
+    [Fact]
+    public async Task In_toan_bo_that_khi_GDNTT_da_chon_goi_thau_ra_du_bay_sheet_va_khong_co_canh_bao_nao()
+    {
+        var order = new List<string>();
+        IReadOnlyList<PrintSheet>? written = null;
+        var (writer, launcher) = RecordingWriterAndLauncher(order, sheets => written = sheets);
+        var dialog = new FakeDialogService { PickSaveFileResult = "/tmp/all.xlsx", OnMessage = _ => order.Add("warn") };
+        var vm = NewMainWindowViewModel(BuildWorkbookWithTwoViTri(), writer, dialog, launcher);
+
+        await vm.PrintAllCommand.ExecuteAsync(null);
+
+        written.ShouldNotBeNull().Select(sh => sh.SheetName).ShouldBe(AllSheetNames);
+        dialog.ShownMessages.ShouldBeEmpty();
+        order.ShouldBe(new[] { "write", "open" });
+    }
+
+    // Chân trang đọc TÊN dự án, tên tệp đọc MÃ: hai thứ khác nhau và đều có người đọc (người nhận bản in không biết mã nội bộ).
+    [Theory]
+    [InlineData("DA-01")]
+    [InlineData(null)]
+    [InlineData("")]
+    public void Ten_chan_trang_la_TEN_du_an_ke_ca_khi_du_an_co_ma(string? code)
+    {
+        var workbook = LoadWorkbook(ProjectWithTwoViTri(code));
+
+        ((IPrintableWorkbook)workbook).PrintFooterProjectName.ShouldBe("Dự án A");
+    }
+
+    // Đi hết đường thật: workbook thật → lệnh In → bộ ghi thật → tệp .xlsx, rồi ĐỌC LẠI chân trang như người cầm tờ giấy. Dự án có mã
+    // "DA-01" và tên "Dự án A": chân trang phải là "Dự án A · Vị trí 1" chứ không phải "DA-01 · Vị trí 1", còn tên tệp gợi ý vẫn mang mã.
+    [Fact]
+    public async Task Chan_trang_cua_tep_in_that_ghi_TEN_du_an_con_ten_tep_goi_y_dung_MA_du_an()
+    {
+        var path = Path.Combine(Path.GetTempPath(), $"in-test-{Guid.NewGuid():N}.xlsx");
+        try
+        {
+            var workbook = BuildWorkbookWithTwoViTri();                       // mã "DA-01", tên "Dự án A"
+            workbook.SelectedViTriPage = workbook.ViTriPages.OfType<ViTriPageViewModel>().First();
+            var dialog = new FakeDialogService { PickSaveFileResult = path };
+            var launcher = new Mock<IFileLauncher>();
+            launcher.Setup(l => l.TryOpen(It.IsAny<string>())).Returns(true);
+            var services = new ServiceCollection();
+            services.AddSingleton<IDialogService>(dialog);
+            services.AddSingleton<IPrintWorkbookWriter>(new PrintWorkbookWriter());
+            services.AddSingleton(launcher.Object);
+            var vm = new MainWindowViewModel(services.BuildServiceProvider(), new FakeNavigationService())
+            {
+                CurrentContent = workbook,
+            };
+
+            await vm.PrintCurrentSheetCommand.ExecuteAsync(null);
+
+            using var xlsx = new XLWorkbook(path);
+            // OddPages: chuỗi thật sự nằm trong thẻ oddFooter của tệp (xem PrintWorkbookWriterTests.PrintedOccurrence).
+            xlsx.Worksheet(1).PageSetup.Footer.Left.GetText(XLHFOccurrence.OddPages).ShouldBe("Dự án A · Vị trí 1");
+            dialog.SaveFileRequests.ShouldHaveSingleItem().DefaultFileName.ShouldStartWith("DA-01-");
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
     [Fact]
     public void In_toan_bo_ghi_duoc_thanh_mot_tep_xlsx_du_bay_sheet()
     {
@@ -236,7 +389,7 @@ public class PrintWorkbookTests
         // Qua bộ ghi thật: một sheet biểu mẫu có FormPayload rỗng (hoặc hai thành viên) sẽ làm bộ ghi ném
         // ArgumentException, hỏng cả workbook. Đây là chỗ canh ba trang biểu mẫu trao đúng model cho bộ ghi.
         using var stream = new MemoryStream();
-        new PrintWorkbookWriter().Write(workbook.BuildAllSheets(), stream, new PrintFooterInfo(workbook.PrintWorkbookName, null));
+        new PrintWorkbookWriter().Write(workbook.BuildAllSheets().Sheets, stream, new PrintFooterInfo(workbook.PrintFooterProjectName, null));
         stream.Position = 0;
         using var xlsx = new XLWorkbook(stream);
 
@@ -270,7 +423,7 @@ public class PrintWorkbookTests
 
     /// ...rồi bấm "In toàn bộ".
     private static IReadOnlyList<PrintSheet> PrintAllAfterEditingTheSameCellTwice() =>
-        OpenAndEditTheSameCellTwice().BuildAllSheets();
+        OpenAndEditTheSameCellTwice().BuildAllSheets().Sheets;
 
     [Fact]
     public void In_toan_bo_Tong_hop_mang_so_cua_lan_sua_thu_hai()
@@ -334,6 +487,7 @@ public class PrintWorkbookTests
         inner.CanExport.ShouldBeFalse("tiền đề: chưa tích đợt nào");
         page.PrintSheetName.ShouldBeNull();
         page.BuildPrintSheet().ShouldBeNull();
+        page.PrintUnavailableReason.ShouldBe("chưa chọn gói thầu");       // đúng chữ spec §8
     }
 
     [Fact]
@@ -348,6 +502,8 @@ public class PrintWorkbookTests
         inner.CanExport.ShouldBeFalse("tiền đề: một giấy đề nghị chỉ dựng cho một gói thầu");
         page.PrintSheetName.ShouldBeNull();
         page.BuildPrintSheet().ShouldBeNull();
+        // Lý do KHÁC trường hợp chưa chọn gì: người dùng đã chọn rồi, nên "chưa chọn gói thầu" sẽ nói sai với họ.
+        page.PrintUnavailableReason.ShouldBe("đã chọn đợt của nhiều gói thầu");
     }
 
     [Fact]
@@ -358,6 +514,7 @@ public class PrintWorkbookTests
         var page = new GdnttFormPageViewModel(inner);
 
         page.PrintSheetName.ShouldBe("GĐNTT");
+        page.PrintUnavailableReason.ShouldBeNull("in được thì không có lý do nào để nói");
         var sheet = page.BuildPrintSheet().ShouldBeOfType<PrintFormSheet>();
         sheet.SheetName.ShouldBe("GĐNTT");
         sheet.Page.ShouldBeSameAs(PrintPageProfiles.Gdntt);
@@ -488,14 +645,14 @@ public class PrintWorkbookTests
 
         // Hỏi nhanh và in thật phải nhất quán: nút sáng thì BuildAllSheets có sheet để in, nút mờ thì không có.
         ((IPrintableWorkbook)loaded).CanPrintAll.ShouldBeTrue("đã nạp dự án");
-        loaded.BuildAllSheets().ShouldNotBeEmpty();
+        loaded.BuildAllSheets().Sheets.ShouldNotBeEmpty();
 
         ((IPrintableWorkbook)noProject).CanPrintAll.ShouldBeFalse("chưa có dự án");
-        noProject.BuildAllSheets().ShouldBeEmpty();
+        noProject.BuildAllSheets().Sheets.ShouldBeEmpty();
 
         // Có trang nhưng không trang nào báo tên sheet: vẫn không in được. "Có trang" không đồng nghĩa "in được".
         ((IPrintableWorkbook)onlyUnprintablePage).CanPrintAll.ShouldBeFalse("có trang nhưng không trang nào in được");
-        onlyUnprintablePage.BuildAllSheets().ShouldBeEmpty();
+        onlyUnprintablePage.BuildAllSheets().Sheets.ShouldBeEmpty();
     }
 
     [Fact]

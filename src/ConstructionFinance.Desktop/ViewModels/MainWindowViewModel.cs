@@ -172,15 +172,15 @@ public partial class MainWindowViewModel : ViewModelBase
     private Task PrintAllAsync() => GuardPrintAsync(async () =>
     {
         var workbook = (IPrintableWorkbook)CurrentContent!;
-        var sheets = workbook.BuildAllSheets();
+        var all = workbook.BuildAllSheets();
         // Nhánh rỗng gần như không xảy ra vì CanPrintAll đã chặn nút, nhưng KHÔNG được
         // im lặng: user vừa bấm một nút, nên phải nói ra chuyện gì xảy ra.
-        if (sheets.Count == 0)
+        if (all.Sheets.Count == 0)
         {
             await ShowNothingToPrintAsync();
             return;
         }
-        await PrintAsync(sheets, "Toan bo", footerViTriName: null);
+        await PrintAsync(all.Sheets, "Toan bo", footerViTriName: null, warningAfterWrite: DescribeSkipped(all.Skipped));
     });
 
     private bool CanPrintAll() =>
@@ -211,20 +211,26 @@ public partial class MainWindowViewModel : ViewModelBase
 
     /// Đường chung của cả hai lệnh: chọn nơi lưu → ghi → mở bằng ứng dụng mặc định.
     /// `fileLabel` chỉ để đặt tên tệp gợi ý. `footerViTriName` là tên Vị trí in ở chân trang: chỉ có khi in riêng một
-    /// sheet, còn In toàn bộ thì null (nhãn "Toan bo" của tên tệp không phải tên một Vị trí).
-    private async Task PrintAsync(IReadOnlyList<PrintSheet> sheets, string fileLabel, string? footerViTriName)
+    /// sheet, còn In toàn bộ thì null (nhãn "Toan bo" của tên tệp không phải tên một Vị trí). `warningAfterWrite` (chỉ In toàn bộ
+    /// có) là lời cảnh báo hiện sau khi ghi xong, nói bộ tệp thiếu gì.
+    private async Task PrintAsync(
+        IReadOnlyList<PrintSheet> sheets, string fileLabel, string? footerViTriName, string? warningAfterWrite = null)
     {
         var dialog = _services.GetRequiredService<IDialogService>();
         var writer = _services.GetRequiredService<IPrintWorkbookWriter>();
         var launcher = _services.GetRequiredService<IFileLauncher>();
 
-        var prefix = (CurrentContent as IPrintableWorkbook)?.PrintWorkbookName ?? "";
+        // Hai tên khác nhau cho hai người đọc khác nhau: tên TỆP lấy mã dự án (PrintWorkbookName), còn chân trang trên giấy lấy
+        // TÊN dự án (PrintFooterProjectName), vì người nhận bản in không biết mã nội bộ.
+        var workbook = CurrentContent as IPrintableWorkbook;
+        var prefix = workbook?.PrintWorkbookName ?? "";
+        var footerProjectName = workbook?.PrintFooterProjectName ?? "";
         var suggested = PrintFileName.Suggest(prefix, fileLabel, DateTime.Now);
 
         var path = await dialog.PickSaveFileAsync(PrintFileTitle, suggested, new[] { ".xlsx" });
         if (path is null) return;          // người dùng bấm Hủy — im lặng, không báo lỗi
 
-        var footer = new PrintFooterInfo(prefix, footerViTriName);
+        var footer = new PrintFooterInfo(footerProjectName, footerViTriName);
         try
         {
             await writer.WriteAsync(sheets, path, footer);
@@ -275,9 +281,28 @@ public partial class MainWindowViewModel : ViewModelBase
             return;
         }
 
+        // Cảnh báo "đã bỏ qua sheet nào": hiện NGAY sau khi ghi xong và TRƯỚC khi mở tệp. Mở tệp đưa Excel lên trên cùng và che mất
+        // hộp thoại của app, mà một cảnh báo không ai nhìn thấy cũng như không có cảnh báo (người dùng gom bộ hồ sơ rồi gửi đi,
+        // và người nhận mới là người phát hiện thiếu sheet). Ghi không thành thì đã return ở trên: chỉ báo lỗi ghi.
+        if (warningAfterWrite is not null)
+            await dialog.ShowMessageAsync(PrintFileTitle, warningAfterWrite);
+
         if (!launcher.TryOpen(path))
             await dialog.ShowMessageAsync(PrintFileTitle, $"Đã lưu tệp tại:\n{path}");
     }
+
+    /// Lời cảnh báo cho các trang "In toàn bộ" đã bỏ qua; null khi không bỏ qua trang nào. Một trang: đúng chữ của spec §8
+    /// ("Đã bỏ qua GĐNTT: chưa chọn gói thầu."). Nhiều trang: liệt kê từng trang, để người dùng thấy bộ tệp thiếu gì mà không
+    /// phải đối chiếu từng tab.
+    private static string? DescribeSkipped(IReadOnlyList<SkippedPrintPage> skipped) => skipped.Count switch
+    {
+        0 => null,
+        1 => $"Đã bỏ qua {DescribeSkippedPage(skipped[0])}.",
+        _ => $"Đã bỏ qua {skipped.Count} sheet:\n" + string.Join("\n", skipped.Select(page => "- " + DescribeSkippedPage(page))),
+    };
+
+    private static string DescribeSkippedPage(SkippedPrintPage page) =>
+        string.IsNullOrWhiteSpace(page.Reason) ? page.Title : $"{page.Title}: {page.Reason}";
 
     /// Nhật ký cho các lỗi ghi họ IOException. Người dùng chỉ đọc một câu (câu của nhánh IOException che cả ba nguyên nhân);
     /// nhật ký là thứ duy nhất cho người hỗ trợ biết đó là xung đột chia sẻ, ổ đầy, ổ bị rút hay ổ mạng ngắt. HResult nằm ngay trong dòng

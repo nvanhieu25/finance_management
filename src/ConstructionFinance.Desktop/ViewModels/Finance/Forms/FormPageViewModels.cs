@@ -84,6 +84,14 @@ public sealed class GdnttFormPageViewModel : WorkbookPageViewModel
             ? new PrintFormSheet(SheetName, PrintPageProfiles.Gdntt, new FormPayload(Gdntt: form))
             : null;
 
+    // Vì sao chưa in được, đúng với việc người dùng đã làm (GdnttBuilder có hai lỗi): chưa tích đợt nào thì "chưa chọn gói thầu"
+    // (đúng chữ spec §8); đã tích đợt của nhiều gói thì nói đúng điều đó, vì "chưa chọn gói thầu" sẽ nói sai với người đã chọn rồi.
+    // Picker của GĐNTT chỉ liệt kê đợt Ngoại hối nên SelectedCount == 0 là đúng lúc builder báo "chưa chọn đợt nào".
+    public override string? PrintUnavailableReason =>
+        Inner.CanExport ? null
+        : Inner.Picker.SelectedCount == 0 ? "chưa chọn gói thầu"
+        : "đã chọn đợt của nhiều gói thầu";
+
     // Tên sheet đổi theo CanExport, và CanExport đổi ngay trên tab này (người dùng tích/bỏ tích đợt) chứ không kèm lần
     // đổi tab nào, nên phải báo cho nơi đang nghe — nút In ở khung chung. GdnttFormViewModel.Rebuild() bắn CanExport
     // ở MỌI lần dựng (mỗi lần tích, mỗi lần gõ một ô), kể cả khi giá trị không đổi: chuyển tiếp nguyên xi thì nút In

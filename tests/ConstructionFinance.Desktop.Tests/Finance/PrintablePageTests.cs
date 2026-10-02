@@ -102,10 +102,11 @@ public class PrintablePageTests
     }
 
     /// Tiêu đề của những cột mà dòng này có ghi gì đó. Đem so với danh sách mong đợi là cách chứng
-    /// minh "mọi ô còn lại là PrintCell.Empty" mà không phải liệt kê từng ô trống.
+    /// minh "mọi ô còn lại là ô trống" mà không phải liệt kê từng ô trống. "Trống" theo IsBlank, không phải so với
+    /// PrintCell.Empty: bản in lấy thẳng chuỗi rỗng của màn hình nên một ô trống thường là OfText("") chứ không phải Empty.
     private static string[] FilledHeaders(PrintTableSheet sheet, int row) =>
         sheet.Columns
-            .Where((_, i) => sheet.Rows[row].Cells[i] != PrintCell.Empty)
+            .Where((_, i) => !IsBlank(sheet.Rows[row].Cells[i]))
             .Select(c => c.Header)
             .ToArray();
 
@@ -395,6 +396,22 @@ public class PrintablePageTests
         CellAt(sheet, 1, "Quyết toán năm").ShouldBe(PrintCell.OfText(RichYearlyText));
         AssertTongHopMoney(sheet, 1);
         sheet.Rows[1].IsBold.ShouldBeTrue();
+    }
+
+    // Dòng TỔNG CỘNG của Tổng hợp để trống STT và Đơn vị thi công dưới dạng PrintCell.OfText(""), KHÔNG phải PrintCell.Empty (bản in
+    // lấy thẳng chuỗi rỗng của màn hình). FilledHeaders phải coi hai ô đó là trống, tức nó đi qua IsBlank chứ không so với
+    // PrintCell.Empty. Đây là chỗ duy nhất chạy FilledHeaders trên ô chữ rỗng thật: các test sổ Vị trí đều dùng RichFixture,
+    // đủ mọi trường, nên so với PrintCell.Empty vẫn đúng ở đó và che mất lỗi.
+    [Fact]
+    public void Dong_TONG_CONG_cua_Tong_hop_chi_ghi_o_co_chu()
+    {
+        var sheet = TongHopSheet(RichFixture());
+
+        FilledHeaders(sheet, 1).ShouldBe(new[]
+        {
+            "Tên vị trí", "Giá trị HĐ, PL", "Tạm ứng", "TT KLHT", "Thu hồi", "TT cho nhà thầu",
+            "Tạm ứng chưa thu hồi", "GN Dự phòng NSNN", "GN Quỹ DTNH", "Tổng đã giải ngân", "Quyết toán năm",
+        });
     }
 
     /// Chín cột tiền của Tổng hợp là SỐ thật (kiểu Money) chứ không phải chuỗi "5.250.000" của màn
