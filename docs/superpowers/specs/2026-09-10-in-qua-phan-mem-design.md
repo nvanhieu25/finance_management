@@ -118,6 +118,10 @@ public interface IPrintablePage
     /// Tên sheet, cũng dùng đặt tên tệp. Null nghĩa là màn này không in được.
     string? PrintSheetName { get; }
     PrintSheet? BuildPrintSheet();
+
+    /// Khi PrintSheetName là null: VÌ SAO chưa in được, cụm từ tiếng Việt viết thường
+    /// (vd. "chưa chọn gói thầu"), để "In toàn bộ" nói ra sheet nào bị bỏ — xem §8.
+    string? PrintUnavailableReason => null;
 }
 ```
 
@@ -126,15 +130,24 @@ public interface IPrintablePage
 Cho "In toàn bộ":
 
 ```csharp
+public sealed record SkippedPrintPage(string Title, string? Reason);
+public sealed record PrintAllResult(IReadOnlyList<PrintSheet> Sheets,
+                                    IReadOnlyList<SkippedPrintPage> Skipped);
+
 public interface IPrintableWorkbook
 {
-    string PrintWorkbookName { get; }        // dùng đặt tên tệp
+    string PrintWorkbookName { get; }        // MÃ dự án nếu có — chỉ dùng đặt tên tệp
+    string PrintFooterProjectName { get; }   // TÊN dự án — thứ in trên giấy (§5)
     bool CanPrintAll { get; }                // RẺ và KHÔNG tác dụng phụ: chỉ đọc tên sheet
-    IReadOnlyList<PrintSheet> BuildAllSheets();   // đường HÀNH ĐỘNG: tự làm mới tab tổng hợp
+    PrintAllResult BuildAllSheets();         // đường HÀNH ĐỘNG: tự làm mới tab tổng hợp
 }
 ```
 
 `CanPrintAll` tách riêng vì `CanExecute` của lệnh bị gọi rất thường xuyên: `BuildAllSheets()` làm mới tab tổng hợp, nên gọi nó trong một phép hỏi trạng thái vừa đắt vừa gây tác dụng phụ (đo được: làm mới hai lần mỗi lần đổi tab).
+
+Tên tệp và chân trang cố ý lấy hai nguồn khác nhau: tên tệp dùng **mã** dự án cho ngắn, còn chân trang in **tên** dự án vì người đọc bản in đã lưu là cấp trên hoặc kiểm toán, không biết mã nội bộ.
+
+`BuildAllSheets()` trả kèm danh sách trang bị bỏ qua thay vì lặng lẽ bỏ: §8 đòi phải nói ra, và một bộ hồ sơ thiếu sheet mà không ai báo thì người phát hiện là người NHẬN hồ sơ.
 
 Hợp đồng thông báo: `PrintSheetName` khác null PHẢI nghĩa là có sheet thật — tab GĐNTT chưa chọn gói thầu trả null ở CẢ HAI thành viên. Khi điều kiện đó lật, trang biểu mẫu bắn `PrintSheetName` và workbook bắn kèm `CanPrintAll`, nếu không nút In vẫn xám cho tới khi user đổi tab.
 
@@ -229,7 +242,10 @@ Bản cài đặt dùng `Process.Start(new ProcessStartInfo(path) { UseShellExec
 |---|---|
 | Chưa chọn dự án nào | Cả hai mục In đều mờ |
 | Vị trí rỗng (không có nhóm/gói/đợt) | Vẫn in: có tiêu đề + dòng TỔNG CỘNG bằng 0. Không chặn |
-| Tệp đích đang mở trong Excel | Ghi ném `IOException` → hiện "Tệp đang được mở trong chương trình khác. Đóng tệp rồi thử lại." |
+| Ghi tệp hỏng: nơi lưu không còn | `DirectoryNotFoundException` · `PathTooLongException` · `DriveNotFoundException` → một câu nêu thư mục đã mất, USB/ổ mạng bị rút, hoặc đường dẫn quá dài, kèm lời khuyên kiểm tra kết nối hoặc chọn nơi khác |
+| Ghi tệp hỏng: tệp đang mở, đĩa đầy, ổ mạng ngắt | `IOException` → MỘT câu nêu cả ba nguyên nhân, mỗi nguyên nhân kèm một việc nên làm. KHÔNG phân biệt bằng `HResult`: mã khác nhau theo hệ điều hành (đo được: tệp bị giữ ra `0x0B` trên Linux) và app chưa từng chạy trên Windows, nên đoán sai sẽ rơi đúng ca hay gặp nhất |
+| Ghi tệp hỏng: nguyên nhân khác | `Exception` → câu chung + ghi nhật ký. Mọi nhánh đều ghi nhật ký kèm `HResult`, vì nhật ký là chỗ duy nhất phân biệt được ba nguyên nhân ở dòng trên |
+| Bất kỳ bước nào của lệnh In ném | Cả lệnh được bọc: `AsyncRelayCommand` ném lại ngoại lệ thoát ra vào UI context mà app không có handler toàn cục, nên dựng sheet, lấy dịch vụ hay hộp thoại chọn tệp đều là đường làm sập app nếu không bọc |
 | Người dùng bấm Hủy ở hộp thoại chọn tệp | Không làm gì, không báo lỗi |
 | GĐNTT chưa chọn gói thầu | Sheet GĐNTT bị **bỏ qua** khi In toàn bộ, kèm cảnh báo cuối "Đã bỏ qua GĐNTT: chưa chọn gói thầu." In riêng GĐNTT thì mục In mờ, đúng như `CanExport` hiện tại |
 | Dự án nhiều Vị trí | In toàn bộ ra mỗi Vị trí một sheet, tên sheet lấy tên Vị trí |

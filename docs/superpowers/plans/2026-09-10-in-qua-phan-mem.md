@@ -669,11 +669,16 @@ public interface IPrintablePage
     PrintSheet? BuildPrintSheet();
 }
 
+public sealed record SkippedPrintPage(string Title, string? Reason);
+public sealed record PrintAllResult(IReadOnlyList<PrintSheet> Sheets,
+                                    IReadOnlyList<SkippedPrintPage> Skipped);
+
 public interface IPrintableWorkbook
 {
-    string PrintWorkbookName { get; }
+    string PrintWorkbookName { get; }              // MÃ dự án — chỉ để đặt tên tệp
+    string PrintFooterProjectName { get; }         // TÊN dự án — thứ in trên giấy (spec §5)
     bool CanPrintAll { get; }                      // rẻ, không tác dụng phụ
-    IReadOnlyList<PrintSheet> BuildAllSheets();   // đường hành động: tự làm mới tab tổng hợp
+    PrintAllResult BuildAllSheets();               // đường hành động: tự làm mới tab tổng hợp
 }
 ```
 
@@ -1286,3 +1291,24 @@ Sau khi cả 6 task xanh, chạy app thật với DB đã seed, rồi:
 ## Ghi chú phải cập nhật sang kế hoạch 7E
 
 `FinanceExportService.UniqueSheetName` đã chuyển thành `Printing/ExcelSheetName` ở Task 1. Đây là **mối nối thứ tư** cần gỡ cẩn thận khi 7E xóa `FinanceExportService`, cùng loại với ba mối đã ghi (`ImportMerge.NextFreeName`, `IFinanceProjectService`, `FinanceWorkbookViewModel`). Cập nhật ghi chú 7E ngay khi Task 1 xong.
+
+---
+
+## Chênh lệch giữa kế hoạch và mã đã ship (ghi 2026-10-02, sau review tổng)
+
+Kế hoạch này được viết trước khi chạy, và sáu task cộng với hai vòng review đã tìm ra lỗi trong chính nó. Những đoạn mã mẫu ở trên là **ý định ban đầu**, không phải mã cuối. Phần dưới liệt kê chỗ mã đã ship khác kế hoạch, để người đọc sau không tin nhầm đoạn mẫu.
+
+**Task 6 — `MainWindowViewModel`** khác kế hoạch ở sáu điểm, tất cả đều là sửa lỗi của kế hoạch:
+
+| Kế hoạch ghi | Mã đã ship | Vì sao |
+|---|---|---|
+| `catch (IOException)` một nhánh | `DirectoryNotFound` → `PathTooLong` → `DriveNotFound` → `IOException` → `Exception`, thứ tự do trình biên dịch ép (CS0160) | Ba kiểu đầu đều kế thừa `IOException`, nên một nhánh sẽ bảo "đóng tệp đang mở" khi thư mục không tồn tại hoặc USB bị rút |
+| chỉ bọc lời gọi ghi tệp | `GuardPrintAsync` bọc CẢ lệnh | Đo được: `AsyncRelayCommand` ném lại ngoại lệ thoát ra vào UI context, app không có handler toàn cục — dựng sheet, lấy dịch vụ, hộp thoại chọn tệp đều làm sập app |
+| không có ghi nhật ký ở nhánh `IOException` | mọi nhánh ghi nhật ký kèm `HResult` | Nhật ký là chỗ duy nhất phân biệt được "tệp đang mở" với "đĩa đầy" khi người dùng báo lỗi |
+| `new PrintFooterInfo(prefix, sheets.Count == 1 ? sheetLabel : null)` | tham số `footerViTriName` tường minh | Với proxy cũ, một lần "In toàn bộ" ra đúng một sheet sẽ in chuỗi "Toan bo" như TÊN VỊ TRÍ trên mọi trang |
+| nút In không có `IsEnabled` | `IsEnabled="{Binding CanPrint}"` + `ToolTip.ShowOnDisabled` + `x:Name="PrintButton"` | Kế hoạch đặt Command lên `MenuItem` trong flyout nên bản thân Button luôn sáng — **không thể** thỏa tiêu chí nghiệm thu "sang màn Cài đặt thì nút In phải mờ" của chính kế hoạch |
+| `sheets.Count == 0` trả `Task.CompletedTask` | hiện thông báo tiếng Việt | Người dùng vừa bấm một nút; im lặng là hỏng |
+
+**Spec §8 có một yêu cầu kế hoạch KHÔNG mang sang**: cảnh báo "Đã bỏ qua GĐNTT: chưa chọn gói thầu." Vì thiếu trong kế hoạch nên không task nào có cơ hội làm; review tổng cuối bắt được. Nay là kênh tổng quát (`PrintUnavailableReason`, `PrintAllResult.Skipped`) chứ không phải ca riêng GĐNTT — vì KH vốn/Vốn/QĐ sẽ có đúng hình dạng khả-dụng-có-điều-kiện này. Lưu ý `CanExport` của GĐNTT sai vì HAI nguyên nhân, nên câu nguyên văn của spec chỉ dùng cho ca "chưa chọn gì"; ca "chọn đợt vắt qua nhiều gói" có câu riêng, vì nói "chưa chọn gói thầu" với người đã chọn là nói sai.
+
+**Cổng test**: hai assembly có round-trip `.xlsx` nay có `xunit.runner.json` với `parallelizeTestCollections: false`. Lý do nằm trong chính tệp đó: `System.IO.Packaging.ZipPackage.ContentTypeHelper` thêm content-type `rels` hai lần khi mở lại gói ClosedXML vừa ghi (`Key: rels`). Không phải lỗi của mã này và không chạm được trong app, nhưng một cổng đỏ ~7% số lần sẽ bị tặc lưỡi bỏ qua đúng lúc nó đỏ vì lý do thật.
