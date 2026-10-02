@@ -1312,3 +1312,17 @@ Kế hoạch này được viết trước khi chạy, và sáu task cộng vớ
 **Spec §8 có một yêu cầu kế hoạch KHÔNG mang sang**: cảnh báo "Đã bỏ qua GĐNTT: chưa chọn gói thầu." Vì thiếu trong kế hoạch nên không task nào có cơ hội làm; review tổng cuối bắt được. Nay là kênh tổng quát (`PrintUnavailableReason`, `PrintAllResult.Skipped`) chứ không phải ca riêng GĐNTT — vì KH vốn/Vốn/QĐ sẽ có đúng hình dạng khả-dụng-có-điều-kiện này. Lưu ý `CanExport` của GĐNTT sai vì HAI nguyên nhân, nên câu nguyên văn của spec chỉ dùng cho ca "chưa chọn gì"; ca "chọn đợt vắt qua nhiều gói" có câu riêng, vì nói "chưa chọn gói thầu" với người đã chọn là nói sai.
 
 **Cổng test**: hai assembly có round-trip `.xlsx` nay có `xunit.runner.json` với `parallelizeTestCollections: false`. Lý do nằm trong chính tệp đó: `System.IO.Packaging.ZipPackage.ContentTypeHelper` thêm content-type `rels` hai lần khi mở lại gói ClosedXML vừa ghi (`Key: rels`). Không phải lỗi của mã này và không chạm được trong app, nhưng một cổng đỏ ~7% số lần sẽ bị tặc lưỡi bỏ qua đúng lúc nó đỏ vì lý do thật.
+
+### Việc phải nhìn bằng mắt, bổ sung cho mục "Nghiệm thu bằng mắt" ở trên
+
+Ba thứ phát sinh trong lúc thực thi mà không môi trường nào ở đây dựng lại được (không có Excel, không có renderer bảng tính):
+
+1. **Rủi ro `####` với số lớn.** Ô số KHÔNG xuống dòng được. Bề rộng cột lưu trong tệp được Excel đo bằng chữ số **Calibri 11** (style Normal), còn ô lại là **Times New Roman 13**, nên sức chứa thực NHỎ HƠN bề rộng danh nghĩa. Ước lượng: số từ ~11 chữ số (10 tỷ trở lên) là biên hoặc quá rộng cho các cột tiền 15–16 ký tự, và Excel sẽ in `####`. Dự án cấp tỷ đồng là bình thường nên **phải thử một số từ 10 tỷ trở lên**. Nếu hỏng, bản sửa là một hằng số bề rộng mỗi cột trong `ViTriPageViewModel`/`ProjectTongHopPageViewModel`/`YearSettlementPageViewModel`.
+2. **Độ đậm viền và hai mức nền.** Spec §6.1 đòi ba nền (TỔNG CỘNG xám nhạt `#D9D9D9`, Nhóm chi phí xám rất nhạt `#F2F2F2`, Gói thầu và Đợt không nền) và lưới kẻ mảnh với cạnh dưới dòng tiêu đề đậm hơn. Mã màu `#F2F2F2` do người cài đặt chọn, spec chỉ nói "xám rất nhạt". Cả ba hằng số nằm cạnh nhau trong `PrintWorkbookWriter` để sửa một dòng. Test cố ý KHÔNG ghim mã màu, chỉ ghim "có nền / không nền" và thứ tự độ sáng, nên chỉnh màu sau khi nhìn giấy thật sẽ không làm đỏ test nào.
+3. **Vị trí flyout của nút In.** Nút nằm ở `PaneFooter`, tức sát đáy khung trái; flyout mở ra ở đâu thì chưa ai nhìn.
+
+### Quyết định phải chốt TRƯỚC khi làm KH vốn / Vốn / QĐ
+
+`FormPayload` đang là "đúng một trong N thuộc tính nullable", với một guard kiểm lúc chạy (`drawers.Count != 1`). Ở ba biểu mẫu thì ổn và đã có test chốt chặn (`FormPayload_chi_co_ba_bieu_mau_ma_bo_ghi_biet_ve` là một tripwire bằng reflection, đỏ ngay khi ai đó thêm thành viên thứ tư mà quên thêm drawer). Ở **sáu** biểu mẫu thì thành sáu thuộc tính nullable, sáu nhánh `if`, và một bất biến vẫn chỉ được kiểm lúc chạy.
+
+Phương án thay thế: mỗi biểu mẫu một record con của `PrintSheet`, khi đó `switch` trong bộ ghi vét cạn **lúc biên dịch** và guard biến mất. Làm lúc đang ba thành viên thì rẻ; làm lúc đã sáu thì là một đợt refactor. Chốt trước, đừng chốt sau.
