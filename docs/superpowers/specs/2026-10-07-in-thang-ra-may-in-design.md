@@ -367,6 +367,18 @@ nói gì, mã làm gì, và vì sao.
   nhân viên phải phân lại cả tập trước khi ký. "Số bản = 3" với người dùng nghĩa là ba BỘ.
 - **Khổ A4 tra một lần, ngoài `QueryPageSettings`.** Mỗi lần đọc `PrinterSettings.PaperSizes` là
   một vòng hỏi trình điều khiển; để trong handler thì lệnh 50 trang hỏi 50 lần cùng một câu.
+- **`try` của `WindowsPrinterPort.Print` bọc cả bước dựng cấu hình máy in, không riêng
+  `printDocument.Print()`.** Kéo theo từ dòng trên: lúc `PaperSizes` còn được đọc trong
+  `QueryPageSettings` thì nó chạy *bên trong* `Print()` nên đã được bọc; tra một lần ở ngoài thì
+  không. Mà `PaperSizes` chắc chắn đi tới trình điều khiển, và máy in có thể vừa bị xoá hoặc rút
+  mạng giữa lúc người dùng chọn và lúc lệnh bắt đầu. Hậu quả KHÔNG phải sập app —
+  `MainWindowViewModel.GuardPrintAsync` bắt `Exception` chung (có test
+  `Loi_bat_ngo_thi_bao_mot_cau_chung_chu_khong_sap_app`) — mà là **câu thông báo**: người dùng
+  nhận "Không in được do lỗi bất ngờ…" thay vì câu nêu tên máy in và lời của hệ thống, đúng trên
+  cái hỏng dễ xảy ra nhất ở phòng dùng máy in chung. §7 coi tính đúng của câu thông báo là yêu
+  cầu hạng nhất. Ranh giới `try` giờ là: **MigraDoc ở ngoài** (`DocumentRenderer`,
+  `PrepareDocument` — lỗi ở đó là lỗi của ta, gói thành "máy in báo lỗi" là đổ oan cho máy in),
+  **mọi thứ chạm trình điều khiển ở trong**.
 - **Dòng tiêu đề lặp mỗi trang chỉ được ghim ở mức mô hình** (`Row.HeadingFormat == true`), không
   ghim bằng cách đọc chữ trên từng trang PDF như §8 ngụ ý. PDFsharp không trích được chữ.
 - **`SheetTextMap` báo hỏng bằng `Assert.Fail` với chuỗi riêng**, không dùng `ShouldBeEmpty`, vì
