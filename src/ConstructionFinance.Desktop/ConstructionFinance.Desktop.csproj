@@ -1,5 +1,13 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
+    <!-- Hai đích, một lý do: gói PDFsharp-MigraDoc-GDI chỉ có net8.0-windows7.0, nhưng
+         468 test Desktop phải chạy được trên máy phát triển Linux. Đích net8.0 là đích
+         bộ test lấy; đích net8.0-windows là bản phát hành, và CHỈ nó thấy dự án
+         Printing.Windows. Directory.Build.props đặt TargetFramework toàn cục nên phải
+         xóa trắng trước khi đặt TargetFrameworks. -->
+    <TargetFramework></TargetFramework>
+    <TargetFrameworks>net8.0;net8.0-windows</TargetFrameworks>
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
     <OutputType>WinExe</OutputType>
     <RootNamespace>ConstructionFinance.Desktop</RootNamespace>
     <AssemblyName>ConstructionFinance</AssemblyName>
@@ -38,6 +46,12 @@
     <ProjectReference Include="..\ConstructionFinance.Data\ConstructionFinance.Data.csproj" />
     <ProjectReference Include="..\ConstructionFinance.Domain\ConstructionFinance.Domain.csproj" />
     <ProjectReference Include="..\ConstructionFinance.Infrastructure\ConstructionFinance.Infrastructure.csproj" />
+  </ItemGroup>
+
+  <!-- Adapter máy in chỉ tồn tại ở đích Windows. Đích net8.0 (bộ test) không có
+       IPrinterPort nào được đăng ký, nên hai lệnh In ra giấy mờ — xem Task 10. -->
+  <ItemGroup Condition="'$(TargetFramework)' == 'net8.0-windows'">
+    <ProjectReference Include="..\ConstructionFinance.Printing.Windows\ConstructionFinance.Printing.Windows.csproj" />
   </ItemGroup>
 
   <ItemGroup>

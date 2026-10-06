@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <!-- Directory.Build.props đặt TargetFramework=net8.0 cho mọi dự án; phải xóa trắng
+         rồi đặt lại, nếu không giá trị toàn cục thắng và gói GDI không nạp được. -->
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <!-- Để biên dịch (và kiểm kiểu) được dự án net8.0-windows trên Linux. Chạy thì vẫn phải Windows. -->
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
+    <RootNamespace>ConstructionFinance.Printing.Windows</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\ConstructionFinance.Application\ConstructionFinance.Application.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="PDFsharp-MigraDoc-GDI" />
+    <PackageReference Include="System.Drawing.Common" />
+  </ItemGroup>
+
+</Project>

@@ -27,6 +27,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ConstructionFinance.Desktop
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ConstructionFinance.Infrastructure.Tests", "tests\ConstructionFinance.Infrastructure.Tests\ConstructionFinance.Infrastructure.Tests.csproj", "{467DE94D-5AE3-4AB5-8527-46ACF86F6E4B}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ConstructionFinance.Printing.Windows", "src\ConstructionFinance.Printing.Windows\ConstructionFinance.Printing.Windows.csproj", "{D6894647-59E6-496A-AF6A-9DA6FF9B7CA5}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -76,6 +78,10 @@ Global
 		{467DE94D-5AE3-4AB5-8527-46ACF86F6E4B}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{467DE94D-5AE3-4AB5-8527-46ACF86F6E4B}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{467DE94D-5AE3-4AB5-8527-46ACF86F6E4B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D6894647-59E6-496A-AF6A-9DA6FF9B7CA5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D6894647-59E6-496A-AF6A-9DA6FF9B7CA5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D6894647-59E6-496A-AF6A-9DA6FF9B7CA5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D6894647-59E6-496A-AF6A-9DA6FF9B7CA5}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{E01795DB-CFAB-4AEF-B8B8-383BD7A12B0F} = {B26DBAED-2870-4BDC-91BD-A35A1936E6AC}
@@ -88,5 +94,6 @@ Global
 		{FCAFD1B7-D06D-4F2E-8D6F-6B44DF903FDB} = {B103BB89-CD1C-4778-9A2D-EB57001D9603}
 		{925437BC-146E-404B-8A9A-D4BC307217E4} = {B103BB89-CD1C-4778-9A2D-EB57001D9603}
 		{467DE94D-5AE3-4AB5-8527-46ACF86F6E4B} = {B103BB89-CD1C-4778-9A2D-EB57001D9603}
+		{D6894647-59E6-496A-AF6A-9DA6FF9B7CA5} = {B26DBAED-2870-4BDC-91BD-A35A1936E6AC}
 	EndGlobalSection
 EndGlobal
