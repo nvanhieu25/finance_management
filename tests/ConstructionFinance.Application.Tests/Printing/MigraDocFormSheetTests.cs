@@ -201,4 +201,120 @@ public class MigraDocFormSheetTests
         table.Rows[13]!.Cells[3]!.Borders.Width.Point.ShouldBeGreaterThan(0);
         table.Rows[0]!.Cells[0]!.Borders.Width.Point.ShouldBe(0);
     }
+
+    // ===== KS chi =====
+
+    private static KsChiForm KsChiFixture() => new(
+        NgayNhanGiayDeNghi: "07/10/2026",
+        MucTieuMucLines: new[] { "Mục 9050, tiểu mục 9062", "", "", "" },
+        Accepted: new KsChiAmounts(50_000_000_000m, 30_000_000_000m, 20_000_000_000m),
+        Recovered: new KsChiAmounts(10_000_000_000m, 6_000_000_000m, 4_000_000_000m),
+        ThuHoiCacNamTruoc: 4_000_000_000m,
+        ThuHoiNamNay: 6_000_000_000m,
+        ThueGTGT: 5_000_000_000m,
+        PaidToBeneficiary: new KsChiAmounts(40_000_000_000m, 24_000_000_000m, 16_000_000_000m),
+        PaidInWords: "Bốn mươi tỷ đồng",
+        SoTuChoi: 0m,
+        LyDoTuChoi: null,
+        GhiChu: "không");
+
+    private static IXLWorksheet ExcelKsChi(KsChiForm form, out XLWorkbook workbook)
+    {
+        var sheet = new KsChiPrintSheet("KS chi", PrintPageProfiles.KsChi, form);
+        using var buffer = new MemoryStream();
+        new PrintWorkbookWriter().Write(new PrintSheet[] { sheet }, buffer, Footer);
+        buffer.Position = 0;
+        workbook = new XLWorkbook(buffer);
+        return workbook.Worksheets.First();
+    }
+
+    private static Table MigraDocKsChi(KsChiForm form)
+    {
+        var sheet = new KsChiPrintSheet("KS chi", PrintPageProfiles.KsChi, form);
+        return new MigraDocBuilder().Build(new PrintSheet[] { sheet }, Footer)
+            .Sections[0]!.Elements.OfType<Table>().First();
+    }
+
+    [Fact]
+    public void Ks_chi_khop_tung_o_voi_ban_xlsx()
+    {
+        var form = KsChiFixture();
+        var worksheet = ExcelKsChi(form, out var workbook);
+        using (workbook)
+            SheetTextMap.AssertSameText("KS chi", worksheet, MigraDocKsChi(form));
+    }
+
+    [Fact]
+    public void Ks_chi_co_nam_cot()
+    {
+        MigraDocKsChi(KsChiFixture()).Columns.Count.ShouldBe(5);
+    }
+
+    /// Bốn dòng "+ Mục …, tiểu mục …": dòng nào bỏ trống thì in mẫu chấm, không để trống.
+    [Fact]
+    public void Ks_chi_bon_dong_muc_tieu_muc_bo_trong_thi_in_mau_cham()
+    {
+        var form = KsChiFixture() with { MucTieuMucLines = new[] { "", "", "", "" } };
+        var worksheet = ExcelKsChi(form, out var workbook);
+        using (workbook)
+            SheetTextMap.AssertSameText("KS chi", worksheet, MigraDocKsChi(form));
+    }
+
+    [Fact]
+    public void Ks_chi_in_doc_tren_A4()
+    {
+        var sheet = new KsChiPrintSheet("KS chi", PrintPageProfiles.KsChi, KsChiFixture());
+        PdfProbe.Render(new MigraDocBuilder().Build(new PrintSheet[] { sheet }, Footer))
+            .Pages[0].IsLandscape.ShouldBeFalse();
+    }
+
+    // ----- KS chi: cấu trúc bố cục -----
+    // Như nhóm Thông tri: so chữ từng ô không thấy gộp ô, đậm, căn giữa, viền; nhóm này ghim chúng.
+
+    public static IEnumerable<object[]> KsChiMergeAnchors()
+    {
+        // (dòng, cột, MergeRight, MergeDown)
+        yield return new object[] { 1, 1, 4, 0 };
+        yield return new object[] { 6, 1, 1, 0 };
+        yield return new object[] { 7, 1, 1, 0 };
+        yield return new object[] { 13, 1, 1, 0 };
+        yield return new object[] { 17, 1, 1, 0 };
+        yield return new object[] { 18, 1, 4, 0 };
+        yield return new object[] { 20, 1, 4, 0 };
+        yield return new object[] { 22, 2, 3, 0 };
+    }
+
+    [Theory]
+    [MemberData(nameof(KsChiMergeAnchors))]
+    public void Ks_chi_gop_o_dung_neo(int row, int column, int mergeRight, int mergeDown)
+    {
+        var cell = MigraDocKsChi(KsChiFixture()).Rows[row - 1]!.Cells[column - 1]!;
+        cell.MergeRight.ShouldBe(mergeRight);
+        cell.MergeDown.ShouldBe(mergeDown);
+    }
+
+    [Fact]
+    public void Ks_chi_dau_bang_dam_va_can_giua()
+    {
+        var table = MigraDocKsChi(KsChiFixture());
+        foreach (var (row, column) in new[] { (6, 1), (6, 5) })
+        {
+            var cell = table.Rows[row - 1]!.Cells[column - 1]!;
+            cell.Format.Font.Bold.ShouldBeTrue($"({row},{column}) phải đậm");
+            cell.Elements.OfType<Paragraph>().First().Format.Alignment
+                .ShouldBe(ParagraphAlignment.Center, $"({row},{column}) phải căn giữa");
+        }
+    }
+
+    /// Nửa sau là nửa phân biệt: viền chỉ ở khối (6,1)-(17,5); dòng 1 và dòng 20 không có viền.
+    [Fact]
+    public void Ks_chi_vien_chi_o_khoi_bang()
+    {
+        var table = MigraDocKsChi(KsChiFixture());
+
+        table.Rows[5]!.Cells[0]!.Borders.Width.Point.ShouldBeGreaterThan(0);
+        table.Rows[16]!.Cells[4]!.Borders.Width.Point.ShouldBeGreaterThan(0);
+        table.Rows[0]!.Cells[0]!.Borders.Width.Point.ShouldBe(0);
+        table.Rows[19]!.Cells[0]!.Borders.Width.Point.ShouldBe(0);
+    }
 }

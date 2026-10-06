@@ -103,4 +103,77 @@ internal static class MigraDocFormSheets
 
         return grid.Render(section, PrintOrientation.Portrait);
     }
+
+    /// Chép FormExcelExporter.WriteKsChiSheet. Bề rộng cột ở cuối bản gốc
+    /// (Column(1)=34, Column(2)=14, Columns(3,5)=18) khai TRƯỚC ở đây, như WriteThongTri.
+    public static Table WriteKsChi(Section section, KsChiForm form)
+    {
+        var grid = new FormGrid(new double[] { 34, 14, 18, 18, 18 });
+
+        grid.Text(1, 1, "PHẦN GHI CỦA CƠ QUAN KIỂM SOÁT, THANH TOÁN");
+        grid.Merge(1, 1, 1, 5);
+        grid.Bold(1, 1, 1, 1);
+        grid.Center(1, 1, 1, 1);
+
+        grid.Text(3, 1, "Ngày nhận giấy đề nghị thanh toán vốn đầu tư:");
+        grid.Text(3, 4, $"Ngày {FormExcelExporter.Blank(form.NgayNhanGiayDeNghi)}");
+        grid.Text(5, 5, "Đơn vị tính: đồng");
+
+        grid.Text(6, 1, "Nội dung");
+        grid.Merge(6, 1, 6, 2);
+        grid.Text(6, 3, "Tổng số");
+        grid.Text(6, 4, "Vốn trong nước");
+        grid.Text(6, 5, "Vốn nước ngoài");
+        grid.Bold(6, 1, 6, 5);
+        grid.Center(6, 1, 6, 5);
+
+        WriteKsChiAmountRow(grid, 7, "Số vốn chấp nhận", form.Accepted);
+
+        // Bốn dòng "+ Mục ..., tiểu mục ..." — dòng nào bỏ trống thì in mẫu chấm.
+        for (var index = 0; index < 4; index++)
+        {
+            var text = form.MucTieuMucLines[index];
+            grid.Text(8 + index, 1, string.IsNullOrWhiteSpace(text)
+                ? " + Mục ........, tiểu mục ........"
+                : $" + {text}");
+        }
+
+        grid.Text(12, 1, "Trong đó:");
+        WriteKsChiAmountRow(grid, 13, " + Số thu hồi tạm ứng", form.Recovered);
+        grid.Text(14, 1, "  Các năm trước");
+        grid.Money(14, 3, form.ThuHoiCacNamTruoc);
+        grid.Text(15, 1, "  Năm nay");
+        grid.Money(15, 3, form.ThuHoiNamNay);
+        grid.Text(16, 1, " + Thuế giá trị gia tăng");
+        grid.Money(16, 3, form.ThueGTGT);
+        WriteKsChiAmountRow(grid, 17, " + Số trả đơn vị thụ hưởng", form.PaidToBeneficiary);
+        grid.Bold(17, 1, 17, 5);
+
+        grid.Text(18, 1, form.PaidInWords);
+        grid.Merge(18, 1, 18, 5);
+
+        grid.Text(19, 1, "Số từ chối:");
+        grid.Money(19, 3, form.SoTuChoi);
+        grid.Text(19, 4, "đồng");
+        grid.Text(20, 1, $"Lý do từ chối: {form.LyDoTuChoi ?? ""}");
+        grid.Merge(20, 1, 20, 5);
+
+        grid.Text(22, 1, "Ghi chú:");
+        grid.Text(22, 2, form.GhiChu);
+        grid.Merge(22, 2, 22, 5);
+
+        grid.Border(6, 1, 17, 5);
+
+        return grid.Render(section, PrintOrientation.Portrait);
+    }
+
+    /// Chép WriteAmountRow của FormExcelExporter.
+    private static void WriteKsChiAmountRow(FormGrid grid, int row, string label, KsChiAmounts amounts)
+    {
+        grid.Text(row, 1, label);
+        grid.Merge(row, 1, row, 2);
+        grid.Money(row, 3, amounts.Total);
+        grid.Money(row, 4, amounts.NSNN);
+        grid.Money(row, 5, amounts.NgoaiHoi);
+    }
 }

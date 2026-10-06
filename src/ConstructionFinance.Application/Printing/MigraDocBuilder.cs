@@ -57,6 +57,9 @@ public sealed class MigraDocBuilder : IMigraDocBuilder
                 case ThongTriPrintSheet thongTri:
                     MigraDocFormSheets.WriteThongTri(section, thongTri.Form);
                     break;
+                case KsChiPrintSheet ksChi:
+                    MigraDocFormSheets.WriteKsChi(section, ksChi.Form);
+                    break;
                 default:
                     throw new NotSupportedException(
                         $"Sheet \"{sheet.SheetName}\": chưa có hàm vẽ MigraDoc cho {sheet.GetType().Name}.");
