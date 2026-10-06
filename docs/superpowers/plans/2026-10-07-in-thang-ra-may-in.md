@@ -264,16 +264,17 @@ public class ExcelFitScaleTests
     [Fact]
     public void Phan_dem_khong_duoc_bo_qua()
     {
-        var khongDem = 237 * 7 * 25.4 / 96;
-        ExcelFitScale.ContentWidthMm(ViTriColumns).ShouldBeGreaterThan(khongDem + 18);
+        var withoutPadding = 237 * 7 * 25.4 / 96;
+        ExcelFitScale.ContentWidthMm(ViTriColumns).ShouldBeGreaterThan(withoutPadding + 18);
     }
 
     [Theory]
     [InlineData(PrintOrientation.Landscape, 271.6)]   // 297 - 2*0,5"
     [InlineData(PrintOrientation.Portrait, 184.6)]    // 210 - 2*0,5"
-    public void Be_ngang_giay_dung_duoc_tru_le_nua_inch_moi_ben(PrintOrientation huong, double mong)
+    public void Be_ngang_giay_dung_duoc_tru_le_nua_inch_moi_ben(
+        PrintOrientation orientation, double expected)
     {
-        ExcelFitScale.UsableWidthMm(huong).ShouldBe(mong, 0.001);
+        ExcelFitScale.UsableWidthMm(orientation).ShouldBe(expected, 0.001);
     }
 
     [Fact]
@@ -380,14 +381,15 @@ Thêm vào cuối `ExcelFitScaleTests`. Test này nối số học với **hồ 
     [InlineData("Thông tri", PrintOrientation.Portrait, 124, 8, 0.7684)]
     [InlineData("KS chi", PrintOrientation.Portrait, 102, 5, 0.9441)]
     [InlineData("GĐNTT", PrintOrientation.Landscape, 154, 9, 0.9141)]
-    public void Ti_le_co_cua_sau_tai_lieu(string ten, PrintOrientation huong, double tong, int soCot, double mong)
+    public void Ti_le_co_cua_sau_tai_lieu(
+        string name, PrintOrientation orientation, double totalUnits, int columnCount, double expected)
     {
         // Dựng lại đúng tổng đơn vị và số cột: tỉ lệ chỉ phụ thuộc hai con số đó.
-        var cols = new double[soCot];
-        cols[0] = tong - (soCot - 1);
-        for (var i = 1; i < soCot; i++) cols[i] = 1;
+        var columns = new double[columnCount];
+        columns[0] = totalUnits - (columnCount - 1);
+        for (var i = 1; i < columnCount; i++) columns[i] = 1;
 
-        ExcelFitScale.ScaleFor(cols, huong).ShouldBe(mong, 0.0001, ten);
+        ExcelFitScale.ScaleFor(columns, orientation).ShouldBe(expected, 0.0001, name);
     }
 ```
 
@@ -684,11 +686,11 @@ public class PdfProbeTests
     public void Moi_Section_giu_huong_giay_rieng_trong_cung_mot_tai_lieu()
     {
         var document = new Document();
-        foreach (var huong in new[] { Orientation.Landscape, Orientation.Portrait, Orientation.Landscape })
+        foreach (var orientation in new[] { Orientation.Landscape, Orientation.Portrait, Orientation.Landscape })
         {
             var section = document.AddSection();
             section.PageSetup.PageFormat = PageFormat.A4;
-            section.PageSetup.Orientation = huong;
+            section.PageSetup.Orientation = orientation;
             section.AddParagraph("sheet");
         }
 
@@ -1344,18 +1346,18 @@ internal static class SheetTextMap
         var excel = FromExcel(worksheet);
         var migraDoc = FromMigraDoc(table);
 
-        var thieu = new List<string>();
+        var mismatches = new List<string>();
         foreach (var ((row, column), text) in excel.OrderBy(entry => entry.Key))
         {
             if (!migraDoc.TryGetValue((row, column), out var found))
-                thieu.Add($"  ({row},{column}) .xlsx = \"{text}\" — MigraDoc KHÔNG CÓ ô này");
+                mismatches.Add($"  ({row},{column}) .xlsx = \"{text}\" — MigraDoc KHÔNG CÓ ô này");
             else if (found != text)
-                thieu.Add($"  ({row},{column}) .xlsx = \"{text}\" — MigraDoc = \"{found}\"");
+                mismatches.Add($"  ({row},{column}) .xlsx = \"{text}\" — MigraDoc = \"{found}\"");
         }
 
-        thieu.ShouldBeEmpty(
-            $"Sheet \"{sheetName}\": hai bộ dựng đã trôi khỏi nhau ở {thieu.Count} ô:\n"
-            + string.Join("\n", thieu.Take(20)));
+        mismatches.ShouldBeEmpty(
+            $"Sheet \"{sheetName}\": hai bộ dựng đã trôi khỏi nhau ở {mismatches.Count} ô:\n"
+            + string.Join("\n", mismatches.Take(20)));
     }
 
     private static string CellText(Table table, int row, int column)
@@ -2662,9 +2664,9 @@ public class PrinterJobTests
     [InlineData(100_000, 99)]
     [InlineData(int.MaxValue, 99)]
     [InlineData(int.MinValue, 1)]
-    public void So_ban_bi_kep_trong_khoang_mot_den_chin_muoi_chin(int yeuCau, int mong)
+    public void So_ban_bi_kep_trong_khoang_mot_den_chin_muoi_chin(int requested, int expected)
     {
-        new PrinterJob(AnyDocument(), "Máy in A", yeuCau).Copies.ShouldBe(mong);
+        new PrinterJob(AnyDocument(), "Máy in A", requested).Copies.ShouldBe(expected);
     }
 
     [Fact]
@@ -2998,12 +3000,12 @@ public class ChonMayInViewModelTests
     [InlineData(99, 99)]
     [InlineData(100, 99)]
     [InlineData(100000, 99)]
-    public void So_ban_bi_kep_trong_khoang_cho_phep(int? go, int mong)
+    public void So_ban_bi_kep_trong_khoang_cho_phep(int? requested, int expected)
     {
         var vm = Create("Máy in A");
-        vm.CopiesValue = go;
+        vm.CopiesValue = requested;
 
-        vm.Copies.ShouldBe(mong);
+        vm.Copies.ShouldBe(expected);
     }
 
     [Fact]
@@ -3084,9 +3086,9 @@ public sealed partial class ChonMayInViewModel : ViewModelBase, IHasDialogTitle,
 
         // Máy in mặc định của hệ điều hành, nếu nó còn trong danh sách. Không còn (vừa bị xoá
         // giữa hai lần đọc) thì lấy máy đầu danh sách — hơn là để trống rồi bắt người dùng đoán.
-        var mặcĐịnh = catalog.DefaultPrinterName;
-        _selectedPrinter = mặcĐịnh is not null && Printers.Contains(mặcĐịnh)
-            ? mặcĐịnh
+        var defaultName = catalog.DefaultPrinterName;
+        _selectedPrinter = defaultName is not null && Printers.Contains(defaultName)
+            ? defaultName
             : Printers.FirstOrDefault();
     }
 
@@ -3118,10 +3120,10 @@ public sealed partial class ChonMayInViewModel : ViewModelBase, IHasDialogTitle,
         get
         {
             var value = CopiesValue ?? PrinterJob.MinCopies;
-            var nguyên = decimal.Truncate(value);
-            if (nguyên < PrinterJob.MinCopies) return PrinterJob.MinCopies;
-            if (nguyên > PrinterJob.MaxCopies) return PrinterJob.MaxCopies;
-            return (int)nguyên;
+            var whole = decimal.Truncate(value);
+            if (whole < PrinterJob.MinCopies) return PrinterJob.MinCopies;
+            if (whole > PrinterJob.MaxCopies) return PrinterJob.MaxCopies;
+            return (int)whole;
         }
     }
 }
@@ -3283,7 +3285,72 @@ Trong `MainWindowViewModel.cs`, đổi **chỉ tên**, không đổi thân:
 Run: `dotnet build ConstructionFinance.sln --nologo`
 Expected: lỗi `CS1061` ở `MainWindowPrintCommandTests.cs` cho `PrintCurrentSheetCommand` / `PrintAllCommand`, cộng lỗi `CanPrintCurrentSheet` chưa tồn tại.
 
-Đổi trong `MainWindowPrintCommandTests.cs`: `PrintCurrentSheetCommand` → `ExportCurrentSheetCommand`, `PrintAllCommand` → `ExportAllCommand`. **Đừng đổi gì khác** — những test đó đang kiểm đường ghi tệp và phải tiếp tục kiểm đúng đường đó.
+Đổi `PrintCurrentSheetCommand` → `ExportCurrentSheetCommand` và `PrintAllCommand` →
+`ExportAllCommand` trong **ba** tệp (không phải một):
+
+| Tệp | Số chỗ |
+|---|---|
+| `tests/ConstructionFinance.Desktop.Tests/MainWindowPrintCommandTests.cs` | ~65 |
+| `tests/ConstructionFinance.Desktop.Tests/Finance/PrintWorkbookTests.cs` | 3 (dòng 312, 330, 371) |
+| `src/ConstructionFinance.Desktop/Views/MainWindow.axaml` | 2 (Step 7 làm) |
+
+**Đừng đổi gì khác** — những test đó đang kiểm đường ghi tệp và phải tiếp tục kiểm đúng đường đó.
+
+> ⚠️ **Bẫy ngược: `CanPrintAll` còn là tên một THUỘC TÍNH của `IPrintableWorkbook`**
+> (`src/ConstructionFinance.Desktop/Common/IPrintablePage.cs:52`), dùng ở
+> `FinanceWorkbookViewModel.cs:762`, `MainWindowViewModel.cs:337`
+> (`nameof(IPrintableWorkbook.CanPrintAll)`) và `MainWindowPrintCommandTests.cs:1198`.
+> **Chỉ đổi tên phương thức `CanPrintAll()` của `MainWindowViewModel`.** Thay thế mù cả tệp sẽ
+> phá ba chỗ kia — và chúng là thứ làm nút In bật/mờ, nên vỡ ở đây là vỡ âm thầm.
+
+- [ ] **Step 2b: `RaisePrintStateChanged` phải báo cho CẢ BỐN lệnh**
+
+`MainWindowViewModel.RaisePrintStateChanged()` (dòng ~342) hiện gọi `NotifyCanExecuteChanged()`
+cho hai lệnh. Thêm hai lệnh mà quên chỗ này thì **hai mục menu mới không bật/mờ lại khi người
+dùng đổi màn** — chúng giữ nguyên trạng thái của màn trước, và không test nào hiện có thấy.
+
+```csharp
+    /// CanExecuteChanged là thứ Avalonia nghe để bật/mờ lại từng mục menu; CanPrint/PrintToolTip là thứ nút In nghe.
+    /// Bốn lệnh, bốn lần báo: thiếu một là một mục menu đứng im với trạng thái của màn trước.
+    private void RaisePrintStateChanged()
+    {
+        ExportCurrentSheetCommand.NotifyCanExecuteChanged();
+        ExportAllCommand.NotifyCanExecuteChanged();
+        PrintCurrentSheetCommand.NotifyCanExecuteChanged();
+        PrintAllCommand.NotifyCanExecuteChanged();
+        OnPropertyChanged(nameof(CanPrint));
+        OnPropertyChanged(nameof(PrintToolTip));
+    }
+```
+
+Và ghim nó — thêm vào `PrintToPrinterCommandTests` (Step 4):
+
+```csharp
+    /// Đổi màn thì cả bốn mục menu phải được báo bật/mờ lại. Hai mục In mới dễ bị quên ở
+    /// RaisePrintStateChanged, và quên thì chúng đứng im với trạng thái của màn trước.
+    [Fact]
+    public void Doi_man_thi_ca_bon_lenh_duoc_bao_bat_mo_lai()
+    {
+        var harness = Create();
+        var raised = new List<string>();
+        foreach (var (name, command) in new (string, System.Windows.Input.ICommand)[]
+                 {
+                     ("export-sheet", harness.Vm.ExportCurrentSheetCommand),
+                     ("export-all", harness.Vm.ExportAllCommand),
+                     ("print-sheet", harness.Vm.PrintCurrentSheetCommand),
+                     ("print-all", harness.Vm.PrintAllCommand),
+                 })
+        {
+            var captured = name;
+            command.CanExecuteChanged += (_, _) => raised.Add(captured);
+        }
+
+        harness.Vm.CurrentContent = new FakePrintableWorkbook();
+
+        raised.ShouldBe(new[] { "export-sheet", "export-all", "print-sheet", "print-all" },
+            ignoreOrder: true);
+    }
+```
 
 - [ ] **Step 3: Chuyển bốn bộ giả ra chỗ dùng chung**
 
@@ -3506,13 +3573,13 @@ public class PrintToPrinterCommandTests
         var harness = Create();
         harness.Vm.CurrentContent = new FakePrintableWorkbook { SkipGdntt = true };
 
-        var thuTu = new List<string>();
-        harness.Dialog.OnMessage = _ => thuTu.Add("cảnh báo");
-        harness.Dialog.OnDialog = _ => thuTu.Add("hộp thoại");
+        var order = new List<string>();
+        harness.Dialog.OnMessage = _ => order.Add("cảnh báo");
+        harness.Dialog.OnDialog = _ => order.Add("hộp thoại");
 
         await harness.Vm.PrintAllCommand.ExecuteAsync(null);
 
-        thuTu.ShouldBe(new[] { "cảnh báo", "hộp thoại" });
+        order.ShouldBe(new[] { "cảnh báo", "hộp thoại" });
     }
 
     /// Và đọc xong cảnh báo mà bấm Hủy thì KHÔNG in — đó là lý do cảnh báo đứng trước.
