@@ -3847,6 +3847,24 @@ và ghim bằng một test trong `tests/ConstructionFinance.Application.Tests/Pr
 
 Run: `dotnet test tests/ConstructionFinance.Application.Tests --filter ExcelFitScaleTests --nologo` → xanh.
 
+- [ ] **Step 2c: Một guard cho vùng mù**
+
+`WindowsPrinterPort`'s `QueryPageSettings` handler đọc `formatted.GetPageInfo(queriedPage)` mà không
+chặn biên. Vòng in của .NET bắn đúng một Query mỗi trang, nhưng nếu một trình điều khiển bắn thừa
+một lần thì `GetPageInfo` ném, bị gói thành `PrintJobFailedException`, và người dùng thấy "Máy in
+báo lỗi" ở **mọi** lần in trên máy đó. Đây là vùng mù không thử được ở máy phát triển, nên một dòng
+phòng thủ đáng giá hơn bình thường:
+
+```csharp
+            // Vòng in của .NET bắn đúng một QueryPageSettings mỗi trang. Nếu một trình điều khiển
+            // bắn thừa, GetPageInfo sẽ ném và cả lệnh in hỏng — mà chỗ này không thử được ở đây.
+            if (queriedPage > formatted.PageCount) return;
+```
+
+đặt ngay đầu handler, sau khi tăng `queriedPage`.
+
+Run: `dotnet build ConstructionFinance.sln --nologo` → 0 warning, 0 error cả hai đích.
+
 - [ ] **Step 3: Ghi vào spec những gì đã lệch khỏi nó**
 
 Thêm vào cuối spec, mục `## 12. Khác với thiết kế ban đầu`, mỗi dòng một chỗ thực thi đã phải đổi — tối thiểu là:
