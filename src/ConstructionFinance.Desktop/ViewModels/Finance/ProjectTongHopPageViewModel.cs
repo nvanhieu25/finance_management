@@ -20,7 +20,7 @@ public sealed class ProjectTongHopPageViewModel : WorkbookPageViewModel
         new("Giá trị HĐ, PL", 16, PrintAlign.Right),
         new("Tạm ứng", 16, PrintAlign.Right),
         new("TT KLHT", 16, PrintAlign.Right),
-        new("Thu hồi", 15, PrintAlign.Right),
+        new("Thu hồi", 16, PrintAlign.Right),   // 16 = trần 99 tỷ; xem ViTriPageViewModel.MoneyWidth
         new("TT cho nhà thầu", 16, PrintAlign.Right),
         new("Tạm ứng chưa thu hồi", 16, PrintAlign.Right),
         new("GN Dự phòng NSNN", 16, PrintAlign.Right),

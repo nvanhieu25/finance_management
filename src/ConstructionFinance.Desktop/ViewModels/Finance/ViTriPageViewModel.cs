@@ -44,22 +44,30 @@ public sealed class ViTriPageViewModel : WorkbookPageViewModel
     // của Excel) và là bộ riêng của bản in, cố ý không lấy từ LedgerColumnWidths (pixel màn hình).
     // ImmutableArray vì danh sách này được trao nguyên cho mọi PrintTableSheet: một mảng thường thì người
     // nhận ép kiểu về PrintColumn[] rồi sửa được, làm hỏng mọi lần in sau.
+    /// Bề rộng MỌI cột tiền của bản in. Ô số không xuống dòng được: hẹp hơn chuỗi là Excel in "####",
+    /// nên con số này là một ràng buộc chứ không phải thẩm mỹ. Đo (2026-10-06): bề rộng cột tính bằng
+    /// chữ "0" của Calibri 11 (7px @96dpi, kiểm bằng hằng số đã biết 8.43 ký tự = 64px), còn ô lại in
+    /// Times New Roman 13 — rộng hơn, nên sức chứa THỰC nhỏ hơn bề rộng danh nghĩa. 16 ký tự chứa tới
+    /// 99.999.999.999 (dưới 100 tỷ); trần này do người dùng chốt. Ép vừa trang KHÔNG cứu được "####"
+    /// vì nó thu nhỏ cột và chữ cùng tỉ lệ. Muốn trần cao hơn: 18 cho dưới 1.000 tỷ, 19 cho dưới 10.000 tỷ.
+    private const int MoneyWidth = 16;
+
     private static readonly ImmutableArray<PrintColumn> PrintColumns =
     [
         new("Ngày", 11, PrintAlign.Center),
         new("Nội dung", 38, PrintAlign.Left),
         new("Nhà thầu / TK", 22, PrintAlign.Left),
-        new("Giá trị HĐ", 15, PrintAlign.Right),
-        new("Phụ lục", 13, PrintAlign.Right),
+        new("Giá trị HĐ", MoneyWidth, PrintAlign.Right),
+        new("Phụ lục", MoneyWidth, PrintAlign.Right),
         new("Số CT", 11, PrintAlign.Center),
-        new("Tạm ứng", 15, PrintAlign.Right),
-        new("KLHT", 15, PrintAlign.Right),
-        new("Thu hồi", 14, PrintAlign.Right),
+        new("Tạm ứng", MoneyWidth, PrintAlign.Right),
+        new("KLHT", MoneyWidth, PrintAlign.Right),
+        new("Thu hồi", MoneyWidth, PrintAlign.Right),
         new("Nguồn", 11, PrintAlign.Center),
-        new("GN NSNN", 15, PrintAlign.Right),
-        new("GN Ngoại hối", 15, PrintAlign.Right),
-        new("Số dư TU", 14, PrintAlign.Right),
-        new("Tổng đã GN", 15, PrintAlign.Right),
+        new("GN NSNN", MoneyWidth, PrintAlign.Right),
+        new("GN Ngoại hối", MoneyWidth, PrintAlign.Right),
+        new("Số dư TU", MoneyWidth, PrintAlign.Right),
+        new("Tổng đã GN", MoneyWidth, PrintAlign.Right),
     ];
 
     // Chỉ số cột trong PrintColumns, để dựng ô theo tên cột thay vì số trơ trọi.

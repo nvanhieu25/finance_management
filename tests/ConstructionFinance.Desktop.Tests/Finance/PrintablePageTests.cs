@@ -115,6 +115,32 @@ public class PrintablePageTests
     private static bool IsBlank(PrintCell cell) =>
         cell.Kind == PrintCellKind.Text && string.IsNullOrEmpty(cell.Text);
 
+    [Theory]
+    [InlineData("Sổ Vị trí")]
+    [InlineData("Tổng hợp")]
+    [InlineData("Quyết toán năm")]
+    public void Moi_cot_tien_du_rong_cho_so_duoi_mot_tram_ty(string sheetName)
+    {
+        // Ô số KHÔNG xuống dòng được: hẹp hơn chuỗi là Excel in "####". Bề rộng cột đo bằng chữ "0"
+        // của Calibri 11 (7px @96dpi) còn ô lại in Times New Roman 13, nên sức chứa THỰC nhỏ hơn bề
+        // rộng danh nghĩa — đo 2026-10-06: 16 ký tự vừa đủ 99.999.999.999, 15 ký tự thì 10 tỷ đã tràn.
+        // Ép vừa trang không cứu được vì nó thu cột và chữ cùng tỉ lệ.
+        // Trong cả ba sheet, cột căn PHẢI đúng là cột tiền (ngày/STT/nguồn căn giữa, chữ căn trái),
+        // nên đây là cách nói "mọi cột tiền" mà không phải liệt kê tên từng cột.
+        var viTri = Fixture();
+        var sheet = sheetName switch
+        {
+            "Sổ Vị trí" => LedgerSheet(viTri),
+            "Tổng hợp" => TongHopSheet(viTri),
+            _ => QuyetToanSheet(viTri),
+        };
+
+        var hep = sheet.Columns.Where(c => c.Align == PrintAlign.Right && c.WidthChars < 16).ToList();
+        hep.ShouldBeEmpty(
+            $"{sheet.SheetName}: cột tiền hẹp hơn 16 sẽ in \"####\" từ 10 tỷ trở lên — " +
+            string.Join(", ", hep.Select(c => $"{c.Header}={c.WidthChars}")));
+    }
+
     private static void AssertColumns(PrintTableSheet sheet, params PrintColumn[] expected)
     {
         sheet.Columns.Count.ShouldBe(expected.Length);
@@ -226,17 +252,17 @@ public class PrintablePageTests
             new("Ngày", 11, PrintAlign.Center),
             new("Nội dung", 38, PrintAlign.Left),
             new("Nhà thầu / TK", 22, PrintAlign.Left),
-            new("Giá trị HĐ", 15, PrintAlign.Right),
-            new("Phụ lục", 13, PrintAlign.Right),
+            new("Giá trị HĐ", 16, PrintAlign.Right),
+            new("Phụ lục", 16, PrintAlign.Right),
             new("Số CT", 11, PrintAlign.Center),
-            new("Tạm ứng", 15, PrintAlign.Right),
-            new("KLHT", 15, PrintAlign.Right),
-            new("Thu hồi", 14, PrintAlign.Right),
+            new("Tạm ứng", 16, PrintAlign.Right),
+            new("KLHT", 16, PrintAlign.Right),
+            new("Thu hồi", 16, PrintAlign.Right),
             new("Nguồn", 11, PrintAlign.Center),
-            new("GN NSNN", 15, PrintAlign.Right),
-            new("GN Ngoại hối", 15, PrintAlign.Right),
-            new("Số dư TU", 14, PrintAlign.Right),
-            new("Tổng đã GN", 15, PrintAlign.Right));
+            new("GN NSNN", 16, PrintAlign.Right),
+            new("GN Ngoại hối", 16, PrintAlign.Right),
+            new("Số dư TU", 16, PrintAlign.Right),
+            new("Tổng đã GN", 16, PrintAlign.Right));
     }
 
     [Fact]
@@ -364,7 +390,7 @@ public class PrintablePageTests
             new("Giá trị HĐ, PL", 16, PrintAlign.Right),
             new("Tạm ứng", 16, PrintAlign.Right),
             new("TT KLHT", 16, PrintAlign.Right),
-            new("Thu hồi", 15, PrintAlign.Right),
+            new("Thu hồi", 16, PrintAlign.Right),
             new("TT cho nhà thầu", 16, PrintAlign.Right),
             new("Tạm ứng chưa thu hồi", 16, PrintAlign.Right),
             new("GN Dự phòng NSNN", 16, PrintAlign.Right),

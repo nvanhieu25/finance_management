@@ -1317,7 +1317,20 @@ Kế hoạch này được viết trước khi chạy, và sáu task cộng vớ
 
 Ba thứ phát sinh trong lúc thực thi mà không môi trường nào ở đây dựng lại được (không có Excel, không có renderer bảng tính):
 
-1. **Rủi ro `####` với số lớn.** Ô số KHÔNG xuống dòng được. Bề rộng cột lưu trong tệp được Excel đo bằng chữ số **Calibri 11** (style Normal), còn ô lại là **Times New Roman 13**, nên sức chứa thực NHỎ HƠN bề rộng danh nghĩa. Ước lượng: số từ ~11 chữ số (10 tỷ trở lên) là biên hoặc quá rộng cho các cột tiền 15–16 ký tự, và Excel sẽ in `####`. Dự án cấp tỷ đồng là bình thường nên **phải thử một số từ 10 tỷ trở lên**. Nếu hỏng, bản sửa là một hằng số bề rộng mỗi cột trong `ViTriPageViewModel`/`ProjectTongHopPageViewModel`/`YearSettlementPageViewModel`.
+1. ~~**Rủi ro `####` với số lớn.**~~ **ĐÃ GIẢI QUYẾT BẰNG PHÉP ĐO, 2026-10-06 — không cần nhìn bằng mắt nữa.**
+   Rủi ro là THẬT và nặng hơn ước lượng dưới đây. Đo bằng Liberation Serif (trùng khít metric với
+   Times New Roman) ở 13pt/96dpi, đối chiếu bề rộng cột theo chuẩn Excel (chữ "0" của Calibri 11 =
+   7px; kiểm bằng hằng số đã biết 8.43 ký tự = 64px): cột `w` ký tự chứa được `w*7` px chữ.
+   Kết quả: Sổ Vị trí cũ chịu tối đa **999.999.999** ở ba cột (Phụ lục 13, Thu hồi 14, Số dư TU 14)
+   và **9.999.999.999** ở sáu cột còn lại — tức hợp đồng 50 tỷ trong chính `Mẫu.xlsx` đã ra `####`.
+   Cũng xác nhận: ép vừa trang KHÔNG cứu được, vì nó thu cột và chữ cùng tỉ lệ.
+   Người dùng chốt trần **dưới 100 tỷ** → mọi cột tiền = **16 ký tự** (`ViTriPageViewModel.MoneyWidth`,
+   và "Thu hồi" của Tổng hợp 15→16; Quyết toán năm đã 18 nên giữ nguyên). Sổ Vị trí rộng thêm 6%.
+   Test bất biến `Moi_cot_tien_du_rong_cho_so_duoi_mot_tram_ty` ghim "mọi cột căn phải ≥ 16" cho cả
+   ba sheet, đã kiểm là đỏ khi thu một cột về 15. Muốn nâng trần sau này: 18 cho dưới 1.000 tỷ
+   (Sổ Vị trí +14%), 19 cho dưới 10.000 tỷ (+18%).
+
+   Ghi chú ước lượng ban đầu, giữ lại để đối chiếu: Ô số KHÔNG xuống dòng được. Bề rộng cột lưu trong tệp được Excel đo bằng chữ số **Calibri 11** (style Normal), còn ô lại là **Times New Roman 13**, nên sức chứa thực NHỎ HƠN bề rộng danh nghĩa. Ước lượng: số từ ~11 chữ số (10 tỷ trở lên) là biên hoặc quá rộng cho các cột tiền 15–16 ký tự, và Excel sẽ in `####`. Dự án cấp tỷ đồng là bình thường nên **phải thử một số từ 10 tỷ trở lên**. Nếu hỏng, bản sửa là một hằng số bề rộng mỗi cột trong `ViTriPageViewModel`/`ProjectTongHopPageViewModel`/`YearSettlementPageViewModel`.
 2. **Độ đậm viền và hai mức nền.** Spec §6.1 đòi ba nền (TỔNG CỘNG xám nhạt `#D9D9D9`, Nhóm chi phí xám rất nhạt `#F2F2F2`, Gói thầu và Đợt không nền) và lưới kẻ mảnh với cạnh dưới dòng tiêu đề đậm hơn. Mã màu `#F2F2F2` do người cài đặt chọn, spec chỉ nói "xám rất nhạt". Cả ba hằng số nằm cạnh nhau trong `PrintWorkbookWriter` để sửa một dòng. Test cố ý KHÔNG ghim mã màu, chỉ ghim "có nền / không nền" và thứ tự độ sáng, nên chỉnh màu sau khi nhìn giấy thật sẽ không làm đỏ test nào.
 3. **Vị trí flyout của nút In.** Nút nằm ở `PaneFooter`, tức sát đáy khung trái; flyout mở ra ở đâu thì chưa ai nhìn.
 
