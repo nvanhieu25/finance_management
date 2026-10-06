@@ -98,7 +98,7 @@ public sealed class MigraDocBuilder : IMigraDocBuilder
         // Tab dừng phải ở mép phải vùng chữ, để "Trang x/y" dạt sang phải như đường .xlsx.
         paragraph.Format.TabStops.AddTabStop(
             Unit.FromMillimeter(ExcelFitScale.UsableWidthMm(page.Orientation)), TabAlignment.Right);
-        paragraph.AddText(FooterLeftText(footer));
+        paragraph.AddText(FooterLeftText(footer, page.Orientation, fontScale));
         paragraph.AddTab();
         paragraph.AddText("Trang ");
         paragraph.AddPageField();
@@ -106,9 +106,31 @@ public sealed class MigraDocBuilder : IMigraDocBuilder
         paragraph.AddNumPagesField();
     }
 
-    private static string FooterLeftText(PrintFooterInfo footer) =>
-        string.Join(" · ", new[] { footer.ProjectName, footer.ViTriName }
+    /// Chỗ chừa bên phải cho "Trang 99/99" cộng một khoảng cách, mm.
+    private const double FooterRightReserveMm = 30.0;
+
+    /// Chặn dưới của ngân sách ký tự, để khổ giấy/tỉ lệ co lạ không bao giờ đẩy nó về 0 hay âm.
+    private const int MinFooterLeftChars = 10;
+
+    /// "Tên dự án · Tên Vị trí", cắt cho vừa tờ giấy. KHÔNG nhân đôi dấu & như đường .xlsx — đó
+    /// mới là luật riêng của Excel (& là mã điều khiển). Còn việc cắt thì là luật của giấy: chữ
+    /// không được chạy ra khỏi mép giấy. Con số 255 là của Excel, nên ngân sách ở đây suy từ
+    /// bề ngang giấy: (vùng chữ − chỗ chừa cho số trang) ÷ bề rộng một ký tự. Một ký tự chân trang
+    /// ước bằng một đơn vị bề rộng Excel (7px) nhân tỉ lệ co. Times New Roman không phải Calibri
+    /// nên đây chỉ là ƯỚC LƯỢNG — chấp nhận được cho một mức TRẦN.
+    private static string FooterLeftText(PrintFooterInfo footer, PrintOrientation orientation, double fontScale)
+    {
+        var text = string.Join(" · ", new[] { footer.ProjectName, footer.ViTriName }
             .Where(part => !string.IsNullOrWhiteSpace(part)));
+
+        var charMm = (ExcelFitScale.ContentWidthMm(new[] { 1.0 }) - ExcelFitScale.ContentWidthMm(new[] { 0.0 })) * fontScale;
+        var budget = Math.Max(MinFooterLeftChars,
+            (int)Math.Floor((ExcelFitScale.UsableWidthMm(orientation) - FooterRightReserveMm) / charMm));
+
+        return text.Length > budget
+            ? TextTruncation.Truncate(text, budget - 1) + "…"   // chừa một chỗ cho "…", như đường .xlsx
+            : text;
+    }
 
     /// Tỉ lệ co chữ của một sheet; chân trang dùng đúng tỉ lệ này để cùng cỡ với thân.
     private static double FontScaleOf(PrintSheet sheet) =>

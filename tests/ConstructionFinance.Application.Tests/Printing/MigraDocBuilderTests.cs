@@ -162,29 +162,48 @@ public class MigraDocBuilderTests
         document.Sections[0]!.Elements.OfType<Table>().ShouldBeEmpty();
     }
 
-    /// Review Focus 3: chân trang mang ký tự lạ. Đường .xlsx phải viết "&&" và cắt ở 255 ký tự
-    /// vì Excel coi & là mã điều khiển; MigraDoc không có luật đó, nhưng cũng không được ném.
+    private static string FooterLeftOf(Document document) =>
+        string.Concat(document.Sections[0]!.Footers.Primary.Elements.OfType<Paragraph>().First()
+            .Elements.OfType<Text>().First().Content);
+
+    /// Review Focus 3: chân trang mang ký tự lạ. Đo được: nửa cặp surrogate đứt đôi VẪN vẽ được
+    /// (PDFsharp thay thế, không ném), và & không có nghĩa gì với MigraDoc. Nên test này chỉ
+    /// khẳng định đúng điều đó: tài liệu dựng và vẽ ra PDF được với những đầu vào này.
     [Theory]
     [InlineData("Dự án A & B")]
     [InlineData("&P&N&D")]
     [InlineData("\ud83d")]                                  // nửa cặp surrogate, đứt đôi
-    public void Chan_trang_mang_ky_tu_la_khong_lam_sap_bo_dung(string projectName)
+    public void Chan_trang_mang_ky_tu_la_van_dung_va_ve_duoc(string projectName)
     {
         var document = new MigraDocBuilder()
             .Build(new PrintSheet[] { Sheet() }, new PrintFooterInfo(projectName, null));
 
-        // Rủi ro nằm ở lúc VẼ (font encoder), không ở lúc dựng cây: phải render thật.
         PdfProbe.Render(document).PageCount.ShouldBe(1);
     }
 
+    /// Tên dự án dài nhưng CÓ dấu cách là trường hợp thường gặp: vừa ngân sách thì giữ nguyên,
+    /// không được cắt thừa.
     [Fact]
-    public void Ten_du_an_dai_ba_tram_ky_tu_khong_lam_sap_bo_dung()
+    public void Ten_du_an_dai_co_dau_cach_ma_van_vua_thi_khong_bi_cat()
+    {
+        const string name = "Dự án xây dựng cầu vượt sông Hồng đoạn qua quận Long Biên";
+        var document = new MigraDocBuilder().Build(new PrintSheet[] { Sheet() }, new PrintFooterInfo(name, "Vị trí 1"));
+
+        FooterLeftOf(document).ShouldBe(name + " · Vị trí 1");
+    }
+
+    /// Một tên 600 ký tự không dấu cách vẽ ra sẽ xuống ba dòng và chạy khỏi mép phải tờ giấy
+    /// (đã thấy trên PDF thật), dù vẫn một trang. Test này ghim việc nó bị CẮT cho vừa giấy.
+    [Fact]
+    public void Ten_du_an_dai_ba_tram_ky_tu_bi_cat_cho_vua_giay_chu_khong_chay_ra_mep()
     {
         var footer = new PrintFooterInfo(new string('A', 300), new string('B', 300));
 
         var document = new MigraDocBuilder().Build(new PrintSheet[] { Sheet() }, footer);
 
-        // Chân trang 600 ký tự mà xuống dòng bừa thì đẩy thân bảng sang trang 2.
+        var left = FooterLeftOf(document);
+        left.Length.ShouldBeLessThan(200);
+        left.ShouldEndWith("…");
         PdfProbe.Render(document).PageCount.ShouldBe(1);
     }
 
