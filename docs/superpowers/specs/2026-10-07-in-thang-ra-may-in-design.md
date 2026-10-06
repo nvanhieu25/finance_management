@@ -81,6 +81,9 @@ Desktop không chạy được trên máy phát triển Linux nữa. Nên:
 build xanh trên Linux và 817 test vẫn chạy đủ** (đo lúc viết spec: Domain 38 · Infrastructure 10 ·
 Data 54 · Application 247 · Desktop 468) — không chứng minh được thì dừng, báo, và bàn lại.
 
+*Số đo sau khi làm xong (Task 13): **1011** test — Domain 38 · Infrastructure 10 · Data 54 ·
+Application 411 · Desktop 498 — không hỏng, không bỏ qua; build `-warnaserror` sạch ở cả hai đích.*
+
 ### 4.4 Nối vào giao diện: bốn lệnh thay vì hai
 
 `MainWindowViewModel` hiện có `PrintCurrentSheetAsync` và `PrintAllAsync`, cả hai đi qua
@@ -276,3 +279,107 @@ Ghi lại để plan khỏi phải điều tra lại:
   trong đợt này vì cùng đụng một chỗ markup.
 - Việc "nhìn bằng mắt" số 2 của spec 10/9 (độ đậm viền, hai mức nền trên giấy thật) **vẫn còn treo**
   và đợt này không giải quyết: nó là câu hỏi về máy in thật, không phải về mã.
+
+## 12. Khác với thiết kế ban đầu
+
+Mục này ghi chỗ nào mã đã ship khác với những gì các mục trên viết. Các mục trên **không** được sửa
+lại cho giống mã: nơi nào thiết kế đoán sai thì người sau cần thấy nó đã sai ở đâu. Mỗi dòng: spec
+nói gì, mã làm gì, và vì sao.
+
+### 12.1 Dàn trang và dựng hình
+
+- **Luật bù tràn chữ của `FormGrid`** (spec §5.1 không có). Excel cho chữ tràn sang các ô trống bên
+  phải; ô MigraDoc thì xuống dòng trong lòng ô. Nên ô có chữ rộng hơn cột sẽ tự gộp sang phải qua
+  các ô trông như trống, dừng ở ô đầu tiên có nội dung. Thiếu luật này cả ba mẫu in mất bố cục.
+  Ô ghi `""` **không** là tường chắn (các bộ vẽ làm việc đó 21 lần).
+- **Thụt lề dùng `LeftIndent`, không dùng `FirstLineIndent`**, ở cả `MigraDocBuilder` lẫn
+  `FormGrid`. Thụt lề của ô Excel dịch mọi dòng; mã trong plan chỉ dịch dòng đầu, nên dòng bị xuống
+  dòng sẽ mất phân cấp Nhóm/Gói/Đợt.
+- **`Money` căn phải trong `FormGrid`.** Excel mặc định căn phải ô số nên bộ vẽ Excel không bao giờ
+  nói ra; bản sao trung thực phải tự nói.
+- **Chân trang có thêm khoảng cách chân trang và một tab stop căn phải.** Plan không đặt cái nào,
+  nên chân trang đè lên dòng cuối mỗi trang và số trang không bao giờ chạm mép phải.
+- **Cỡ chữ chân trang co theo thân**, không cố định 13pt.
+- **Chân trang bị cắt ở `PrintWorkbookWriter.MaxFooterLeftChars` (120 ký tự).** Spec nói MigraDoc
+  không cần cắt vì 255 là giới hạn của Excel. Đúng một nửa: con số 255 là của Excel, nhưng "đừng
+  tràn khỏi tờ giấy" là luật của giấy. Cắt cùng một số ký tự để hai đường in ra giống hệt nhau. Một
+  chuỗi liền không có khoảng trắng dài hơn trang vẫn tràn (MigraDoc không ngắt giữa từ); tên dự án
+  thật có khoảng trắng.
+- **Lề trên/dưới 0,4 inch** (đường `.xlsx` dùng 0,6), và **`FooterDistance` 0,18 inch**. Hai thứ này
+  cùng giữ cho GĐNTT vừa một tờ khi các dòng xuống dòng.
+- **Không tái tạo `CenterHorizontally`.** Spec nói tờ hẹp in lệch trái, chừa trắng bên phải; đường
+  `.xlsx` thì căn giữa. Quyết toán năm là chỗ thấy rõ.
+- **`RepeatColsLeft` bị bỏ qua, và đúng khi bỏ:** bảng MigraDoc không bao giờ ngắt trang theo chiều
+  ngang.
+- **GĐNTT, hàng 6-16: MigraDoc xuống dòng còn Excel cắt cụt.** Đo trên giá trị thật: dòng tên dự án
+  dài 64 ký tự, dòng "Căn cứ giấy đề nghị thanh toán vốn đầu tư số" dài 77, so với nhịp gộp 58 đơn
+  vị. Tức đây là trường hợp thường, không phải biên. Excel lặng lẽ mất phần đuôi của số giấy ủy
+  quyền thanh toán. Giữ trọn chữ được coi trọng hơn khớp với việc bị cắt.
+
+### 12.2 Cấu trúc và công cụ
+
+- **Bộ dựng PDF nằm ở dự án TEST, không ở `Application`** như bảng §4.3 ghi. §3 đã xếp PDF là
+  công cụ kiểm chứng chứ không phải tính năng người dùng, nên để nó trong `Application` là đưa mã
+  không ai gọi vào bản phát hành. Muốn biến PDF thành tính năng thật thì chuyển `PdfProbe` sang
+  `Application` và đặt tên `PdfRenderer`.
+- **Thêm `IHasPrimaryButtonText`** vì `ShowDialogAsync` gán cứng nút xác nhận là "Lưu".
+- **Số bản bị kẹp ba lần**, không một lần: ở `NumericUpDown`, ở view-model, và ở constructor của
+  `PrinterJob`. `PrinterSettings.Copies` là `short`, giá trị lớn tràn thành số âm.
+- **`ConstructionFinance.Printing.Windows` loại các assembly PDFsharp và MigraDoc bản core**
+  (`ExcludeAssets="all"`), vì `XGraphics`, `XSize` và `DocumentRenderer` có ở cả hai bản và đến
+  qua phụ thuộc bắc cầu. Hai `MigraDoc.DocumentObjectModel.dll` của hai gói giống nhau từng byte
+  nên `Document` vẫn là một kiểu duy nhất.
+- **Vòng `PrintPage` có thêm handler `QueryPageSettings`** đặt hướng giấy từng trang theo
+  `FormattedDocument.GetPageInfo(n).Orientation`, cộng ưu tiên khổ A4. Plan không đặt cái nào, nên
+  mọi tài liệu nằm ngang (Sổ Vị trí, Tổng hợp, GĐNTT, tức một nửa tính năng) sẽ in ra giấy đứng và
+  mất một phần ba bên phải.
+- **Dòng tiêu đề lặp mỗi trang chỉ được ghim ở mức mô hình** (`Row.HeadingFormat == true`), không
+  ghim bằng cách đọc chữ trên từng trang PDF như §8 ngụ ý. PDFsharp không trích được chữ.
+- **`SheetTextMap` báo hỏng bằng `Assert.Fail` với chuỗi riêng**, không dùng `ShouldBeEmpty`, vì
+  Shouldly cắt bớt phần tử của tập hợp, mà danh sách chỗ lệch là chẩn đoán duy nhất của ba bản sao
+  mẫu in.
+- **`SheetTextMap.Normalize` chỉ bỏ dấu phân cách hàng nghìn ở giá trị thực sự là số.** Bỏ ở mọi
+  nơi đã xóa mất dòng điền tay của KS chi `" + Mục ........, tiểu mục ........"`, khiến tám dấu
+  chấm và bốn dấu chấm bằng nhau.
+- **`SheetTextMap.CellText` đọc cả `Character` lẫn `FormattedText`**, không chỉ `Text`. MigraDoc
+  đổi `"\n"` thành `Character(LineBreak)`, và ô "Nhà thầu / TK" được dựng bằng một cái như vậy.
+- **Đường `.xlsx` và bộ dựng MigraDoc dùng chung một hằng số lề** (`ExcelFitScale.SideMarginInches`;
+  Task 13). Trước đó `FormExcelExporter.ApplyPageDefaults` viết thẳng 0,5 và hằng số là bản sao thứ
+  hai; có test ghim.
+
+## 13. Chưa kiểm được ở đây
+
+Mỗi mục: triệu chứng để nhận ra, và cần gạt nào để chỉnh. Nếu lần in đầu ra xấu, tìm triệu chứng
+của bạn ở đây trước.
+
+- **In thử trên Windows có máy in thật.** `WindowsPrinterPort` chỉ được biên dịch trên máy phát
+  triển, chưa từng chạy. Đây là nghiệm thu cuối của cả đợt và chỉ người dùng làm được.
+- **Hình học trang, hai câu hỏi mở.** Cả hai đều để nguyên như mẫu chuẩn của PDFsharp chứ không
+  "sửa" theo lập luận không chạy được. Ghi chú trong mã tại handler `PrintPage` đã nêu cả hai.
+  - `PageBounds` tính bằng phần trăm inch, còn `XSize` mặc định là point. *Triệu chứng:* mọi thứ
+    in to khoảng 1,39 lần và tràn khỏi tờ giấy. *Cần gạt:* cho `XSize` đúng đơn vị, hoặc đổi
+    `PageBounds` sang point.
+  - `e.Graphics` có gốc ở vùng in được, không ở góc tờ giấy. *Triệu chứng:* cả trang dịch xuống
+    dưới và sang phải 3-5mm. *Cần gạt:* dịch gốc đi `HardMarginX/Y`.
+- **Chân trang cách mép giấy 4,6mm**, trong khi vùng không in được của máy laser thường là
+  4,2-5,0mm: nằm đúng ranh giới. *Triệu chứng:* tên dự án và số trang bị cụt ở mép dưới mọi
+  trang. *Cần gạt:* cỡ chữ chân trang hiện co theo thân và lên tới 13pt trên tờ tỉ lệ 1,0, là to
+  với chân trang; cố định ở 9pt sẽ lấy lại chỗ để đưa `FooterDistance` về khoảng 0,25 inch.
+- **Hệ số chiều cao dòng 1,15** trong test bất biến khoảng cách chân trang là ước lượng, không phải
+  số đo. Chỉ còn khoảng 0,9pt dư. *Triệu chứng:* test vẫn xanh nhưng chân trang đè lên hàng cuối
+  trên giấy. *Cần gạt:* đo chiều cao dòng thật của font serif và thay hệ số.
+- **Độ đậm viền và hai mức nền trên giấy thật** (việc "nhìn bằng mắt" số 2 của spec 10/9): vẫn
+  treo, đợt này không giải quyết. *Triệu chứng:* viền quá đậm hoặc quá mảnh, hai mức nền không
+  phân biệt được. *Cần gạt:* độ dày viền và hai màu nền trong bộ dựng.
+- **Cỡ chữ 7,7pt của Sổ Vị trí có đọc nổi trên giấy hay không.** Bản `.xlsx` hôm nay cũng đang thu
+  còn 59% nên không phải lỗi mới, nhưng giờ con số đã hiện ra, nó là câu hỏi thật. *Triệu chứng:*
+  chữ nhỏ khó đọc. *Cần gạt:* chấp nhận, bớt cột, hoặc sang A3.
+
+## 14. Lỗi tìm được ở đường .xlsx, chưa sửa
+
+- **`FormExcelExporter` thiếu dấu cách sau nhãn.** Nó ghi
+  `$"...Đơn vị{Blank(form.DonVi1)}  Số CT{Blank(form.SoChungTu1)}"` mà không có khoảng trắng sau
+  nhãn. Với trường trống thì dấu chấm placeholder đọc tự nhiên; với giá trị thật thì in ra
+  "Đơn vịBQL" và "Số CTCT-01". Bộ dựng MigraDoc chép nguyên văn thay vì sửa, vì sửa sẽ đổi đầu ra
+  `.xlsx` mà người dùng đã duyệt và phá phép so sánh lockstep giữa hai bộ dựng. **Quyết định là của
+  người dùng.**

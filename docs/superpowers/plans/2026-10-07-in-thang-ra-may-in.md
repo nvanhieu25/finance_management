@@ -21,7 +21,7 @@
 - **XAML:** KHÔNG bind thẳng `decimal`/`DateOnly` kiểu TwoWay kèm `StringFormat`. Số bản in bind `decimal?` ↔ `decimal?` (đúng kiểu `NumericUpDown.Value` của Avalonia 11), không qua chuỗi.
 - **Cỡ chữ gốc của mọi bản in là 13pt Times New Roman** (`FormExcelExporter.FontName` / `FontSize`) — không hằng số mới.
 - **Tỉ lệ co chặn trên ở 1,0:** co cho vừa bề ngang thì có, phóng to thì không (spec §5).
-- **Chạy lại cả bộ test sau mỗi task.** Mốc đầu: `Passed: 817` (Domain 38 · Infrastructure 10 · Data 54 · Application 247 · Desktop 468).
+- **Chạy lại cả bộ test sau mỗi task.** Mốc đầu: `Passed: 817` (Domain 38 · Infrastructure 10 · Data 54 · Application 247 · Desktop 468). **Mốc cuối sau Task 13: `Passed: 1011`** (Domain 38 · Infrastructure 10 · Data 54 · Application 411 · Desktop 498), 0 hỏng, 0 bỏ qua; build `-warnaserror` sạch ở cả hai đích `net8.0` và `net8.0-windows`.
 
 ## Review Focus
 

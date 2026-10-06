@@ -81,4 +81,18 @@ public class ExcelFitScaleTests
 
         ExcelFitScale.ScaleFor(columns, orientation).ShouldBe(expected, 0.0001, name);
     }
+
+    /// Đường .xlsx và bộ dựng MigraDoc phải dùng CÙNG MỘT lề: ExcelFitScale tính tỉ lệ co dựa
+    /// trên lề đó, nên hai bản sao lệch nhau là bản in sai mà không ai thấy.
+    [Fact]
+    public void Duong_xlsx_dung_dung_le_ma_bo_dung_MigraDoc_tinh_theo()
+    {
+        using var workbook = new ClosedXML.Excel.XLWorkbook();
+        var worksheet = workbook.AddWorksheet("x");
+        ConstructionFinance.Application.Forms.FormExcelExporter.ApplyPageDefaults(
+            worksheet, ClosedXML.Excel.XLPageOrientation.Landscape);
+
+        worksheet.PageSetup.Margins.Left.ShouldBe(ExcelFitScale.SideMarginInches);
+        worksheet.PageSetup.Margins.Right.ShouldBe(ExcelFitScale.SideMarginInches);
+    }
 }

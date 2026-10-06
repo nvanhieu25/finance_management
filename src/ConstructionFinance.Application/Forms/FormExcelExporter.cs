@@ -134,7 +134,9 @@ public partial class FormExcelExporter : IFormExcelExporter
         ws.Style.Font.FontSize = FontSize;
         ws.PageSetup.PaperSize = XLPaperSize.A4Paper;
         ws.PageSetup.PageOrientation = orientation;
-        ws.PageSetup.Margins.Left = 0.5;
-        ws.PageSetup.Margins.Right = 0.5;
+        // Cùng MỘT con số với ExcelFitScale.SideMarginInches: bộ dựng MigraDoc tính tỉ lệ co dựa
+        // trên lề này, nên hai nơi dùng hai bản sao là một lỗi trôi âm thầm chờ xảy ra.
+        ws.PageSetup.Margins.Left = Printing.ExcelFitScale.SideMarginInches;
+        ws.PageSetup.Margins.Right = Printing.ExcelFitScale.SideMarginInches;
     }
 }
