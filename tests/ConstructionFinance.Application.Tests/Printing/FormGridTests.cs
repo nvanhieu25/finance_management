@@ -151,4 +151,34 @@ public class FormGridTests
     {
         Should.Throw<ArgumentOutOfRangeException>(() => new FormGrid(new double[] { 9 }).Text(1, 2, "x"));
     }
+
+    [Fact]
+    public void Tien_canh_phai_nhu_Excel_canh_so()
+    {
+        var grid = new FormGrid(new double[] { 18 }).Money(1, 1, 1_500_000m);
+
+        Render(grid).Rows[0]!.Cells[0]!.Elements.OfType<Paragraph>().Single()
+            .Format.Alignment.ShouldBe(ParagraphAlignment.Right);
+    }
+
+    [Fact]
+    public void Chu_khong_canh_phai()
+    {
+        var grid = new FormGrid(new double[] { 18 }).Text(1, 1, "1.500.000");
+
+        Render(grid).Rows[0]!.Cells[0]!.Elements.OfType<Paragraph>().Single()
+            .Format.Alignment.ShouldNotBe(ParagraphAlignment.Right);
+    }
+
+    /// Bộ vẽ .xlsx ghi `?? ""` vào ô; trong Excel ô rỗng không chặn chữ tràn.
+    [Fact]
+    public void O_ghi_chuoi_rong_khong_chan_chu_tran()
+    {
+        var grid = new FormGrid(new double[] { 34, 14, 18 })
+            .Text(3, 1, "Ngày nhận giấy đề nghị thanh toán vốn đầu tư:")
+            .Text(3, 2, "")
+            .Text(3, 3, "Ngày ………");
+
+        Render(grid).Rows[2]!.Cells[0]!.MergeRight.ShouldBe(1);
+    }
 }

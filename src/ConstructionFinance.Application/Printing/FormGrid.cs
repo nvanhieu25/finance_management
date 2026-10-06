@@ -17,6 +17,7 @@ public sealed class FormGrid
     private readonly Dictionary<(int Row, int Column), string> _text = new();
     private readonly HashSet<(int Row, int Column)> _bold = new();
     private readonly HashSet<(int Row, int Column)> _center = new();
+    private readonly HashSet<(int Row, int Column)> _right = new();
     private readonly HashSet<(int Row, int Column)> _bordered = new();
     private readonly Dictionary<(int Row, int Column), int> _indent = new();
     private readonly Dictionary<(int Row, int Column), (int Rows, int Columns)> _merges = new();
@@ -33,11 +34,18 @@ public sealed class FormGrid
     {
         Touch(row, column);
         _text[(row, column)] = value ?? "";
+        _right.Remove((row, column));   // ghi chữ đè lên ô tiền thì hết canh phải
         return this;
     }
 
-    public FormGrid Money(int row, int column, decimal value) =>
+    /// Excel canh phải ô số theo mặc định nên bộ vẽ .xlsx (SetMoney) không bao giờ nói ra;
+    /// MigraDoc thì canh trái, nên bản chép trung thành phải nói rõ ở đây.
+    public FormGrid Money(int row, int column, decimal value)
+    {
         Text(row, column, PrintMoneyText.Format(value));
+        _right.Add((row, column));
+        return this;
+    }
 
     public FormGrid Bold(int fromRow, int fromColumn, int toRow, int toColumn) =>
         Mark(_bold, fromRow, fromColumn, toRow, toColumn);
@@ -107,7 +115,10 @@ public sealed class FormGrid
             var extra = 0;
             for (var next = column + 1; next <= _columnWidthChars.Count; next++)
             {
-                if (_text.ContainsKey((row, next))) break;
+                // Chữ tràn của Excel đi xuyên qua ô trông trống: ô ghi "" không phải bức tường.
+                // Bộ vẽ .xlsx ghi `?? ""` vào ô ở rất nhiều chỗ (form.DonViCapTren ?? "" ...), nên
+                // nếu "" chặn thì kết quả thay đổi theo dữ liệu so với Excel.
+                if (_text.TryGetValue((row, next), out var neighbour) && !string.IsNullOrWhiteSpace(neighbour)) break;
                 extra++;
             }
             if (extra > 0) cell.MergeRight = extra;
@@ -115,6 +126,7 @@ public sealed class FormGrid
 
         var paragraph = cell.AddParagraph(text);
         if (_center.Contains((row, column))) paragraph.Format.Alignment = ParagraphAlignment.Center;
+        if (_right.Contains((row, column))) paragraph.Format.Alignment = ParagraphAlignment.Right;
         if (_indent.TryGetValue((row, column), out var level) && level > 0)
             paragraph.Format.FirstLineIndent =
                 Unit.FromMillimeter(ExcelFitScale.ContentWidthMm(new[] { 3.0 * level }) * scale);
