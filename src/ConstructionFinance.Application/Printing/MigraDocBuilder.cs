@@ -162,8 +162,10 @@ public sealed class MigraDocBuilder : IMigraDocBuilder
             var paragraph = row.Cells[column]!.AddParagraph(text);
             paragraph.Format.Alignment = ToMigraDoc(sheet.Columns[column].Align);
 
+            // LeftIndent, KHÔNG phải FirstLineIndent: Alignment.Indent của Excel dịch MỌI dòng của
+            // ô, kể cả dòng đã xuống dòng; FirstLineIndent chỉ dịch dòng đầu.
             if (column == indentAt && source.IndentLevel > 0)
-                paragraph.Format.FirstLineIndent =
+                paragraph.Format.LeftIndent =
                     Unit.FromMillimeter(ExcelFitScale.ContentWidthMm(new[] { IndentUnitsPerLevel * source.IndentLevel }) * scale);
         }
     }

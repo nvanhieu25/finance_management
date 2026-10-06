@@ -219,6 +219,30 @@ public class MigraDocBuilderTests
         ex.Message.ShouldContain("Sổ Vị trí");
     }
 
+    /// Excel thụt CẢ nội dung ô (Alignment.Indent), kể cả dòng đã xuống dòng. MigraDoc có hai
+    /// thuộc tính khác nhau: LeftIndent thụt mọi dòng, FirstLineIndent chỉ thụt dòng đầu. Dùng sai
+    /// thì một ô Nội dung dài xuống dòng sẽ có dòng thứ hai tụt về sát mép ô — lệch so với bản
+    /// .xlsx, và phép so từng ô của Task 5 KHÔNG bắt được vì nó so chữ, không so hình học.
+    [Fact]
+    public void Thut_bac_thut_moi_dong_chu_khong_chi_dong_dau()
+    {
+        var rows = new[]
+        {
+            new PrintRow(new[]
+            {
+                PrintCell.Empty,
+                PrintCell.OfText("Gói thầu số 01 — xây lắp phần ngầm, đoạn Km0+000 đến Km1+200"),
+                PrintCell.OfMoney(1_000_000m),
+            }, IndentLevel: 2),
+        };
+
+        var document = new MigraDocBuilder().Build(new PrintSheet[] { Sheet(rows: rows) }, Footer);
+        var format = FirstTable(document).Rows[1]!.Cells[1]!.Elements.OfType<Paragraph>().First().Format;
+
+        format.LeftIndent.Point.ShouldBeGreaterThan(0);
+        format.FirstLineIndent.Point.ShouldBe(0);
+    }
+
     // ===== Dàn trang thật =====
 
     [Fact]
