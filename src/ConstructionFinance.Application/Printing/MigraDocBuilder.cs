@@ -54,6 +54,9 @@ public sealed class MigraDocBuilder : IMigraDocBuilder
                 case PrintTableSheet table:
                     WriteTable(section, table);
                     break;
+                case ThongTriPrintSheet thongTri:
+                    MigraDocFormSheets.WriteThongTri(section, thongTri.Form);
+                    break;
                 default:
                     throw new NotSupportedException(
                         $"Sheet \"{sheet.SheetName}\": chưa có hàm vẽ MigraDoc cho {sheet.GetType().Name}.");
