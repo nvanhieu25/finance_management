@@ -91,8 +91,11 @@ public sealed class MigraDocBuilder : IMigraDocBuilder
             : Orientation.Portrait;
         setup.LeftMargin = Unit.FromInch(ExcelFitScale.SideMarginInches);
         setup.RightMargin = Unit.FromInch(ExcelFitScale.SideMarginInches);
-        setup.TopMargin = Unit.FromInch(0.6);
-        setup.BottomMargin = Unit.FromInch(0.6);
+        // CỐ Ý khác đường .xlsx (PrintWorkbookWriter.VerticalMargin = 0,6"): bản giấy XUỐNG DÒNG
+        // những dòng mà Excel cắt (GĐNTT dòng 6–16), nên cần thêm chỗ để biểu mẫu cỡ cố định
+        // vẫn vừa một tờ. Xem Gdntt_dong_dai_van_vua_mot_trang.
+        setup.TopMargin = Unit.FromInch(0.4);
+        setup.BottomMargin = Unit.FromInch(0.4);
         // Khoảng cách từ mép giấy đến chân trang. Mặc định của MigraDoc (1,25cm) cao hơn mép
         // trên của lề dưới 0,6" nên chân trang đè lên dòng cuối; 0,3" như đường .xlsx.
         setup.FooterDistance = Unit.FromInch(0.3);

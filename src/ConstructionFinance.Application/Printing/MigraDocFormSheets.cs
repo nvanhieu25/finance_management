@@ -215,6 +215,8 @@ internal static class MigraDocFormSheets
         grid.Text(14, 1, " - Số tiền đề nghị (tạm ứng, thanh toán KLHT) đến kỳ này:");
         grid.Text(15, 1, $" - Thuộc nguồn vốn: {form.NguonVon}");
         grid.Text(16, 1, $" - Thuộc kế hoạch: {form.ThuocKeHoach ?? ""}");
+        // Khác bản Excel: các dòng 6–16 này XUỐNG DÒNG chứ không bị cắt ở biên dải gộp 1→3 (Excel
+        // làm mất đuôi dòng dài, vd số giấy đề nghị). Xem Gdntt_dong_dai_van_vua_mot_trang.
         foreach (var row in Enumerable.Range(6, 11)) grid.Merge(row, 1, row, 3);
 
         grid.Text(17, 1, "NỘI DUNG");

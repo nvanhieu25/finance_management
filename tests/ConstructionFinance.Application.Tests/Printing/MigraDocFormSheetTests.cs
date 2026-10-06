@@ -479,4 +479,32 @@ public class MigraDocFormSheetTests
         table.Rows[0]!.Cells[0]!.Borders.Width.Point.ShouldBe(0);
         table.Rows[19]!.Cells[0]!.Borders.Width.Point.ShouldBe(0);
     }
+
+    // ----- GĐNTT: dòng dài hơn dải gộp 1→3 -----
+
+    private static GdnttForm GdnttLongFixture() => GdnttFixture() with
+    {
+        TenDuAnCongTrinh = "Đường ven biển đoạn qua huyện Hoằng Hóa",
+        CanCuQuyetDinh = "1234/QĐ-UBND ngày 15 tháng 03 năm 2026 của UBND tỉnh Thanh Hóa",
+        CanCuHopDong = "01/2026/HĐ-XL ngày 20 tháng 04 năm 2026 giữa Ban QLDA và Công ty Thành Đạt",
+        CanCuGiayDeNghi = "05/GĐN-BQLDA ngày 02 tháng 10 năm 2026 của Ban QLDA số 1 gửi Kho bạc",
+    };
+
+    /// Các dòng 6–16 gộp cột 1→3 (khoảng 58 đơn vị) mà dòng thật thường DÀI hơn: tên dự án khoảng
+    /// 64 ký tự, "Căn cứ giấy đề nghị…" khoảng 77. Excel CẮT phần thừa ở biên ô gộp, tức là bản
+    /// .xlsx mất đuôi của số giấy đề nghị — chính là căn cứ để cấp vốn. MigraDoc thì XUỐNG DÒNG và
+    /// giữ nguyên chữ. Chấp nhận khác biệt này có chủ ý: mất căn cứ thanh toán trên biểu mẫu nhà
+    /// nước tệ hơn một dòng cao hơn. Biểu mẫu cỡ cố định 31 dòng, nên lề trên/dưới của bản giấy là
+    /// 0,4" (không phải 0,6" như .xlsx) để cả hai trường hợp vẫn vừa MỘT tờ — hết chỗ thì dòng ký
+    /// tên rơi một mình sang tờ hai. Test ghim số trang để bố cục đổi là hiện ra, không lặng lẽ.
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void Gdntt_dong_dai_van_vua_mot_trang(bool longValues)
+    {
+        var sheet = new GdnttPrintSheet("GĐNTT", PrintPageProfiles.Gdntt,
+            longValues ? GdnttLongFixture() : GdnttFixture());
+        PdfProbe.Render(new MigraDocBuilder().Build(new PrintSheet[] { sheet }, Footer))
+            .PageCount.ShouldBe(1);
+    }
 }
