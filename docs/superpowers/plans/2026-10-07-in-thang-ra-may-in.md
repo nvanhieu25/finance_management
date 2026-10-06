@@ -116,8 +116,8 @@ Chèn vào `<ItemGroup>`, ngay sau dòng `ClosedXML`:
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <!-- Directory.Build.props đặt TargetFramework=net8.0 cho mọi dự án; phải xóa trắng
-         rồi đặt lại, nếu không giá trị toàn cục thắng và gói GDI không nạp được. -->
+    <!-- Directory.Build.props đặt TargetFramework=net8.0 cho mọi dự án; dự án một đích chỉ
+         cần GHI ĐÈ nó ở đây (Desktop mới phải xóa trắng, vì nó chuyển sang TargetFrameworks). -->
     <TargetFramework>net8.0-windows</TargetFramework>
     <!-- Để biên dịch (và kiểm kiểu) được dự án net8.0-windows trên Linux. Chạy thì vẫn phải Windows. -->
     <EnableWindowsTargeting>true</EnableWindowsTargeting>
@@ -142,7 +142,7 @@ Chèn vào `<ItemGroup>`, ngay sau dòng `ClosedXML`:
 namespace ConstructionFinance.Printing.Windows;
 
 /// Tạm thời: chỗ dựa để Task 1 chứng minh đường tham chiếu dự án chạy được.
-/// Task 9 thay bằng WindowsPrinterPort và XÓA tệp này.
+/// Task 10 thay bằng WindowsPrinterPort và XÓA tệp này.
 internal static class PlaceholderMarker
 {
     internal const string Note = "Task 9 thay bằng WindowsPrinterPort.";
