@@ -48,10 +48,27 @@
     <ProjectReference Include="..\ConstructionFinance.Infrastructure\ConstructionFinance.Infrastructure.csproj" />
   </ItemGroup>
 
+  <!-- Glob mặc định của SDK (**\*.cs) không biết gì về đích, nên nó kéo file cài đặt
+       HostBuilder.AddPrinterServices vào CẢ HAI đích. Gỡ nó ra ở đây, rồi khai lại bên
+       trong ItemGroup có điều kiện ngay dưới. -->
+  <ItemGroup>
+    <Compile Remove="Common\HostBuilder.Printing.Windows.cs" />
+  </ItemGroup>
+
   <!-- Adapter máy in chỉ tồn tại ở đích Windows. Đích net8.0 (bộ test) không có
-       IPrinterPort nào được đăng ký, nên hai lệnh In ra giấy mờ — xem Task 10. -->
+       IPrinterPort nào được đăng ký, nên hai lệnh In ra giấy mờ — xem Task 10.
+
+       HAI DÒNG DƯỚI PHẢI Ở CÙNG MỘT ItemGroup. ĐỪNG TÁCH RA. Bản trước để việc này cho
+       `#if NET8_0_WINDOWS` trong HostBuilder.cs — một ký hiệu .NET SDK KHÔNG định nghĩa
+       (đích net8.0-windows có WINDOWS/WINDOWS7_0/NET8_0/NET8_0_OR_GREATER, không có
+       NET8_0_WINDOWS). `#if` luôn sai thì không có cảnh báo, ProjectReference vẫn thỏa, bộ
+       test chỉ chạy đích net8.0 nơi hai lệnh đăng ký ĐÁNG LẼ phải vắng — nên cả tính năng
+       In ra giấy chết hẳn trong bản .exe đã ship mà không ai biết. Lỗi IM LẶNG.
+       Giờ mã và tham chiếu dính nhau: cùng một điều kiện, cùng một ItemGroup. Mất tham
+       chiếu mà còn file thì build HỎNG, không ship một tính năng chết. -->
   <ItemGroup Condition="'$(TargetFramework)' == 'net8.0-windows'">
     <ProjectReference Include="..\ConstructionFinance.Printing.Windows\ConstructionFinance.Printing.Windows.csproj" />
+    <Compile Include="Common\HostBuilder.Printing.Windows.cs" />
   </ItemGroup>
 
   <ItemGroup>

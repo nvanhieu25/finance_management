@@ -35,6 +35,42 @@ public sealed class WindowsPrinterPort : IPrinterPort
         using var printDocument = new PrintDocument();
         printDocument.PrinterSettings.PrinterName = job.PrinterName;
         printDocument.PrinterSettings.Copies = (short)job.Copies;   // PrinterJob đã kẹp 1..99
+        // Hộp thoại cho gõ 1..99 bản. Mặc định của trình điều khiển có thể là KHÔNG ghép bộ,
+        // tức "In toàn bộ × 3" của dự án bảy sheet ra 3×trang1, 3×trang2... và nhân viên phải
+        // ngồi phân lại cả tập trước khi ký. "Số bản = 3" với người dùng nghĩa là ba BỘ.
+        printDocument.PrinterSettings.Collate = true;
+        // Không đặt thì mọi lệnh đứng trong hàng đợi Windows với tên "document": trên máy in
+        // dùng chung, nhân viên không tìm được lệnh của mình, và nhật ký in ghi "document" cho
+        // tất cả. Tên dự án là thứ phân biệt được.
+        printDocument.DocumentName = job.DocumentName;
+
+        // ---- GỐC TOẠ ĐỘ TRANG ----
+        // Mặc định OriginAtMargins = false đặt gốc của e.Graphics ở góc trên-trái vùng IN ĐƯỢC,
+        // tức đã thụt vào so với góc TỜ GIẤY đúng bằng lề cứng của máy in (4-5mm với máy laser).
+        // MigraDoc dàn trang từ góc tờ giấy, nên cả trang in ra bị dịch xuống và sang phải
+        // chừng ấy. Không chỉ là lệch cho xấu: FooterDistance = 0,18" = 4,57mm từ mép dưới tờ
+        // giấy, cộng thêm 4,5mm dịch xuống là chân trang nằm HẲN trong dải không in được —
+        // tên dự án và "Trang x/y" mất ở mọi trang của cả sáu tài liệu.
+        //
+        // OriginAtMargins = true khiến .NET dịch gốc đi −hardMargin rồi dịch tiếp theo
+        // DefaultPageSettings.Margins; cho lề đó bằng 0 thì còn lại ĐÚNG gốc góc-tờ-giấy mà
+        // MigraDoc giả định, trong khi MigraDoc vẫn tự áp lề của nó. Cho lề 0 là an toàn: GDI
+        // vẫn cắt theo vùng in được dù lề khai bao nhiêu.
+        //
+        // PHẦN CÒN LẠI CHƯA CHẮC, nói thẳng ra đây: .NET tính hai bước dịch ấy bằng đơn vị
+        // 1/100 inch (GraphicsUnit.Display của một DC máy in). Nếu PDFsharp đổi PageUnit của
+        // Graphics sang Point thì con số dịch bị đọc lại ở 1/72 inch mỗi đơn vị, tức lệch đi
+        // theo đúng tỉ số 72/100, và còn dư cỡ 1-2mm thay vì 4,5mm — chưa ai chạy thử nên chưa
+        // biết dư về phía nào. Dù về phía nào thì cũng KHÔNG xấu hơn hiện trạng: dư 1-2mm vẫn
+        // để chân trang ngoài dải không in được, còn không bù gì thì chắc chắn mất chân trang.
+        printDocument.OriginAtMargins = true;
+        printDocument.DefaultPageSettings.Margins = new Margins(0, 0, 0, 0);
+
+        // Khổ A4 tra MỘT LẦN, ngoài handler. Mỗi lần đọc PrinterSettings.PaperSizes là một
+        // vòng hỏi trình điều khiển; để trong QueryPageSettings thì lệnh 50 trang hỏi 50 lần
+        // cùng một câu. Phải tra SAU khi đã đặt PrinterName — danh sách khổ giấy là của máy in.
+        var a4 = FindA4(printDocument.PrinterSettings);
+
         // Một PrintDocument không mang được một hướng giấy cho cả lệnh, mà "In toàn bộ" trộn trang
         // ngang lẫn dọc (Sổ Vị trí, Tổng hợp, GĐNTT là ngang). Nên đặt hướng TỪNG TRANG ở đây.
         printDocument.QueryPageSettings += (_, e) =>
@@ -51,37 +87,22 @@ public sealed class WindowsPrinterPort : IPrinterPort
 
             // Mọi tài liệu của ứng dụng đều là A4; máy in mặc định khổ Letter sẽ cắt mất nội dung.
             // Không có A4 trong danh sách thì giữ mặc định của máy in, không ném.
-            foreach (PaperSize size in printDocument.PrinterSettings.PaperSizes)
-            {
-                if (size.Kind == PaperKind.A4)
-                {
-                    e.PageSettings.PaperSize = size;
-                    break;
-                }
-            }
+            if (a4 is not null) e.PageSettings.PaperSize = a4;
         };
 
-        // ---- CHƯA KIỂM CHỨNG ĐƯỢC: đây là chỗ duy nhất không test được trên máy phát triển. ----
-        // Hai điều về hình học trang chưa ai chạy thử. Cả hai đều theo đúng mẫu in MigraDoc chính
-        // thức của PDFsharp nên chưa sửa; nếu bản in thử đầu tiên sai thì tìm triệu chứng dưới đây:
-        //
-        // 1) ĐƠN VỊ: args.PageBounds tính bằng 1/100 inch, còn XSize mặc định là point.
-        //    Triệu chứng: mọi thứ in to gấp ~1,39 lần và tràn ra khỏi trang.
-        //    Cách chỉnh: cho XSize mang đúng đơn vị, hoặc đổi PageBounds từ 1/100 inch sang point
-        //    (nhân 0,72) trước khi dựng XSize.
-        //
-        // 2) GỐC TOẠ ĐỘ: e.Graphics bắt đầu ở vùng in được chứ không phải góc tờ giấy, nên nội
-        //    dung có thể lệch đúng bằng lề cứng của máy in.
-        //    Triệu chứng: cả trang dịch xuống dưới và sang phải khoảng 3-5 mm.
-        //    Cách chỉnh: dịch gốc toạ độ đi args.PageSettings.HardMarginX / HardMarginY.
         printDocument.PrintPage += (_, args) =>
         {
             page++;
             var graphics = args.Graphics
                 ?? throw new InvalidOperationException("Hệ thống không cấp mặt vẽ cho trang in.");
 
+            // args.PageBounds tính bằng 1/100 inch, còn XSize KHÔNG mang đơn vị theo mình —
+            // overload hai tham số coi nó là point. Chia 100 rồi nói rõ XGraphicsUnit.Inch để
+            // không còn phải đoán: đây đúng là bề rộng/chiều cao trang tính bằng inch.
             using var gfx = XGraphics.FromGraphics(
-                graphics, new XSize(args.PageBounds.Width, args.PageBounds.Height));
+                graphics,
+                new XSize(args.PageBounds.Width / 100.0, args.PageBounds.Height / 100.0),
+                XGraphicsUnit.Inch);
             renderer.RenderPage(gfx, page);
 
             args.HasMorePages = page < formatted.PageCount;
@@ -98,5 +119,14 @@ public sealed class WindowsPrinterPort : IPrinterPort
             // TÊN MÁY IN, để câu thông báo nói đúng chuyện vừa xảy ra.
             throw new PrintJobFailedException(job.PrinterName, ex);
         }
+    }
+
+    /// Khổ A4 của máy in, hoặc null nếu trình điều khiển không khai khổ nào là A4.
+    private static PaperSize? FindA4(PrinterSettings settings)
+    {
+        foreach (PaperSize size in settings.PaperSizes)
+            if (size.Kind == PaperKind.A4)
+                return size;
+        return null;
     }
 }

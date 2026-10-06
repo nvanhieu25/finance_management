@@ -507,4 +507,50 @@ public class MigraDocFormSheetTests
         PdfProbe.Render(new MigraDocBuilder().Build(new PrintSheet[] { sheet }, Footer))
             .PageCount.ShouldBe(1);
     }
+
+    // ===== Cỡ chữ chân trang của ba biểu mẫu =====
+
+    /// Chân trang của một sheet BIỂU MẪU phải co theo đúng tỉ lệ FormGrid áp cho thân, chứ
+    /// không in 13pt. Một bản trước của MigraDocBuilder.FontScaleOf chỉ xét PrintTableSheet
+    /// nên rơi xuống 1.0 cho cả ba biểu mẫu: chân trang 13pt cạnh thân 10,0 / 12,3 / 11,9pt,
+    /// và dòng "Cỡ chữ chân trang co theo thân, không cố định 13pt" của spec §12.1 sai đúng ở
+    /// ba tờ người dùng KÝ rồi gửi Kho bạc. 13pt cũng là trường hợp xấu nhất cho bất biến
+    /// khoảng cách chân trang, nên ba tờ ấy chạy sát ranh giới cắt nhất.
+    ///
+    /// Tỉ lệ ghim ở ba [Fact] dưới được tính LẠI từ bề rộng cột của Mẫu trong hàm này, nên nó
+    /// không phải bản chép của mã. Cho FontScaleOf trả 1.0 lại thì cả ba test đỏ.
+    private static void AssertFormFooterScale(
+        PrintFormSheet sheet, double[] columnWidthChars, PrintOrientation orientation, double expectedScale)
+    {
+        ExcelFitScale.ScaleFor(columnWidthChars, orientation).ShouldBe(expectedScale, 0.0001);
+
+        var document = new MigraDocBuilder().Build(new PrintSheet[] { sheet }, Footer);
+        var footerPoints = document.Sections[0]!.Footers.Primary.Elements
+            .OfType<Paragraph>().First().Format.Font.Size.Point;
+
+        footerPoints.ShouldBe(FormExcelExporter.FontSize * expectedScale, 0.01);
+        // Và bằng ĐÚNG cỡ chữ thân biểu mẫu — hai nơi không được trôi khỏi nhau.
+        footerPoints.ShouldBe(
+            document.Sections[0]!.Elements.OfType<Table>().First().Format.Font.Size.Point, 0.01);
+        // Chốt chặn thẳng vào lỗi cũ: 13pt là đúng con số FontScaleOf = 1.0 sinh ra.
+        footerPoints.ShouldBeLessThan(FormExcelExporter.FontSize);
+    }
+
+    [Fact]
+    public void Chan_trang_Thong_tri_co_theo_than_chu_khong_phai_13pt() =>
+        AssertFormFooterScale(
+            new ThongTriPrintSheet("Thông tri", PrintPageProfiles.ThongTri, ThongTriFixture()),
+            new double[] { 9, 9, 9, 9, 9, 9, 52, 18 }, PrintOrientation.Portrait, 0.76840);
+
+    [Fact]
+    public void Chan_trang_Ks_chi_co_theo_than_chu_khong_phai_13pt() =>
+        AssertFormFooterScale(
+            new KsChiPrintSheet("KS chi", PrintPageProfiles.KsChi, KsChiFixture()),
+            new double[] { 34, 14, 18, 18, 18 }, PrintOrientation.Portrait, 0.94410);
+
+    [Fact]
+    public void Chan_trang_Gdntt_co_theo_than_chu_khong_phai_13pt() =>
+        AssertFormFooterScale(
+            new GdnttPrintSheet("GĐNTT", PrintPageProfiles.Gdntt, GdnttFixture()),
+            new double[] { 26, 16, 16, 16, 16, 16, 16, 16, 16 }, PrintOrientation.Landscape, 0.91404);
 }

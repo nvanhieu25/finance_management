@@ -145,10 +145,19 @@ public sealed class MigraDocBuilder : IMigraDocBuilder
     }
 
     /// Tỉ lệ co chữ của một sheet; chân trang dùng đúng tỉ lệ này để cùng cỡ với thân.
-    private static double FontScaleOf(PrintSheet sheet) =>
-        sheet is PrintTableSheet { Columns.Count: > 0 } table
-            ? ExcelFitScale.ScaleFor(table.Columns.Select(column => column.WidthChars), table.Page.Orientation)
-            : 1.0;
+    ///
+    /// Sheet dạng BẢNG tính từ cột của chính nó; sheet BIỂU MẪU lấy từ MigraDocFormSheets —
+    /// cùng hai trường (bề rộng cột, hướng giấy) mà FormGrid.Render dùng để co thân. Một bản
+    /// trước của hàm này chỉ xét PrintTableSheet và rơi xuống 1.0 cho cả ba biểu mẫu, nên
+    /// chân trang in 13pt cạnh thân 10,0 / 12,3 / 11,9pt — đúng ba tờ người dùng KÝ, và cũng
+    /// là trường hợp xấu nhất cho bất biến khoảng cách chân trang (Chan_trang_nam_gon_duoi_le_duoi).
+    private static double FontScaleOf(PrintSheet sheet) => sheet switch
+    {
+        PrintTableSheet { Columns.Count: > 0 } table =>
+            ExcelFitScale.ScaleFor(table.Columns.Select(column => column.WidthChars), table.Page.Orientation),
+        PrintFormSheet form => MigraDocFormSheets.LayoutOf(form).FontScale,
+        _ => 1.0,
+    };
 
     private static void WriteTable(Section section, PrintTableSheet sheet)
     {

@@ -8,7 +8,7 @@ namespace ConstructionFinance.Application.Printing;
 /// FormExcelExporter, GIỮ NGUYÊN THỨ TỰ DÒNG của bản gốc để người review đối chiếu được từng
 /// dòng giữa hai bộ vẽ. Đừng "dọn gọn" lại thứ tự — nó là tài sản của bản chép này.
 ///
-/// Hai chỗ bản chép KHÔNG có dòng tương ứng: bề rộng cột (hoist lên đầu, xem WriteThongTri) và
+/// Hai chỗ bản chép KHÔNG có dòng tương ứng: bề rộng cột (hoist lên đầu, xem FormLayout) và
 /// ApplyPageDefaults(ws, Portrait) — câu đầu tiên của bản Excel. Việc đó (khổ A4, lề, font,
 /// hướng giấy) do MigraDocBuilder.ApplyPage làm TRƯỚC khi gọi vào đây.
 ///
@@ -16,12 +16,50 @@ namespace ConstructionFinance.Application.Printing;
 /// nhau là đỏ ngay.
 internal static class MigraDocFormSheets
 {
-    /// Chép FormExcelExporter.WriteThongTriSheet. Bề rộng cột ở cuối bản gốc
-    /// (Columns(1,6)=9, Column(7)=52, Column(8)=18) phải khai TRƯỚC ở đây, vì FormGrid cần
-    /// biết số cột lúc dựng.
+    /// Bố cục cột của MỘT biểu mẫu: bề rộng cột (đơn vị "ký tự" của Excel) và hướng giấy.
+    ///
+    /// Hoist lên đây vì HAI nơi cần cùng ba con số ấy: hàm vẽ dựng FormGrid, và
+    /// MigraDocBuilder.FontScaleOf tính cỡ chữ CHÂN TRANG. Khi chỉ hàm vẽ biết, FontScaleOf
+    /// rơi xuống 1.0 cho mọi biểu mẫu: chân trang in 13pt trong khi FormGrid.Render co thân
+    /// còn 0,768 / 0,944 / 0,914 — đúng ba tờ người dùng ký và gửi Kho bạc, và đúng điều
+    /// spec §12.1 nói là KHÔNG xảy ra.
+    internal sealed record FormLayout(IReadOnlyList<double> ColumnWidthChars, PrintOrientation Orientation)
+    {
+        /// Tỉ lệ ExcelFitScale co cả bề rộng cột lẫn cỡ chữ của biểu mẫu này. Tính từ ĐÚNG
+        /// hai trường mà FormGrid.Render tính lại, nên chân trang không lệch khỏi thân được.
+        public double FontScale => ExcelFitScale.ScaleFor(ColumnWidthChars, Orientation);
+    }
+
+    /// Bề rộng cột ở cuối FormExcelExporter.WriteThongTriSheet (Columns(1,6)=9, Column(7)=52,
+    /// Column(8)=18) — phải khai TRƯỚC ở đây, vì FormGrid cần biết số cột lúc dựng.
+    internal static readonly FormLayout ThongTriLayout =
+        new(new double[] { 9, 9, 9, 9, 9, 9, 52, 18 }, PrintOrientation.Portrait);
+
+    /// Bề rộng cột ở cuối bản gốc KS chi (Column(1)=34, Column(2)=14, Columns(3,5)=18).
+    internal static readonly FormLayout KsChiLayout =
+        new(new double[] { 34, 14, 18, 18, 18 }, PrintOrientation.Portrait);
+
+    /// GĐNTT: chín cột, 26 rồi tám cột 16 (Column(1)=26, Columns(2,9)=16). Giấy NGANG.
+    internal static readonly FormLayout GdnttLayout =
+        new(new double[] { 26, 16, 16, 16, 16, 16, 16, 16, 16 }, PrintOrientation.Landscape);
+
+    /// Bố cục của một sheet biểu mẫu. Ném cho record con chưa khai bố cục: thêm biểu mẫu thứ
+    /// tư (KH vốn / Vốn / QĐ...) mà quên khai thì vỡ ở lần dựng đầu, chứ không in ra một tờ
+    /// có chân trang sai cỡ chữ.
+    internal static FormLayout LayoutOf(PrintFormSheet sheet) => sheet switch
+    {
+        ThongTriPrintSheet => ThongTriLayout,
+        KsChiPrintSheet => KsChiLayout,
+        GdnttPrintSheet => GdnttLayout,
+        _ => throw new NotSupportedException(
+            $"Sheet \"{sheet.SheetName}\": chưa khai bố cục cột MigraDoc cho {sheet.GetType().Name}."),
+    };
+
+    /// Chép FormExcelExporter.WriteThongTriSheet. Bề rộng cột và hướng giấy ở ThongTriLayout
+    /// (hoist lên đầu lớp vì chân trang cũng cần, xem FormLayout).
     public static Table WriteThongTri(Section section, ThongTriForm form)
     {
-        var grid = new FormGrid(new double[] { 9, 9, 9, 9, 9, 9, 52, 18 });
+        var grid = new FormGrid(ThongTriLayout.ColumnWidthChars);
 
         grid.Text(1, 1, form.DonViCapTren ?? "");
         grid.Text(1, 7, "Mẫu số CQ06-HD");
@@ -101,14 +139,13 @@ internal static class MigraDocFormSheets
         grid.Text(currentRow, 1, $"Bằng chữ: {form.TotalInWords}");
         grid.Merge(currentRow, 1, currentRow, 8);
 
-        return grid.Render(section, PrintOrientation.Portrait);
+        return grid.Render(section, ThongTriLayout.Orientation);
     }
 
-    /// Chép FormExcelExporter.WriteKsChiSheet. Bề rộng cột ở cuối bản gốc
-    /// (Column(1)=34, Column(2)=14, Columns(3,5)=18) khai TRƯỚC ở đây, như WriteThongTri.
+    /// Chép FormExcelExporter.WriteKsChiSheet. Bề rộng cột và hướng giấy ở KsChiLayout.
     public static Table WriteKsChi(Section section, KsChiForm form)
     {
-        var grid = new FormGrid(new double[] { 34, 14, 18, 18, 18 });
+        var grid = new FormGrid(KsChiLayout.ColumnWidthChars);
 
         grid.Text(1, 1, "PHẦN GHI CỦA CƠ QUAN KIỂM SOÁT, THANH TOÁN");
         grid.Merge(1, 1, 1, 5);
@@ -164,7 +201,7 @@ internal static class MigraDocFormSheets
 
         grid.Border(6, 1, 17, 5);
 
-        return grid.Render(section, PrintOrientation.Portrait);
+        return grid.Render(section, KsChiLayout.Orientation);
     }
 
     /// Chép WriteAmountRow của FormExcelExporter.
@@ -177,13 +214,10 @@ internal static class MigraDocFormSheets
         grid.Money(row, 5, amounts.NgoaiHoi);
     }
 
-    /// Chép FormExcelExporter.WriteGdnttSheet. Chín cột: 26 rồi tám cột 16. Giấy NGANG.
+    /// Chép FormExcelExporter.WriteGdnttSheet. Bề rộng cột và hướng giấy ở GdnttLayout.
     public static Table WriteGdntt(Section section, GdnttForm form)
     {
-        var widths = new double[9];
-        widths[0] = 26;
-        for (var index = 1; index < widths.Length; index++) widths[index] = 16;
-        var grid = new FormGrid(widths);
+        var grid = new FormGrid(GdnttLayout.ColumnWidthChars);
 
         grid.Text(1, 1, form.DonViCapTren ?? "");
         grid.Text(2, 1, form.DonViCoSo ?? "");
@@ -277,7 +311,7 @@ internal static class MigraDocFormSheets
         grid.Merge(31, 5, 31, 9);
         grid.Center(31, 1, 31, 9);
 
-        return grid.Render(section, PrintOrientation.Landscape);
+        return grid.Render(section, GdnttLayout.Orientation);
     }
 
     /// Tiền ghi vào ô ĐẦU của một dải gộp — bảng tổng hợp GĐNTT gộp 4:5 / 6:7 / 8:9 trên cả

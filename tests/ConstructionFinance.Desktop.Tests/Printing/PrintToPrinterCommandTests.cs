@@ -105,6 +105,19 @@ public class PrintToPrinterCommandTests
         harness.Port.Jobs[0].Copies.ShouldBe(PrinterJob.MaxCopies);
     }
 
+    /// Tên dự án phải đi theo lệnh in, nếu không hàng đợi máy in của Windows gọi mọi lệnh là
+    /// "document" và nhân viên không tìm được bản của mình trên máy in dùng chung.
+    [Fact]
+    public async Task Ten_du_an_di_theo_lenh_in_de_hang_doi_may_in_khong_goi_la_document()
+    {
+        var harness = Create();
+        harness.Vm.CurrentContent = new FakePrintableWorkbook { AllSheets = { PrintFakes.Sheet("Vị trí 1") } };
+
+        await harness.Vm.PrintAllCommand.ExecuteAsync(null);
+
+        harness.Port.Jobs[0].DocumentName.ShouldBe("Cầu Thủ Thiêm");
+    }
+
     [Fact]
     public async Task In_toan_bo_gom_moi_sheet_vao_MOT_lenh_in()
     {

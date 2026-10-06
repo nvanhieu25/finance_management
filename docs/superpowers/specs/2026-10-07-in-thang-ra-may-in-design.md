@@ -299,7 +299,12 @@ nói gì, mã làm gì, và vì sao.
   nói ra; bản sao trung thực phải tự nói.
 - **Chân trang có thêm khoảng cách chân trang và một tab stop căn phải.** Plan không đặt cái nào,
   nên chân trang đè lên dòng cuối mỗi trang và số trang không bao giờ chạm mép phải.
-- **Cỡ chữ chân trang co theo thân**, không cố định 13pt.
+- **Cỡ chữ chân trang co theo thân**, không cố định 13pt — và từ 2026-10-07 thì ĐÚNG cho cả
+  sáu tài liệu. Trước đó dòng này SAI ở đúng ba tờ người dùng ký: `MigraDocBuilder.FontScaleOf`
+  chỉ xét `PrintTableSheet`, mọi sheet biểu mẫu rơi xuống `1.0`, nên chân trang in 13pt trong
+  khi `FormGrid.Render` co thân còn 0,768 (Thông tri) / 0,944 (KS chi) / 0,914 (GĐNTT). Sửa
+  bằng cách hoist bề rộng cột + hướng giấy của ba biểu mẫu thành `MigraDocFormSheets.FormLayout`
+  để hai nơi đọc CÙNG một nguồn; ba test ghim `13 × tỉ lệ` (`Chan_trang_*_co_theo_than_*`).
 - **Chân trang bị cắt ở `PrintWorkbookWriter.MaxFooterLeftChars` (120 ký tự).** Spec nói MigraDoc
   không cần cắt vì 255 là giới hạn của Excel. Đúng một nửa: con số 255 là của Excel, nhưng "đừng
   tràn khỏi tờ giấy" là luật của giấy. Cắt cùng một số ký tự để hai đường in ra giống hệt nhau. Một
@@ -336,6 +341,32 @@ nói gì, mã làm gì, và vì sao.
 - Vòng `QueryPageSettings` có một **chốt chặn biên** (`queriedPage > PageCount` thì thoát). Vòng in
   của .NET bắn đúng một lần mỗi trang, nhưng một trình điều khiển bắn thừa sẽ làm `GetPageInfo`
   ném và hỏng mọi lệnh in trên máy đó, mà đây là vùng mù không thử được.
+- **Đăng ký `IPrinterPort`/`IPrinterCatalog` bằng một hàm `partial`, không bằng `#if`.** Bản
+  đầu dùng `#if NET8_0_WINDOWS` trong `HostBuilder.cs` — một ký hiệu **.NET SDK không định
+  nghĩa** (đích `net8.0-windows` cho `WINDOWS`, `WINDOWS7_0`, `WINDOWS7_0_OR_GREATER`, `NET`,
+  `NET8_0`, `NET8_0_OR_GREATER`, `NETCOREAPP`; không có `NET8_0_WINDOWS`), và không chỗ nào
+  trong repo định nghĩa nó. `#if` luôn sai thì **không sinh cảnh báo**, `ProjectReference` vẫn
+  thỏa, còn bộ test chỉ chạy đích `net8.0` nơi hai lệnh đăng ký ĐÁNG LẼ phải vắng — nên cả 31
+  commit của đợt này nằm chết trong bản `.exe` đã ship: `WindowsPrinterPort` xuất hiện **0 lần**
+  trong `ConstructionFinance.dll` ở cả hai đích, `HasPrinterSupport` luôn `false`, hai mục In ra
+  giấy mờ vĩnh viễn trên Windows. "Build xanh, 1011 test xanh" đúng sự thật và **không chứng minh
+  gì**. Lỗi IM LẶNG — đúng loại lỗi mà đổi sang một ký hiệu khác (`#if WINDOWS`) sẽ lại gây ra
+  lần nữa nếu ai đó sửa điều kiện của `ProjectReference`. Bản sửa: `static partial void
+  AddPrinterServices(IServiceCollection)` khai ở `HostBuilder.cs` (không thân ⇒ ở `net8.0` lời
+  gọi bị xoá khi biên dịch), thân nằm ở `HostBuilder.Printing.Windows.cs` **không có một dòng
+  tiền xử lý nào**, và file đó được `Compile Include` trong ĐÚNG CÁI `ItemGroup` mang
+  `ProjectReference` có điều kiện (cộng một `Compile Remove` ngoài điều kiện, vì glob mặc định
+  của SDK không biết gì về đích). Mất tham chiếu mà còn file thì **build hỏng**, không ship một
+  tính năng chết. Ghim bằng `strings`: 0 lần ở `net8.0`, >0 ở `net8.0-windows`.
+- **`PrintDocument.DocumentName` mang tên dự án.** Không đặt thì mọi lệnh đứng trong hàng đợi
+  Windows với tên `"document"`: trên máy in dùng chung nhân viên không tìm được bản của mình và
+  nhật ký in ghi một cái tên cho tất cả. `PrinterJob` mang thêm `DocumentName` (nguồn: tên dự án
+  của chân trang; rỗng thì về `PrinterJob.DefaultDocumentName`).
+- **`PrinterSettings.Collate = true`.** Hộp thoại cho gõ 1–99 bản; mặc định của trình điều khiển
+  có thể là không ghép bộ, tức "In toàn bộ × 3" của dự án bảy sheet ra 3×trang1, 3×trang2… và
+  nhân viên phải phân lại cả tập trước khi ký. "Số bản = 3" với người dùng nghĩa là ba BỘ.
+- **Khổ A4 tra một lần, ngoài `QueryPageSettings`.** Mỗi lần đọc `PrinterSettings.PaperSizes` là
+  một vòng hỏi trình điều khiển; để trong handler thì lệnh 50 trang hỏi 50 lần cùng một câu.
 - **Dòng tiêu đề lặp mỗi trang chỉ được ghim ở mức mô hình** (`Row.HeadingFormat == true`), không
   ghim bằng cách đọc chữ trên từng trang PDF như §8 ngụ ý. PDFsharp không trích được chữ.
 - **`SheetTextMap` báo hỏng bằng `Assert.Fail` với chuỗi riêng**, không dùng `ShouldBeEmpty`, vì
@@ -357,17 +388,37 @@ của bạn ở đây trước.
 
 - **In thử trên Windows có máy in thật.** `WindowsPrinterPort` chỉ được biên dịch trên máy phát
   triển, chưa từng chạy. Đây là nghiệm thu cuối của cả đợt và chỉ người dùng làm được.
-- **Hình học trang, hai câu hỏi mở.** Cả hai đều để nguyên như mẫu chuẩn của PDFsharp chứ không
-  "sửa" theo lập luận không chạy được. Ghi chú trong mã tại handler `PrintPage` đã nêu cả hai.
-  - `PageBounds` tính bằng phần trăm inch, còn `XSize` mặc định là point. *Triệu chứng:* mọi thứ
-    in to khoảng 1,39 lần và tràn khỏi tờ giấy. *Cần gạt:* cho `XSize` đúng đơn vị, hoặc đổi
-    `PageBounds` sang point.
-  - `e.Graphics` có gốc ở vùng in được, không ở góc tờ giấy. *Triệu chứng:* cả trang dịch xuống
-    dưới và sang phải 3-5mm. *Cần gạt:* dịch gốc đi `HardMarginX/Y`.
-- **Chân trang cách mép giấy 4,6mm**, trong khi vùng không in được của máy laser thường là
-  4,2-5,0mm: nằm đúng ranh giới. *Triệu chứng:* tên dự án và số trang bị cụt ở mép dưới mọi
-  trang. *Cần gạt:* cỡ chữ chân trang hiện co theo thân và lên tới 13pt trên tờ tỉ lệ 1,0, là to
-  với chân trang; cố định ở 9pt sẽ lấy lại chỗ để đưa `FooterDistance` về khoảng 0,25 inch.
+- **VIỆC ĐẦU TIÊN CẦN NHÌN Ở BẢN IN THỬ: chân trang có ở đáy MỌI trang hay không?** Tức tên dự
+  án bên trái và "Trang x/y" bên phải. Đây là mục đứng đầu danh sách, trước cả hai triệu chứng
+  hình học bên dưới, vì chân trang mất đọc ra như một tính năng HỎNG chứ không như một độ lệch
+  đã biết — mà với bản phụ lục nhiều trang gửi Kho bạc thì số trang chính là cách chứng minh hồ
+  sơ đủ. `FooterDistance` 0,18" = 4,57mm từ mép giấy, trong khi dải không in được của máy laser
+  thường là 4,2-5,0mm: nằm đúng ranh giới. *Nếu thiếu:* xem mục gốc toạ độ ngay dưới trước, rồi
+  tới *cần gạt* của riêng mục này — cỡ chữ chân trang co theo thân và lên tới 13pt trên tờ tỉ lệ
+  1,0, là to với chân trang; cố định ở 9pt sẽ lấy lại chỗ để đưa `FooterDistance` về khoảng
+  0,25 inch.
+- **Hình học trang: một câu hỏi đã đóng, một đã thu hẹp.**
+  - `PageBounds`/`XSize` — **ĐÓNG.** `PageBounds` tính bằng 1/100 inch, còn overload hai tham số
+    của `XGraphics.FromGraphics` coi `XSize` là point. Nay dùng overload có `XGraphicsUnit`:
+    `new XSize(PageBounds.Width / 100.0, PageBounds.Height / 100.0)` với `XGraphicsUnit.Inch`.
+    Gần như chắc chắn không đổi gì lúc chạy, nhưng hết phải đoán. *Triệu chứng nếu vẫn sai:* mọi
+    thứ in to khoảng 1,39 lần và tràn khỏi tờ giấy.
+  - Gốc toạ độ — **ĐÃ XỬ LÝ, CÒN DƯ.** `e.Graphics` mặc định có gốc ở vùng in được, không ở góc
+    tờ giấy, nên cả trang dịch xuống dưới và sang phải 4-5mm; mà cộng với `FooterDistance`
+    4,57mm thì chân trang không còn "đúng ranh giới" nữa mà nằm HẲN trong dải không in được —
+    mất tên dự án và số trang ở mọi trang của cả sáu tài liệu. Cách xử lý, không P/Invoke và
+    không `GetDeviceCaps`: `printDocument.OriginAtMargins = true` cộng
+    `DefaultPageSettings.Margins = new Margins(0, 0, 0, 0)`. `OriginAtMargins = true` khiến .NET
+    dịch gốc đi `−hardMargin` rồi dịch tiếp theo `DefaultPageSettings.Margins`; cho lề đó bằng 0
+    thì còn lại đúng gốc góc-tờ-giấy mà MigraDoc giả định, trong khi MigraDoc vẫn tự áp lề của
+    nó. Cho lề 0 an toàn: GDI vẫn cắt theo vùng in được dù lề khai bao nhiêu.
+    *Phần dư, nói thẳng:* .NET tính hai bước dịch ấy bằng đơn vị 1/100 inch
+    (`GraphicsUnit.Display` của một DC máy in). Nếu PDFsharp đổi `PageUnit` của `Graphics` sang
+    `Point` thì con số dịch bị đọc lại ở 1/72 inch mỗi đơn vị, tức lệch theo tỉ số 72/100 và còn
+    dư **cỡ 1-2mm thay vì 4,5mm** — chưa chạy thử nên chưa biết dư về phía nào. Dù về phía nào
+    thì cũng không xấu hơn hiện trạng: dư 1-2mm vẫn để chân trang ngoài dải không in được, còn
+    không bù gì thì chắc chắn mất chân trang. *Triệu chứng nếu còn lệch:* cả trang dịch đều
+    1-2mm. *Cần gạt:* đo lề cứng thật rồi bù tay bằng `args.PageSettings.HardMarginX/Y`.
 - **Hệ số chiều cao dòng 1,15** trong test bất biến khoảng cách chân trang là ước lượng, không phải
   số đo. Chỉ còn khoảng 0,9pt dư. *Triệu chứng:* test vẫn xanh nhưng chân trang đè lên hàng cuối
   trên giấy. *Cần gạt:* đo chiều cao dòng thật của font serif và thay hệ số.

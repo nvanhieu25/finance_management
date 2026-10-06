@@ -19,7 +19,11 @@ public sealed record PrinterJob
     public const int MinCopies = 1;
     public const int MaxCopies = 99;
 
-    public PrinterJob(Document document, string printerName, int copies)
+    /// Tên dùng khi bên gọi không biết tên dự án. Vẫn phải khác "document" — mặc định của
+    /// PrintDocument — vì đó chính là cái tên vô nghĩa cần tránh.
+    public const string DefaultDocumentName = "Quản lý Tài chính Công trình";
+
+    public PrinterJob(Document document, string printerName, int copies, string? documentName = null)
     {
         ArgumentNullException.ThrowIfNull(document);
         if (string.IsNullOrWhiteSpace(printerName))
@@ -28,6 +32,9 @@ public sealed record PrinterJob
         Document = document;
         PrinterName = printerName;
         Copies = Math.Clamp(copies, MinCopies, MaxCopies);
+        DocumentName = string.IsNullOrWhiteSpace(documentName)
+            ? DefaultDocumentName
+            : documentName.Trim();
     }
 
     public Document Document { get; }
@@ -35,6 +42,11 @@ public sealed record PrinterJob
 
     /// Luôn nằm trong [MinCopies, MaxCopies].
     public int Copies { get; }
+
+    /// Tên lệnh in hiện trong hàng đợi máy in của Windows và trong nhật ký in. Không bao giờ
+    /// rỗng: để trống thì PrintDocument đặt tên là "document", nên trên một máy in dùng chung
+    /// mọi lệnh của mọi người trùng tên nhau và nhân viên không tìm được bản của mình.
+    public string DocumentName { get; }
 }
 
 /// Máy in báo lỗi giữa lúc in. Mang tên máy in theo, để câu thông báo nói đúng sự thật về

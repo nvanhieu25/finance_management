@@ -270,8 +270,9 @@ public partial class MainWindowViewModel : ViewModelBase
 
         try
         {
+            // Tên dự án đi theo lệnh in để hàng đợi Windows không gọi mọi lệnh là "document".
             await _services.GetRequiredService<IPrinterPort>()
-                .PrintAsync(new PrinterJob(document, printerName, chooser.Copies));
+                .PrintAsync(new PrinterJob(document, printerName, chooser.Copies, footer.ProjectName));
         }
         catch (PrintJobFailedException ex)
         {

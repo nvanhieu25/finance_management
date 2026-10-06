@@ -41,6 +41,29 @@ public class PrinterJobTests
         job.Copies.ShouldBeGreaterThan(0);
     }
 
+    /// Không đặt DocumentName thì PrintDocument đặt tên lệnh là "document": trên máy in dùng
+    /// chung mọi lệnh của mọi người trùng tên, nhân viên không tìm được bản của mình và nhật ký
+    /// in ghi một cái tên cho tất cả.
+    [Fact]
+    public void Ten_lenh_in_la_ten_du_an()
+    {
+        new PrinterJob(AnyDocument(), "Máy in A", 1, "  Cầu Thủ Thiêm  ")
+            .DocumentName.ShouldBe("Cầu Thủ Thiêm");
+    }
+
+    /// Màn chưa biết tên dự án (PrintFooterProjectName trả "") vẫn không được rơi về "document".
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("   ")]
+    public void Khong_biet_ten_du_an_thi_dung_ten_mac_dinh_chu_khong_de_trong(string? name)
+    {
+        var job = new PrinterJob(AnyDocument(), "Máy in A", 1, name);
+
+        job.DocumentName.ShouldBe(PrinterJob.DefaultDocumentName);
+        job.DocumentName.ShouldNotBeNullOrWhiteSpace();
+    }
+
     [Fact]
     public void Ten_may_in_trong_la_loi_cua_ben_goi()
     {
