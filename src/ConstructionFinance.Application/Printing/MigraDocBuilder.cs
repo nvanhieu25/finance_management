@@ -1,3 +1,4 @@
+using System.Globalization;
 using ConstructionFinance.Application.Forms;
 using MigraDoc.DocumentObjectModel;
 using MigraDoc.DocumentObjectModel.Tables;
@@ -46,7 +47,7 @@ public sealed class MigraDocBuilder : IMigraDocBuilder
         foreach (var sheet in sheets)
         {
             var section = document.AddSection();
-            ApplyPage(section, sheet.Page, footer);
+            ApplyPage(section, sheet.Page, footer, FontScaleOf(sheet));
 
             switch (sheet)
             {
@@ -64,7 +65,15 @@ public sealed class MigraDocBuilder : IMigraDocBuilder
 
     /// Khổ giấy, hướng giấy, lề và chân trang. Lề trái/phải lấy đúng con số của đường .xlsx,
     /// vì ExcelFitScale tính tỉ lệ co dựa trên chính nó.
-    private static void ApplyPage(Section section, PrintPageProfile page, PrintFooterInfo footer)
+    ///
+    /// Hai trường của hồ sơ KHÔNG có đối ứng ở đây, cố ý:
+    /// - RepeatColsLeft: bảng MigraDoc không bao giờ cắt ngang sang trang khác — quá rộng thì
+    ///   tràn ra ngoài chứ không tách cột; ExcelFitScale co bảng cho vừa bề ngang chính để
+    ///   khỏi xảy ra điều đó, nên không có "cột lặp bên trái" để mà lặp.
+    /// - CenterHorizontally: đường .xlsx căn giữa trang, bản in giấy thì KHÔNG. Spec §5: sheet
+    ///   hẹp in "đúng 13pt với một dải trắng bên phải" — căn trái. Quyết toán năm là sheet bị
+    ///   ảnh hưởng: .xlsx căn giữa, bản in giấy dồn trái, và đó là chủ ý.
+    private static void ApplyPage(Section section, PrintPageProfile page, PrintFooterInfo footer, double fontScale)
     {
         var setup = section.PageSetup;
         setup.PageFormat = PageFormat.A4;
@@ -83,6 +92,9 @@ public sealed class MigraDocBuilder : IMigraDocBuilder
         // đôi dấu & hay cắt ở 255 ký tự như đường .xlsx — đó là luật riêng của Excel, MigraDoc
         // nhận chuỗi thuần. Chuỗi dài chỉ bị cắt khi vẽ, không làm vỡ tài liệu.
         var paragraph = section.Footers.Primary.AddParagraph();
+        // Cùng cỡ chữ đã co với thân bảng. Để mặc định 13pt thì chân trang to gấp rưỡi thân
+        // bảng, và tên dự án dài dễ xuống dòng thứ hai trên trang ngang.
+        paragraph.Format.Font.Size = Unit.FromPoint(FormExcelExporter.FontSize * fontScale);
         // Tab dừng phải ở mép phải vùng chữ, để "Trang x/y" dạt sang phải như đường .xlsx.
         paragraph.Format.TabStops.AddTabStop(
             Unit.FromMillimeter(ExcelFitScale.UsableWidthMm(page.Orientation)), TabAlignment.Right);
@@ -98,10 +110,22 @@ public sealed class MigraDocBuilder : IMigraDocBuilder
         string.Join(" · ", new[] { footer.ProjectName, footer.ViTriName }
             .Where(part => !string.IsNullOrWhiteSpace(part)));
 
+    /// Tỉ lệ co chữ của một sheet; chân trang dùng đúng tỉ lệ này để cùng cỡ với thân.
+    private static double FontScaleOf(PrintSheet sheet) =>
+        sheet is PrintTableSheet { Columns.Count: > 0 } table
+            ? ExcelFitScale.ScaleFor(table.Columns.Select(column => column.WidthChars), table.Page.Orientation)
+            : 1.0;
+
     private static void WriteTable(Section section, PrintTableSheet sheet)
     {
-        // Bảng không có cột thì không có gì để vẽ: Table.AddRow() rồi Cells[0] sẽ ném. Để
-        // Section rỗng — một trang trắng mang chân trang, chứ không phải một lần sập.
+        // Kiểm dòng TRƯỚC khi quyết định có vẽ không, để bảng 0 cột mà có dòng mang ô vẫn bị báo
+        // lỗi như đường .xlsx — không im lặng nuốt dữ liệu.
+        for (var index = 0; index < sheet.Rows.Count; index++)
+            ValidateRow(sheet, index);
+
+        // Bảng không có cột thì không có gì để vẽ: Table không cột sẽ không dựng được dòng nào
+        // (Table.AddRow() rồi Cells[0] ném, chỗ dòng dữ liệu ghi ô). Để Section rỗng — một
+        // trang trắng mang chân trang, chứ không phải một lần sập.
         if (sheet.Columns.Count == 0) return;
 
         var scale = ExcelFitScale.ScaleFor(sheet.Columns.Select(column => column.WidthChars), sheet.Page.Orientation);
@@ -140,14 +164,18 @@ public sealed class MigraDocBuilder : IMigraDocBuilder
         }
     }
 
+    private static void ValidateRow(PrintTableSheet sheet, int index)
+    {
+        var count = sheet.Rows[index].Cells.Count;
+        if (count > sheet.Columns.Count)
+            throw new ArgumentException(
+                $"Sheet \"{sheet.SheetName}\": Rows[{index}] có {count} ô nhưng bảng chỉ có {sheet.Columns.Count} cột.",
+                nameof(sheet));
+    }
+
     private static void WriteRow(Table table, PrintTableSheet sheet, int index, double scale)
     {
         var source = sheet.Rows[index];
-        if (source.Cells.Count > sheet.Columns.Count)
-            throw new ArgumentException(
-                $"Sheet \"{sheet.SheetName}\": Rows[{index}] có {source.Cells.Count} ô nhưng bảng chỉ có {sheet.Columns.Count} cột.",
-                nameof(sheet));
-
         var row = table.AddRow();
         if (source.IsBold) row.Format.Font.Bold = true;
         if (source.Shade != PrintShade.None) row.Shading.Color = ShadeColor(source.Shade);
@@ -166,19 +194,27 @@ public sealed class MigraDocBuilder : IMigraDocBuilder
             // ô, kể cả dòng đã xuống dòng; FirstLineIndent chỉ dịch dòng đầu.
             if (column == indentAt && source.IndentLevel > 0)
                 paragraph.Format.LeftIndent =
-                    Unit.FromMillimeter(ExcelFitScale.ContentWidthMm(new[] { IndentUnitsPerLevel * source.IndentLevel }) * scale);
+                    Unit.FromMillimeter(IndentWidthMm(source.IndentLevel) * scale);
         }
     }
 
+    /// Bề rộng thụt: chỉ tính bề rộng KÝ TỰ. ContentWidthMm cộng thêm 5px đệm một lần cho mỗi
+    /// cột; thụt không phải một cột nên phải trừ phần đệm đó đi.
+    private static double IndentWidthMm(int level) =>
+        ExcelFitScale.ContentWidthMm(new[] { IndentUnitsPerLevel * level })
+        - ExcelFitScale.ContentWidthMm(new[] { 0.0 });
+
     /// Chữ của một ô. Giữ ĐÚNG quy ước của đường .xlsx: ô trống không ghi gì, tiền theo
     /// PrintMoneyText, ngày theo dd/MM/yyyy, số không-phải-tiền không có dấu phân nghìn
-    /// (nếu không năm 2026 in thành "2.026").
+    /// (nếu không năm 2026 in thành "2.026"). Văn hóa cố định Invariant: trên máy Windows tiếng
+    /// Việt dấu thập phân là "," và "/" trong chuỗi định dạng là dấu ngày của văn hóa; Excel
+    /// coi cả hai là ký tự thường.
     private static string CellText(PrintCell cell) => cell.Kind switch
     {
         PrintCellKind.Text => cell.Text ?? "",
         PrintCellKind.Money => PrintMoneyText.Format(cell.Number!.Value),
-        PrintCellKind.Number => cell.Number!.Value.ToString("0.################"),
-        PrintCellKind.Date => cell.Date!.Value.ToString(DateFormat),
+        PrintCellKind.Number => cell.Number!.Value.ToString("0.################", CultureInfo.InvariantCulture),
+        PrintCellKind.Date => cell.Date!.Value.ToString(DateFormat, CultureInfo.InvariantCulture),
         _ => "",
     };
 

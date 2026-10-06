@@ -149,8 +149,8 @@ public class MigraDocBuilderTests
         PdfProbe.Render(document).PageCount.ShouldBe(1);
     }
 
-    /// Review Focus 4b: Table không có cột mà AddRow() thì Cells[0] ném
-    /// ArgumentOutOfRangeException. Bảng 0 cột phải thành một Section rỗng, không phải một lần sập.
+    /// Review Focus 4b: Table không có cột thì không dựng được dòng nào (AddRow rồi Cells[0]
+    /// ném khi ghi ô). Bảng 0 cột phải thành một Section rỗng, không phải một lần sập.
     [Fact]
     public void Bang_khong_co_cot_nao_khong_lam_sap_bo_dung()
     {
@@ -170,10 +170,11 @@ public class MigraDocBuilderTests
     [InlineData("\ud83d")]                                  // nửa cặp surrogate, đứt đôi
     public void Chan_trang_mang_ky_tu_la_khong_lam_sap_bo_dung(string projectName)
     {
-        var document = Should.NotThrow(() => new MigraDocBuilder()
-            .Build(new PrintSheet[] { Sheet() }, new PrintFooterInfo(projectName, null)));
+        var document = new MigraDocBuilder()
+            .Build(new PrintSheet[] { Sheet() }, new PrintFooterInfo(projectName, null));
 
-        document.Sections[0]!.Footers.Primary.ShouldNotBeNull();
+        // Rủi ro nằm ở lúc VẼ (font encoder), không ở lúc dựng cây: phải render thật.
+        PdfProbe.Render(document).PageCount.ShouldBe(1);
     }
 
     [Fact]
@@ -181,7 +182,10 @@ public class MigraDocBuilderTests
     {
         var footer = new PrintFooterInfo(new string('A', 300), new string('B', 300));
 
-        Should.NotThrow(() => new MigraDocBuilder().Build(new PrintSheet[] { Sheet() }, footer));
+        var document = new MigraDocBuilder().Build(new PrintSheet[] { Sheet() }, footer);
+
+        // Chân trang 600 ký tự mà xuống dòng bừa thì đẩy thân bảng sang trang 2.
+        PdfProbe.Render(document).PageCount.ShouldBe(1);
     }
 
     /// Review Focus 5: một ô chữ dài hơn cả trang sau khi co. MigraDoc phải xuống dòng và
