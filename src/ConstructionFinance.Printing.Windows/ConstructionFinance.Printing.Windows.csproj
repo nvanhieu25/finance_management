@@ -16,6 +16,10 @@
   <ItemGroup>
     <PackageReference Include="PDFsharp-MigraDoc-GDI" />
     <PackageReference Include="System.Drawing.Common" />
+    <!-- Application kéo theo bản lõi PDFsharp-MigraDoc; cùng với bản GDI sẽ trùng kiểu
+         (XGraphics, DocumentRenderer...). Dự án này chỉ dùng bản GDI nên tắt bản lõi. -->
+    <PackageReference Include="PDFsharp-MigraDoc" ExcludeAssets="all" />
+    <PackageReference Include="PDFsharp" VersionOverride="6.2.4" ExcludeAssets="all" />
   </ItemGroup>
 
 </Project>
