@@ -1,3 +1,4 @@
+using ConstructionFinance.Application.Forms;
 using ConstructionFinance.Application.Printing;
 using MigraDoc.DocumentObjectModel;
 using MigraDoc.DocumentObjectModel.Tables;
@@ -95,7 +96,7 @@ public class FormGridTests
     [Fact]
     public void Chu_vua_cot_thi_khong_tu_gop()
     {
-        var grid = new FormGrid(new double[] { 34, 14 }).Text(1, 1, "Ghi chú:");
+        var grid = new FormGrid(new double[] { 34, 14 }).Text(1, 1, new string('x', 34));
 
         Render(grid).Rows[0]!.Cells[0]!.MergeRight.ShouldBe(0);
     }
@@ -180,5 +181,95 @@ public class FormGridTests
             .Text(3, 3, "Ngày ………");
 
         Render(grid).Rows[2]!.Cells[0]!.MergeRight.ShouldBe(1);
+    }
+
+    private static Paragraph FirstParagraph(Table table, int row, int column) =>
+        table.Rows[row - 1]!.Cells[column - 1]!.Elements.OfType<Paragraph>().First();
+
+    [Fact]
+    public void Chu_dai_dung_bang_cot_thi_khong_tu_gop_va_dai_hon_mot_ky_tu_thi_gop()
+    {
+        var grid = new FormGrid(new double[] { 10, 10 }).Text(1, 1, new string('x', 10)).Text(2, 1, new string('x', 11));
+        var table = Render(grid);
+
+        table.Rows[0]!.Cells[0]!.MergeRight.ShouldBe(0);
+        table.Rows[1]!.Cells[0]!.MergeRight.ShouldBe(1);
+    }
+
+    [Fact]
+    public void Tu_gop_dung_truoc_goc_cua_lenh_gop_tuong_minh_dang_trong()
+    {
+        var grid = new FormGrid(new double[] { 10, 10, 10 })
+            .Text(1, 1, new string('x', 40))
+            .Merge(1, 2, 1, 3);
+
+        var table = Render(grid);
+        table.Rows[0]!.Cells[0]!.MergeRight.ShouldBe(0);
+        table.Rows[0]!.Cells[1]!.MergeRight.ShouldBe(1);
+    }
+
+    [Fact]
+    public void Tu_gop_dung_truoc_o_bi_MergeDown_cua_dong_tren_phu_len()
+    {
+        var grid = new FormGrid(new double[] { 10, 10, 10 })
+            .Text(1, 2, "tiêu đề").Merge(1, 2, 2, 2)
+            .Text(2, 1, new string('x', 40));
+
+        Render(grid).Rows[1]!.Cells[0]!.MergeRight.ShouldBe(0);
+    }
+
+    [Fact]
+    public void Indent_dich_moi_dong_bang_LeftIndent_khong_phai_FirstLineIndent()
+    {
+        var grid = new FormGrid(new double[] { 9, 9 }).Text(1, 1, "a").Indent(1, 1, 2);
+
+        var format = FirstParagraph(Render(grid), 1, 1).Format;
+        format.LeftIndent.Point.ShouldBeGreaterThan(0);
+        format.FirstLineIndent.Point.ShouldBe(0);
+    }
+
+    [Fact]
+    public void Center_canh_giua_dung_o_duoc_chon()
+    {
+        var grid = new FormGrid(new double[] { 9, 9 }).Text(1, 1, "a").Text(1, 2, "b").Center(1, 1, 1, 1);
+        var table = Render(grid);
+
+        FirstParagraph(table, 1, 1).Format.Alignment.ShouldBe(ParagraphAlignment.Center);
+        FirstParagraph(table, 1, 2).Format.Alignment.ShouldNotBe(ParagraphAlignment.Center);
+    }
+
+    [Fact]
+    public void Co_chu_va_be_rong_cot_co_theo_ti_le_vua_kho_giay()
+    {
+        var widths = new double[] { 60, 60, 60 };
+        var scale = ExcelFitScale.ScaleFor(widths, PrintOrientation.Portrait);
+        scale.ShouldBeLessThan(1.0);
+
+        var table = Render(new FormGrid(widths).Text(1, 1, "a"));
+
+        table.Format.Font.Size.Point.ShouldBe(FormExcelExporter.FontSize * scale, 0.001);
+        table.Columns[0].Width.Millimeter.ShouldBe(ExcelFitScale.ContentWidthMm(new[] { 60.0 }) * scale, 0.001);
+    }
+
+    [Fact]
+    public void Tien_roi_chu_thi_het_canh_phai()
+    {
+        var grid = new FormGrid(new double[] { 18 }).Money(1, 1, 5m).Text(1, 1, "x");
+
+        FirstParagraph(Render(grid), 1, 1).Format.Alignment.ShouldNotBe(ParagraphAlignment.Right);
+    }
+
+    [Fact]
+    public void Chu_roi_tien_thi_canh_phai()
+    {
+        var grid = new FormGrid(new double[] { 18 }).Text(1, 1, "x").Money(1, 1, 5m);
+
+        FirstParagraph(Render(grid), 1, 1).Format.Alignment.ShouldBe(ParagraphAlignment.Right);
+    }
+
+    [Fact]
+    public void Bold_voi_cot_bat_dau_ngoai_luoi_la_loi_cua_ben_goi()
+    {
+        Should.Throw<ArgumentOutOfRangeException>(() => new FormGrid(new double[] { 9 }).Bold(1, 0, 1, 1));
     }
 }

@@ -118,6 +118,9 @@ public sealed class FormGrid
                 // Chữ tràn của Excel đi xuyên qua ô trông trống: ô ghi "" không phải bức tường.
                 // Bộ vẽ .xlsx ghi `?? ""` vào ô ở rất nhiều chỗ (form.DonViCapTren ?? "" ...), nên
                 // nếu "" chặn thì kết quả thay đổi theo dữ liệu so với Excel.
+                // Cũng dừng ở ô thuộc một lệnh gộp khác (gốc gộp, hoặc ô bị MergeRight/MergeDown của
+                // ô khác phủ lên), kẻo sinh ra hai vùng gộp chồng nhau.
+                if (IsInMerge(row, next)) break;
                 if (_text.TryGetValue((row, next), out var neighbour) && !string.IsNullOrWhiteSpace(neighbour)) break;
                 extra++;
             }
@@ -128,12 +131,24 @@ public sealed class FormGrid
         if (_center.Contains((row, column))) paragraph.Format.Alignment = ParagraphAlignment.Center;
         if (_right.Contains((row, column))) paragraph.Format.Alignment = ParagraphAlignment.Right;
         if (_indent.TryGetValue((row, column), out var level) && level > 0)
-            paragraph.Format.FirstLineIndent =
+            // LeftIndent, KHÔNG phải FirstLineIndent: Alignment.Indent của Excel dịch MỌI dòng của
+            // ô, kể cả dòng đã xuống dòng; FirstLineIndent chỉ dịch dòng đầu (như MigraDocBuilder.WriteRow).
+            paragraph.Format.LeftIndent =
                 Unit.FromMillimeter(ExcelFitScale.ContentWidthMm(new[] { 3.0 * level }) * scale);
+    }
+
+    private bool IsInMerge(int row, int column)
+    {
+        foreach (var (anchor, span) in _merges)
+            if (row >= anchor.Row && row <= anchor.Row + span.Rows &&
+                column >= anchor.Column && column <= anchor.Column + span.Columns)
+                return true;
+        return false;
     }
 
     private FormGrid Mark(HashSet<(int Row, int Column)> target, int fromRow, int fromColumn, int toRow, int toColumn)
     {
+        Touch(fromRow, fromColumn);
         Touch(toRow, toColumn);
         for (var row = fromRow; row <= toRow; row++)
         for (var column = fromColumn; column <= toColumn; column++)
