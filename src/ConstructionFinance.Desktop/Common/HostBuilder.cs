@@ -38,6 +38,15 @@ public static class HostBuilder
                 services.AddSingleton<Services.INavigationService, Services.NavigationService>();
                 services.AddSingleton<Services.IFileLauncher, Services.FileLauncher>();
                 services.AddSingleton<IPrintWorkbookWriter, PrintWorkbookWriter>();
+                services.AddSingleton<IMigraDocBuilder, MigraDocBuilder>();
+#if NET8_0_WINDOWS
+                // Adapter máy in chỉ tồn tại ở đích net8.0-windows. Ở đích net8.0 (bộ test)
+                // không có bản nào, nên hai lệnh In ra giấy mờ đi — đúng như CanPrint* kiểm.
+                services.AddSingleton<Application.Printing.IPrinterPort,
+                    Printing.Windows.WindowsPrinterPort>();
+                services.AddSingleton<Application.Printing.IPrinterCatalog,
+                    Printing.Windows.WindowsPrinterCatalog>();
+#endif
                 services.AddTransient<ViewModels.Vendors.VendorListViewModel>();
                 services.AddTransient<ViewModels.Decisions.DecisionListViewModel>();
                 services.AddTransient<ViewModels.Contracts.ContractListViewModel>();

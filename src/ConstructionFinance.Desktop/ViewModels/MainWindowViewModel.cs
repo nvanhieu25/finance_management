@@ -5,6 +5,7 @@ using ConstructionFinance.Application.Printing;
 using ConstructionFinance.Desktop.Common;
 using ConstructionFinance.Desktop.Services;
 using ConstructionFinance.Desktop.ViewModels.Decisions;
+using ConstructionFinance.Desktop.ViewModels.Printing;
 using ConstructionFinance.Desktop.ViewModels.ThongTri;
 using ConstructionFinance.Desktop.ViewModels.TongHop;
 using ConstructionFinance.Desktop.ViewModels.Vendors;
@@ -143,20 +144,21 @@ public partial class MainWindowViewModel : ViewModelBase
         "(thư mục không còn tồn tại, ổ đĩa USB hoặc ổ mạng đã bị ngắt kết nối, hoặc đường dẫn quá dài). " +
         "Hãy kiểm tra kết nối ổ đĩa hoặc chọn nơi lưu khác, rồi thử lại.";
 
-    /// Cả nút In ở khung chung sáng khi ÍT NHẤT MỘT trong hai mục của nó dùng được; không thì mờ (vẫn nằm đúng chỗ).
-    /// Chỉ ĐỌC trạng thái của màn đang mở, như hai CanExecute bên dưới.
-    public bool CanPrint => CanPrintCurrentSheet() || CanPrintAll();
+    /// Nút In ở khung chung sáng khi ÍT NHẤT MỘT trong bốn mục của nó dùng được; không thì mờ
+    /// (vẫn nằm đúng chỗ). Chỉ ĐỌC trạng thái của màn đang mở và của danh sách máy in.
+    public bool CanPrint =>
+        CanExportCurrentSheet() || CanExportAll() || CanPrintCurrentSheet() || CanPrintAll();
 
     /// Nút In sáng thì tooltip nói nó làm gì; nút mờ thì tooltip nói vì sao.
     public string PrintToolTip => CanPrint ? PrintToolTipEnabled : PrintToolTipDisabled;
 
-    [RelayCommand(CanExecute = nameof(CanPrintCurrentSheet))]
-    private Task PrintCurrentSheetAsync() => GuardPrintAsync(async () =>
+    [RelayCommand(CanExecute = nameof(CanExportCurrentSheet))]
+    private Task ExportCurrentSheetAsync() => GuardPrintAsync(PrintFileTitle, async () =>
     {
         var page = (IPrintablePage)CurrentContent!;
         var sheet = page.BuildPrintSheet();
         // Hợp đồng IPrintablePage: PrintSheetName khác null thì BuildPrintSheet() phải trả một sheet, nên nhánh này
-        // không nên xảy ra. Nhưng người dùng vừa bấm một nút: không được im lặng, cũng như PrintAllAsync.
+        // không nên xảy ra. Nhưng người dùng vừa bấm một nút: không được im lặng, cũng như ExportAllAsync.
         if (sheet is null)
         {
             await ShowNothingToPrintAsync();
@@ -165,15 +167,15 @@ public partial class MainWindowViewModel : ViewModelBase
         await PrintAsync(new[] { sheet }, page.PrintSheetName!, footerViTriName: page.PrintSheetName);
     });
 
-    private bool CanPrintCurrentSheet() =>
+    private bool CanExportCurrentSheet() =>
         CurrentContent is IPrintablePage { PrintSheetName: { Length: > 0 } };
 
-    [RelayCommand(CanExecute = nameof(CanPrintAll))]
-    private Task PrintAllAsync() => GuardPrintAsync(async () =>
+    [RelayCommand(CanExecute = nameof(CanExportAll))]
+    private Task ExportAllAsync() => GuardPrintAsync(PrintFileTitle, async () =>
     {
         var workbook = (IPrintableWorkbook)CurrentContent!;
         var all = workbook.BuildAllSheets();
-        // Nhánh rỗng gần như không xảy ra vì CanPrintAll đã chặn nút, nhưng KHÔNG được
+        // Nhánh rỗng gần như không xảy ra vì CanExportAll đã chặn nút, nhưng KHÔNG được
         // im lặng: user vừa bấm một nút, nên phải nói ra chuyện gì xảy ra.
         if (all.Sheets.Count == 0)
         {
@@ -183,10 +185,100 @@ public partial class MainWindowViewModel : ViewModelBase
         await PrintAsync(all.Sheets, "Toan bo", footerViTriName: null, warningAfterWrite: DescribeSkipped(all.Skipped));
     });
 
-    private bool CanPrintAll() =>
+    private bool CanExportAll() =>
         CurrentContent is IPrintableWorkbook wb && wb.CanPrintAll;
         // KHÔNG gọi BuildAllSheets() ở đây: nó làm mới tab tổng hợp, nên đặt trong
         // CanExecute là nhét tác dụng phụ vào một phép hỏi bị gọi rất thường xuyên.
+
+    private const string PrintPaperTitle = "In ra máy in";
+    private const string NoPrinterMessage =
+        "Máy này chưa cài máy in nào. Bạn có thể dùng \"Xuất Excel\" để lưu tệp rồi in từ máy khác.";
+
+    [RelayCommand(CanExecute = nameof(CanPrintCurrentSheet))]
+    private Task PrintCurrentSheetAsync() => GuardPrintAsync(PrintPaperTitle, async () =>
+    {
+        var page = (IPrintablePage)CurrentContent!;
+        var sheet = page.BuildPrintSheet();
+        if (sheet is null)
+        {
+            await ShowNothingToPrintAsync();
+            return;
+        }
+        await PrintToPrinterAsync(new[] { sheet }, footerViTriName: page.PrintSheetName);
+    });
+
+    /// Đích net8.0 (bộ test) không đăng ký IPrinterPort nào, nên hai lệnh này mờ ở đó thay vì
+    /// ném NullReference giữa một lần chạy test. Bản phát hành luôn là net8.0-windows.
+    private bool CanPrintCurrentSheet() =>
+        HasPrinterSupport && CurrentContent is IPrintablePage { PrintSheetName: { Length: > 0 } };
+
+    [RelayCommand(CanExecute = nameof(CanPrintAll))]
+    private Task PrintAllAsync() => GuardPrintAsync(PrintPaperTitle, async () =>
+    {
+        var workbook = (IPrintableWorkbook)CurrentContent!;
+        var all = workbook.BuildAllSheets();
+        if (all.Sheets.Count == 0)
+        {
+            await ShowNothingToPrintAsync();
+            return;
+        }
+        await PrintToPrinterAsync(all.Sheets, footerViTriName: null, warningBeforePrint: DescribeSkipped(all.Skipped));
+    });
+
+    private bool CanPrintAll() =>
+        HasPrinterSupport && CurrentContent is IPrintableWorkbook { CanPrintAll: true };
+
+    private bool HasPrinterSupport =>
+        _services.GetService<IPrinterPort>() is not null
+        && _services.GetService<IPrinterCatalog>() is not null;
+
+    /// Đường chung của cả hai lệnh in giấy: cảnh báo (nếu có) → chọn máy in → gửi lệnh in.
+    ///
+    /// `warningBeforePrint` hiện TRƯỚC hộp thoại, khác đường ghi tệp (ở đó cảnh báo hiện sau
+    /// khi ghi). Cố ý: tệp đã nằm trên đĩa thì đọc cảnh báo rồi vẫn xử lý được, còn giấy đã
+    /// chạy ra thì không rút lại được — nên người dùng phải đọc trước khi quyết.
+    private async Task PrintToPrinterAsync(
+        IReadOnlyList<PrintSheet> sheets, string? footerViTriName, string? warningBeforePrint = null)
+    {
+        var dialog = _services.GetRequiredService<IDialogService>();
+        var catalog = _services.GetRequiredService<IPrinterCatalog>();
+
+        var chooser = new ChonMayInViewModel(catalog);
+        if (!chooser.CoMayIn)
+        {
+            await dialog.ShowMessageAsync(PrintPaperTitle, NoPrinterMessage);
+            return;
+        }
+
+        if (warningBeforePrint is not null)
+            await dialog.ShowMessageAsync(PrintPaperTitle, warningBeforePrint);
+
+        if (await dialog.ShowDialogAsync(chooser) != true) return;   // Hủy: im lặng, không in
+
+        var printerName = chooser.SelectedPrinter;
+        if (string.IsNullOrWhiteSpace(printerName))
+        {
+            await dialog.ShowMessageAsync(PrintPaperTitle, NoPrinterMessage);
+            return;
+        }
+
+        var workbook = CurrentContent as IPrintableWorkbook;
+        var footer = new PrintFooterInfo(workbook?.PrintFooterProjectName ?? "", footerViTriName);
+        var document = _services.GetRequiredService<IMigraDocBuilder>().Build(sheets, footer);
+
+        try
+        {
+            await _services.GetRequiredService<IPrinterPort>()
+                .PrintAsync(new PrinterJob(document, printerName, chooser.Copies));
+        }
+        catch (PrintJobFailedException ex)
+        {
+            Log.Error(ex, "Máy in {Printer} báo lỗi", ex.PrinterName);
+            await dialog.ShowMessageAsync(PrintPaperTitle,
+                $"Máy in \"{ex.PrinterName}\" không in được. {ex.InnerException?.Message} " +
+                "Hãy kiểm tra máy in đã bật, có giấy và còn kết nối, rồi thử lại.");
+        }
+    }
 
     private Task ShowNothingToPrintAsync() =>
         _services.GetRequiredService<IDialogService>().ShowMessageAsync(PrintTitle, "Chưa có nội dung nào để in.");
@@ -195,7 +287,7 @@ public partial class MainWindowViewModel : ViewModelBase
     /// diện (mặc định của nó) và làm sập cả app, trong khi người dùng có thể đang có sổ chưa lưu. Nên lỗi ở BẤT KỲ
     /// bước nào — dựng sheet của màn, lấy dịch vụ, hộp thoại chọn nơi lưu... — dừng ở đây: ghi nhật ký rồi báo bằng
     /// một câu chung. Lỗi ở bước GHI TỆP thì PrintAsync đã xử lý riêng từ trước (câu riêng, nhật ký có đường dẫn).
-    private async Task GuardPrintAsync(Func<Task> print)
+    private async Task GuardPrintAsync(string title, Func<Task> print)
     {
         try
         {
@@ -204,7 +296,7 @@ public partial class MainWindowViewModel : ViewModelBase
         catch (Exception ex)
         {
             Log.Error(ex, "Lệnh In gặp lỗi bất ngờ");
-            await _services.GetRequiredService<IDialogService>().ShowMessageAsync(PrintFileTitle,
+            await _services.GetRequiredService<IDialogService>().ShowMessageAsync(title,
                 "Không in được do lỗi bất ngờ. Chi tiết lỗi đã được ghi vào nhật ký ứng dụng.");
         }
     }
@@ -339,8 +431,11 @@ public partial class MainWindowViewModel : ViewModelBase
     }
 
     /// CanExecuteChanged là thứ Avalonia nghe để bật/mờ lại từng mục menu; CanPrint/PrintToolTip là thứ nút In nghe.
+    /// Bốn lệnh, bốn lần báo: thiếu một là một mục menu đứng im với trạng thái của màn trước.
     private void RaisePrintStateChanged()
     {
+        ExportCurrentSheetCommand.NotifyCanExecuteChanged();
+        ExportAllCommand.NotifyCanExecuteChanged();
         PrintCurrentSheetCommand.NotifyCanExecuteChanged();
         PrintAllCommand.NotifyCanExecuteChanged();
         OnPropertyChanged(nameof(CanPrint));

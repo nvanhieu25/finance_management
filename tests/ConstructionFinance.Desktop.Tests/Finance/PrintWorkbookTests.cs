@@ -309,7 +309,7 @@ public class PrintWorkbookTests
         var dialog = new FakeDialogService { PickSaveFileResult = "/tmp/all.xlsx", OnMessage = _ => order.Add("warn") };
         var vm = NewMainWindowViewModel(BuildWorkbookWhereGdnttHasNoPackage(), writer, dialog, launcher);
 
-        await vm.PrintAllCommand.ExecuteAsync(null);
+        await vm.ExportAllCommand.ExecuteAsync(null);
 
         // Sáu sheet chứ không phải bảy: thiếu GĐNTT. Người dùng phải được NÓI điều đó, ngay sau khi ghi xong và trước khi Excel bật lên.
         written.ShouldNotBeNull().Select(sh => sh.SheetName).ShouldBe(AllSheetNames.Where(n => n != "GĐNTT"));
@@ -327,7 +327,7 @@ public class PrintWorkbookTests
         var dialog = new FakeDialogService { PickSaveFileResult = "/tmp/all.xlsx", OnMessage = _ => order.Add("warn") };
         var vm = NewMainWindowViewModel(BuildWorkbookWithTwoViTri(), writer, dialog, launcher);
 
-        await vm.PrintAllCommand.ExecuteAsync(null);
+        await vm.ExportAllCommand.ExecuteAsync(null);
 
         written.ShouldNotBeNull().Select(sh => sh.SheetName).ShouldBe(AllSheetNames);
         dialog.ShownMessages.ShouldBeEmpty();
@@ -368,7 +368,7 @@ public class PrintWorkbookTests
                 CurrentContent = workbook,
             };
 
-            await vm.PrintCurrentSheetCommand.ExecuteAsync(null);
+            await vm.ExportCurrentSheetCommand.ExecuteAsync(null);
 
             using var xlsx = new XLWorkbook(path);
             // OddPages: chuỗi thật sự nằm trong thẻ oddFooter của tệp (xem PrintWorkbookWriterTests.PrintedOccurrence).

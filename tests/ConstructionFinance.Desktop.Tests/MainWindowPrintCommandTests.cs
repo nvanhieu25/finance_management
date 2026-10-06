@@ -54,8 +54,8 @@ public class MainWindowPrintCommandTests
         var vm = CreateMainWindowViewModel();
         vm.CurrentContent = new object();                    // màn không implement IPrintablePage
 
-        vm.PrintCurrentSheetCommand.CanExecute(null).ShouldBeFalse();
-        vm.PrintAllCommand.CanExecute(null).ShouldBeFalse();
+        vm.ExportCurrentSheetCommand.CanExecute(null).ShouldBeFalse();
+        vm.ExportAllCommand.CanExecute(null).ShouldBeFalse();
     }
 
     [Fact]
@@ -64,8 +64,8 @@ public class MainWindowPrintCommandTests
         var vm = CreateMainWindowViewModel();
         vm.CurrentContent = new FakePrintablePage("Vị trí 1");
 
-        vm.PrintCurrentSheetCommand.CanExecute(null).ShouldBeTrue();
-        vm.PrintAllCommand.CanExecute(null).ShouldBeFalse();  // không phải IPrintableWorkbook
+        vm.ExportCurrentSheetCommand.CanExecute(null).ShouldBeTrue();
+        vm.ExportAllCommand.CanExecute(null).ShouldBeFalse();  // không phải IPrintableWorkbook
     }
 
     // Hợp đồng IPrintablePage: null nghĩa là không in được. Chuỗi rỗng không phải một tên sheet.
@@ -77,7 +77,7 @@ public class MainWindowPrintCommandTests
         var vm = CreateMainWindowViewModel();
         vm.CurrentContent = new FakePrintablePage(sheetName);
 
-        vm.PrintCurrentSheetCommand.CanExecute(null).ShouldBeFalse();
+        vm.ExportCurrentSheetCommand.CanExecute(null).ShouldBeFalse();
     }
 
     [Fact]
@@ -87,12 +87,12 @@ public class MainWindowPrintCommandTests
         var workbook = new FakePrintableWorkbook("Vị trí 1", canPrintAll: false);
         vm.CurrentContent = workbook;
 
-        vm.PrintAllCommand.CanExecute(null).ShouldBeFalse();   // là workbook, nhưng chưa có gì để in toàn bộ
-        vm.PrintCurrentSheetCommand.CanExecute(null).ShouldBeTrue();
+        vm.ExportAllCommand.CanExecute(null).ShouldBeFalse();   // là workbook, nhưng chưa có gì để in toàn bộ
+        vm.ExportCurrentSheetCommand.CanExecute(null).ShouldBeTrue();
 
         workbook.SetCanPrintAll(true);
 
-        vm.PrintAllCommand.CanExecute(null).ShouldBeTrue();
+        vm.ExportAllCommand.CanExecute(null).ShouldBeTrue();
     }
 
     // Cả nút In sáng khi ÍT NHẤT MỘT trong hai mục dùng được, và tooltip nói đúng trạng thái.
@@ -114,8 +114,8 @@ public class MainWindowPrintCommandTests
 
         // Tab đang mở không in được (vd. GĐNTT chưa chọn gói thầu) nhưng tab khác thì có: chỉ còn "In toàn bộ".
         vm.CurrentContent = new FakePrintableWorkbook(sheetName: null, canPrintAll: true);
-        vm.PrintCurrentSheetCommand.CanExecute(null).ShouldBeFalse();
-        vm.PrintAllCommand.CanExecute(null).ShouldBeTrue();
+        vm.ExportCurrentSheetCommand.CanExecute(null).ShouldBeFalse();
+        vm.ExportAllCommand.CanExecute(null).ShouldBeTrue();
         vm.CanPrint.ShouldBeTrue();
         vm.PrintToolTip.ShouldBe(EnabledToolTip);
 
@@ -134,8 +134,8 @@ public class MainWindowPrintCommandTests
         vm.CurrentContent = workbook;
         for (var i = 0; i < 3; i++)
         {
-            vm.PrintCurrentSheetCommand.CanExecute(null);
-            vm.PrintAllCommand.CanExecute(null);
+            vm.ExportCurrentSheetCommand.CanExecute(null);
+            vm.ExportAllCommand.CanExecute(null);
             _ = vm.CanPrint;
             _ = vm.PrintToolTip;
         }
@@ -156,8 +156,8 @@ public class MainWindowPrintCommandTests
     public void Doi_man_hinh_thi_hai_lenh_va_nut_In_deu_bao_da_doi()
     {
         var vm = CreateMainWindowViewModel();
-        var current = new CanExecuteChangedCounter(vm.PrintCurrentSheetCommand);
-        var all = new CanExecuteChangedCounter(vm.PrintAllCommand);
+        var current = new CanExecuteChangedCounter(vm.ExportCurrentSheetCommand);
+        var all = new CanExecuteChangedCounter(vm.ExportAllCommand);
         var changed = Collect(vm);
 
         vm.CurrentContent = new FakePrintablePage("Vị trí 1");
@@ -174,14 +174,14 @@ public class MainWindowPrintCommandTests
         var vm = CreateMainWindowViewModel();
         var page = new FakePrintablePage(null);
         vm.CurrentContent = page;
-        vm.PrintCurrentSheetCommand.CanExecute(null).ShouldBeFalse();
-        var current = new CanExecuteChangedCounter(vm.PrintCurrentSheetCommand);   // chỉ đếm phần do SetSheetName gây ra
-        var all = new CanExecuteChangedCounter(vm.PrintAllCommand);
+        vm.ExportCurrentSheetCommand.CanExecute(null).ShouldBeFalse();
+        var current = new CanExecuteChangedCounter(vm.ExportCurrentSheetCommand);   // chỉ đếm phần do SetSheetName gây ra
+        var all = new CanExecuteChangedCounter(vm.ExportAllCommand);
         var changed = Collect(vm);
 
         page.SetSheetName("Vị trí 2");                        // bắn PropertyChanged
 
-        vm.PrintCurrentSheetCommand.CanExecute(null).ShouldBeTrue();
+        vm.ExportCurrentSheetCommand.CanExecute(null).ShouldBeTrue();
         current.Count.ShouldBeGreaterThan(0);
         all.Count.ShouldBeGreaterThan(0);
         changed.ShouldContain(nameof(MainWindowViewModel.CanPrint));
@@ -194,12 +194,12 @@ public class MainWindowPrintCommandTests
         var vm = CreateMainWindowViewModel();
         var workbook = new FakePrintableWorkbook("Vị trí 1", canPrintAll: false);
         vm.CurrentContent = workbook;
-        var all = new CanExecuteChangedCounter(vm.PrintAllCommand);
+        var all = new CanExecuteChangedCounter(vm.ExportAllCommand);
         var changed = Collect(vm);
 
         workbook.SetCanPrintAll(true);                        // chỉ CanPrintAll đổi, PrintSheetName giữ nguyên
 
-        vm.PrintAllCommand.CanExecute(null).ShouldBeTrue();
+        vm.ExportAllCommand.CanExecute(null).ShouldBeTrue();
         all.Count.ShouldBeGreaterThan(0);
         changed.ShouldContain(nameof(MainWindowViewModel.CanPrint));
     }
@@ -211,8 +211,8 @@ public class MainWindowPrintCommandTests
         var vm = CreateMainWindowViewModel();
         var page = new FakePrintablePage("Vị trí 1");
         vm.CurrentContent = page;
-        var current = new CanExecuteChangedCounter(vm.PrintCurrentSheetCommand);
-        var all = new CanExecuteChangedCounter(vm.PrintAllCommand);
+        var current = new CanExecuteChangedCounter(vm.ExportCurrentSheetCommand);
+        var all = new CanExecuteChangedCounter(vm.ExportAllCommand);
         var changed = Collect(vm);
 
         page.RaiseOther("IsDirty");
@@ -256,8 +256,8 @@ public class MainWindowPrintCommandTests
         var left = new FakePrintablePage("Vị trí 1");
         vm.CurrentContent = left;
         vm.CurrentContent = new FakePrintablePage("Vị trí 2");
-        var current = new CanExecuteChangedCounter(vm.PrintCurrentSheetCommand);
-        var all = new CanExecuteChangedCounter(vm.PrintAllCommand);
+        var current = new CanExecuteChangedCounter(vm.ExportCurrentSheetCommand);
+        var all = new CanExecuteChangedCounter(vm.ExportAllCommand);
         var changed = Collect(vm);
 
         left.SetSheetName("Vị trí 1 (đã đổi tên)");
@@ -279,7 +279,7 @@ public class MainWindowPrintCommandTests
         var page = new FakePrintablePage("Vị trí 1");
         vm.CurrentContent = page;
 
-        await vm.PrintCurrentSheetCommand.ExecuteAsync(null);
+        await vm.ExportCurrentSheetCommand.ExecuteAsync(null);
 
         writer.WrittenSheets.Count.ShouldBe(1);
         writer.WrittenSheets[0].ShouldBeSameAs(page.BuiltSheet);   // đúng sheet của màn, không phải một bản trùng giá trị
@@ -297,7 +297,7 @@ public class MainWindowPrintCommandTests
         var vm = CreateMainWindowViewModel(writer, launcher, dialog, savePath: null);   // null = bấm Hủy
         vm.CurrentContent = new FakePrintablePage("Vị trí 1");
 
-        await vm.PrintCurrentSheetCommand.ExecuteAsync(null);
+        await vm.ExportCurrentSheetCommand.ExecuteAsync(null);
 
         writer.WrittenSheets.ShouldBeEmpty();
         writer.WriteCalls.ShouldBe(0);
@@ -312,7 +312,7 @@ public class MainWindowPrintCommandTests
         var vm = CreateMainWindowViewModel(dialog: dialog, savePath: "/tmp/x.xlsx");
         vm.CurrentContent = new FakePrintableWorkbook("Vị trí 1") { PrintWorkbookName = "DA-01" };
 
-        await vm.PrintCurrentSheetCommand.ExecuteAsync(null);
+        await vm.ExportCurrentSheetCommand.ExecuteAsync(null);
 
         var request = dialog.SaveFileRequests.ShouldHaveSingleItem();
         request.Title.ShouldBe("In ra Excel");
@@ -331,7 +331,7 @@ public class MainWindowPrintCommandTests
         vm.CurrentContent = new FakePrintableWorkbook("Vị trí 1")
         { PrintWorkbookName = "DA-01", PrintFooterProjectName = "Cầu Thủ Thiêm" };
 
-        await vm.PrintCurrentSheetCommand.ExecuteAsync(null);
+        await vm.ExportCurrentSheetCommand.ExecuteAsync(null);
 
         writer.WrittenFooter.ShouldBe(new PrintFooterInfo("Cầu Thủ Thiêm", "Vị trí 1"));
     }
@@ -346,7 +346,7 @@ public class MainWindowPrintCommandTests
         // thì không được im lặng.
         vm.CurrentContent = new FakePrintablePage("Vị trí 1") { ReturnsNoSheet = true };
 
-        await vm.PrintCurrentSheetCommand.ExecuteAsync(null);
+        await vm.ExportCurrentSheetCommand.ExecuteAsync(null);
 
         dialog.ShownMessages.ShouldBe(new[] { NothingToPrintMessage });
         dialog.SaveFileRequests.ShouldBeEmpty();
@@ -369,7 +369,7 @@ public class MainWindowPrintCommandTests
         workbook.AllSheets.AddRange(new[] { first, second, third });
         vm.CurrentContent = workbook;
 
-        await vm.PrintAllCommand.ExecuteAsync(null);
+        await vm.ExportAllCommand.ExecuteAsync(null);
 
         writer.WrittenSheets.Count.ShouldBe(3);
         writer.WrittenSheets[0].ShouldBeSameAs(first);
@@ -394,7 +394,7 @@ public class MainWindowPrintCommandTests
         workbook.AllSheets.AddRange(new[] { Sheet("Tổng hợp"), Sheet("Vị trí 1") });
         vm.CurrentContent = workbook;
 
-        await vm.PrintAllCommand.ExecuteAsync(null);
+        await vm.ExportAllCommand.ExecuteAsync(null);
 
         writer.WrittenFooter.ShouldBe(new PrintFooterInfo("Cầu Thủ Thiêm", null));
     }
@@ -411,7 +411,7 @@ public class MainWindowPrintCommandTests
         workbook.AllSheets.Add(Sheet("Tổng hợp"));
         vm.CurrentContent = workbook;
 
-        await vm.PrintAllCommand.ExecuteAsync(null);
+        await vm.ExportAllCommand.ExecuteAsync(null);
 
         writer.WrittenSheets.Count.ShouldBe(1);
         writer.WrittenFooter.ShouldBe(new PrintFooterInfo("Cầu Thủ Thiêm", null));
@@ -425,7 +425,7 @@ public class MainWindowPrintCommandTests
         var vm = CreateMainWindowViewModel(writer, dialog: dialog, savePath: "/tmp/all.xlsx");
         vm.CurrentContent = new FakePrintableWorkbook("Vị trí 1");   // CanPrintAll đúng, nhưng BuildAllSheets rỗng
 
-        await vm.PrintAllCommand.ExecuteAsync(null);
+        await vm.ExportAllCommand.ExecuteAsync(null);
 
         dialog.ShownMessages.ShouldBe(new[] { NothingToPrintMessage });
         dialog.SaveFileRequests.ShouldBeEmpty();                   // chưa có gì để in thì không hỏi nơi lưu
@@ -460,7 +460,7 @@ public class MainWindowPrintCommandTests
         var vm = CreateMainWindowViewModel(writer, launcher, dialog, savePath: "/tmp/all.xlsx");
         vm.CurrentContent = WorkbookSkipping(new SkippedPrintPage("GĐNTT", "chưa chọn gói thầu"));
 
-        await vm.PrintAllCommand.ExecuteAsync(null);
+        await vm.ExportAllCommand.ExecuteAsync(null);
 
         dialog.ShownMessages.ShouldBe(new[] { SkippedGdnttMessage });
         order.ShouldBe(new[] { "write", "warn", "open" });
@@ -482,7 +482,7 @@ public class MainWindowPrintCommandTests
         vm.CurrentContent = WorkbookSkipping(new SkippedPrintPage("GĐNTT", "chưa chọn gói thầu"));
         try
         {
-            var printing = vm.PrintAllCommand.ExecuteAsync(null);
+            var printing = vm.ExportAllCommand.ExecuteAsync(null);
 
             // Hộp thoại cảnh báo đã hiện và đang chờ người dùng bấm Đóng: lệnh chưa xong và tệp CHƯA được mở.
             dialog.ShownMessages.ShouldBe(new[] { SkippedGdnttMessage });
@@ -509,7 +509,7 @@ public class MainWindowPrintCommandTests
             new SkippedPrintPage("GĐNTT", "chưa chọn gói thầu"),
             new SkippedPrintPage("KS chi", null));
 
-        await vm.PrintAllCommand.ExecuteAsync(null);
+        await vm.ExportAllCommand.ExecuteAsync(null);
 
         dialog.ShownMessages.ShouldBe(new[]
         {
@@ -524,7 +524,7 @@ public class MainWindowPrintCommandTests
         var vm = CreateMainWindowViewModel(dialog: dialog, savePath: "/tmp/all.xlsx");
         vm.CurrentContent = WorkbookSkipping(new SkippedPrintPage("Trang thử", null));
 
-        await vm.PrintAllCommand.ExecuteAsync(null);
+        await vm.ExportAllCommand.ExecuteAsync(null);
 
         dialog.ShownMessages.ShouldBe(new[] { "MSG: In ra Excel — Đã bỏ qua Trang thử." });
     }
@@ -538,7 +538,7 @@ public class MainWindowPrintCommandTests
         var vm = CreateMainWindowViewModel(writer, launcher, dialog, savePath: "/tmp/all.xlsx");
         vm.CurrentContent = WorkbookSkipping(new SkippedPrintPage("GĐNTT", "chưa chọn gói thầu"));
 
-        await vm.PrintAllCommand.ExecuteAsync(null);
+        await vm.ExportAllCommand.ExecuteAsync(null);
 
         // Tệp chưa có thì "đã bỏ qua sheet nào" chưa có nghĩa gì: chỉ báo lỗi ghi.
         dialog.ShownMessages.ShouldBe(new[] { IoFailureMessage });
@@ -553,7 +553,7 @@ public class MainWindowPrintCommandTests
         var vm = CreateMainWindowViewModel(writer, dialog: dialog, savePath: null);   // null = bấm Hủy
         vm.CurrentContent = WorkbookSkipping(new SkippedPrintPage("GĐNTT", "chưa chọn gói thầu"));
 
-        await vm.PrintAllCommand.ExecuteAsync(null);
+        await vm.ExportAllCommand.ExecuteAsync(null);
 
         writer.WriteCalls.ShouldBe(0);
         dialog.ShownMessages.ShouldBeEmpty();
@@ -567,7 +567,7 @@ public class MainWindowPrintCommandTests
         var vm = CreateMainWindowViewModel(launcher: launcher, dialog: dialog, savePath: "/tmp/all.xlsx");
         vm.CurrentContent = WorkbookSkipping(new SkippedPrintPage("GĐNTT", "chưa chọn gói thầu"));
 
-        await vm.PrintAllCommand.ExecuteAsync(null);
+        await vm.ExportAllCommand.ExecuteAsync(null);
 
         dialog.ShownMessages.ShouldBe(new[]
         {
@@ -583,7 +583,7 @@ public class MainWindowPrintCommandTests
         var vm = CreateMainWindowViewModel(dialog: dialog, savePath: "/tmp/x.xlsx");
         vm.CurrentContent = WorkbookSkipping(new SkippedPrintPage("GĐNTT", "chưa chọn gói thầu"));
 
-        await vm.PrintCurrentSheetCommand.ExecuteAsync(null);
+        await vm.ExportCurrentSheetCommand.ExecuteAsync(null);
 
         dialog.ShownMessages.ShouldBeEmpty();
     }
@@ -602,7 +602,7 @@ public class MainWindowPrintCommandTests
         var vm = CreateMainWindowViewModel(writer, launcher, dialog, savePath: "/tmp/x.xlsx");
         vm.CurrentContent = new FakePrintablePage("Vị trí 1");
 
-        await vm.PrintCurrentSheetCommand.ExecuteAsync(null);
+        await vm.ExportCurrentSheetCommand.ExecuteAsync(null);
 
         dialog.ShownMessages.ShouldBe(new[] { IoFailureMessage });
         launcher.Opened.ShouldBeNull();
@@ -622,7 +622,7 @@ public class MainWindowPrintCommandTests
         var vm = CreateMainWindowViewModel(writer, dialog: dialog, savePath: "//server/share/in.xlsx");
         vm.CurrentContent = new FakePrintablePage("Vị trí 1");
 
-        var logged = await CaptureLogAsync(() => vm.PrintCurrentSheetCommand.ExecuteAsync(null));
+        var logged = await CaptureLogAsync(() => vm.ExportCurrentSheetCommand.ExecuteAsync(null));
 
         var shown = dialog.ShownMessages.ShouldHaveSingleItem();
         shown.ShouldBe(IoFailureMessage);
@@ -649,7 +649,7 @@ public class MainWindowPrintCommandTests
         var vm = CreateMainWindowViewModel(writer, launcher, dialog, savePath: "/tmp/x.xlsx");
         vm.CurrentContent = new FakePrintablePage("Vị trí 1");
 
-        await vm.PrintCurrentSheetCommand.ExecuteAsync(null);
+        await vm.ExportCurrentSheetCommand.ExecuteAsync(null);
 
         dialog.ShownMessages.ShouldBe(new[] { SaveLocationUnavailableMessage });
         launcher.Opened.ShouldBeNull();
@@ -669,7 +669,7 @@ public class MainWindowPrintCommandTests
         var vm = CreateMainWindowViewModel(writer, launcher, dialog, savePath: "/tmp/x.xlsx");
         vm.CurrentContent = new FakePrintablePage("Vị trí 1");
 
-        await vm.PrintCurrentSheetCommand.ExecuteAsync(null);      // không ném ra ngoài
+        await vm.ExportCurrentSheetCommand.ExecuteAsync(null);      // không ném ra ngoài
 
         dialog.ShownMessages.ShouldBe(new[] { WriteFailedMessage });   // câu chung: không lộ chữ của ngoại lệ ("boom")
         launcher.Opened.ShouldBeNull();
@@ -691,7 +691,7 @@ public class MainWindowPrintCommandTests
         var vm = CreateMainWindowViewModel(writer, savePath: "/tmp/x.xlsx");
         vm.CurrentContent = new FakePrintablePage("Vị trí 1");
 
-        var logged = await CaptureLogAsync(() => vm.PrintCurrentSheetCommand.ExecuteAsync(null));
+        var logged = await CaptureLogAsync(() => vm.ExportCurrentSheetCommand.ExecuteAsync(null));
 
         var entry = logged.Where(e => ReferenceEquals(e.Exception, failure)).ShouldHaveSingleItem();
         entry.Level.ShouldBe(LogEventLevel.Warning);
@@ -709,7 +709,7 @@ public class MainWindowPrintCommandTests
         var vm = CreateMainWindowViewModel(writer, savePath: "/tmp/x.xlsx");
         vm.CurrentContent = new FakePrintablePage("Vị trí 1");
 
-        var logged = await CaptureLogAsync(() => vm.PrintCurrentSheetCommand.ExecuteAsync(null));
+        var logged = await CaptureLogAsync(() => vm.ExportCurrentSheetCommand.ExecuteAsync(null));
 
         // Lọc theo chính đối tượng ngoại lệ: Serilog.Log là toàn cục nên có thể lẫn dòng của test khác.
         var entry = logged.Where(e => ReferenceEquals(e.Exception, failure)).ShouldHaveSingleItem();
@@ -724,7 +724,7 @@ public class MainWindowPrintCommandTests
         var vm = CreateMainWindowViewModel(launcher: launcher, dialog: dialog, savePath: "/tmp/x.xlsx");
         vm.CurrentContent = new FakePrintablePage("Vị trí 1");
 
-        await vm.PrintCurrentSheetCommand.ExecuteAsync(null);
+        await vm.ExportCurrentSheetCommand.ExecuteAsync(null);
 
         launcher.Opened.ShouldBe("/tmp/x.xlsx");
         dialog.ShownMessages.ShouldBe(new[] { "MSG: In ra Excel — Đã lưu tệp tại:\n/tmp/x.xlsx" });
@@ -743,7 +743,7 @@ public class MainWindowPrintCommandTests
             var vm = CreateMainWindowViewModel(new PrintWorkbookWriter(), launcher, dialog, savePath: path);
             vm.CurrentContent = new FakePrintablePage("Vị trí " + (char)0xD800);   // nửa đầu của một cặp surrogate, lẻ loi
 
-            await vm.PrintCurrentSheetCommand.ExecuteAsync(null);
+            await vm.ExportCurrentSheetCommand.ExecuteAsync(null);
 
             dialog.ShownMessages.ShouldBe(new[] { WriteFailedMessage });
             launcher.Opened.ShouldBeNull();
@@ -770,7 +770,7 @@ public class MainWindowPrintCommandTests
         var vm = CreateMainWindowViewModel(new PrintWorkbookWriter(), launcher, dialog, savePath: path);
         vm.CurrentContent = new FakePrintablePage("Vị trí 1");
 
-        await vm.PrintCurrentSheetCommand.ExecuteAsync(null);
+        await vm.ExportCurrentSheetCommand.ExecuteAsync(null);
 
         dialog.ShownMessages.ShouldBe(new[] { SaveLocationUnavailableMessage });
         launcher.Opened.ShouldBeNull();
@@ -788,7 +788,7 @@ public class MainWindowPrintCommandTests
         var vm = CreateMainWindowViewModel(new PrintWorkbookWriter(), launcher, dialog, savePath: path);
         vm.CurrentContent = new FakePrintablePage("Vị trí 1");
 
-        await vm.PrintCurrentSheetCommand.ExecuteAsync(null);
+        await vm.ExportCurrentSheetCommand.ExecuteAsync(null);
 
         dialog.ShownMessages.ShouldBe(new[] { SaveLocationUnavailableMessage });
         launcher.Opened.ShouldBeNull();
@@ -810,7 +810,7 @@ public class MainWindowPrintCommandTests
             var vm = CreateMainWindowViewModel(new PrintWorkbookWriter(), launcher, dialog, savePath: path);
             vm.CurrentContent = new FakePrintablePage("Vị trí 1");
 
-            await vm.PrintCurrentSheetCommand.ExecuteAsync(null);
+            await vm.ExportCurrentSheetCommand.ExecuteAsync(null);
 
             dialog.ShownMessages.ShouldBe(new[] { IoFailureMessage });
             launcher.Opened.ShouldBeNull();
@@ -837,7 +837,7 @@ public class MainWindowPrintCommandTests
         var vm = CreateMainWindowViewModel(writer, dialog: dialog, savePath: "/tmp/x.xlsx");
         vm.CurrentContent = new FakePrintablePage("Vị trí 1") { BuildFailure = failure };
 
-        var logged = await CaptureLogAsync(() => vm.PrintCurrentSheetCommand.ExecuteAsync(null));   // không ném ra ngoài
+        var logged = await CaptureLogAsync(() => vm.ExportCurrentSheetCommand.ExecuteAsync(null));   // không ném ra ngoài
 
         dialog.ShownMessages.ShouldBe(new[] { UnexpectedFailureMessage });
         dialog.SaveFileRequests.ShouldBeEmpty();
@@ -855,7 +855,7 @@ public class MainWindowPrintCommandTests
         var vm = CreateMainWindowViewModel(writer, dialog: dialog, savePath: "/tmp/all.xlsx");
         vm.CurrentContent = new FakePrintableWorkbook("Vị trí 1") { BuildAllFailure = failure };
 
-        var logged = await CaptureLogAsync(() => vm.PrintAllCommand.ExecuteAsync(null));
+        var logged = await CaptureLogAsync(() => vm.ExportAllCommand.ExecuteAsync(null));
 
         dialog.ShownMessages.ShouldBe(new[] { UnexpectedFailureMessage });
         dialog.SaveFileRequests.ShouldBeEmpty();
@@ -874,7 +874,7 @@ public class MainWindowPrintCommandTests
         var vm = CreateMainWindowViewModel(writer, launcher, dialog, savePath: "/tmp/x.xlsx");
         vm.CurrentContent = new FakePrintablePage("Vị trí 1");
 
-        await vm.PrintCurrentSheetCommand.ExecuteAsync(null);
+        await vm.ExportCurrentSheetCommand.ExecuteAsync(null);
 
         dialog.ShownMessages.ShouldBe(new[] { UnexpectedFailureMessage });
         writer.WriteCalls.ShouldBe(0);
@@ -916,7 +916,7 @@ public class MainWindowPrintCommandTests
     }
 
     [Fact]
-    public void Hai_muc_menu_In_gan_dung_hai_lenh_va_mo_theo_tung_lenh()
+    public void Bon_muc_menu_gan_dung_bon_lenh_va_mo_theo_tung_lenh()
     {
         RunWithMainWindow(BuildServices(null, null, null, savePath: null), (vm, window, button) =>
         {
@@ -927,13 +927,15 @@ public class MainWindowPrintCommandTests
             var flyout = (MenuFlyout)button.Flyout!;
             flyout.IsOpen.ShouldBeTrue();
             var items = flyout.Items.OfType<MenuItem>().ToList();
-            items.Count.ShouldBe(2);
-            var currentItem = items.Single(i => (string?)i.Header == "In sheet này");
-            var allItem = items.Single(i => (string?)i.Header == "In toàn bộ");
+            items.Count.ShouldBe(4);
+            var currentItem = items.Single(i => (string?)i.Header == "Xuất Excel sheet này");
+            var allItem = items.Single(i => (string?)i.Header == "Xuất Excel toàn bộ");
+            items.Single(i => (string?)i.Header == "In sheet này").Command.ShouldBeSameAs(vm.PrintCurrentSheetCommand);
+            items.Single(i => (string?)i.Header == "In toàn bộ").Command.ShouldBeSameAs(vm.PrintAllCommand);
 
             // Đúng lệnh ở đúng mục. Command null nghĩa là DataContext không đi vào được MenuFlyout.
-            currentItem.Command.ShouldBeSameAs(vm.PrintCurrentSheetCommand);
-            allItem.Command.ShouldBeSameAs(vm.PrintAllCommand);
+            currentItem.Command.ShouldBeSameAs(vm.ExportCurrentSheetCommand);
+            allItem.Command.ShouldBeSameAs(vm.ExportAllCommand);
             currentItem.IsEffectivelyEnabled.ShouldBeTrue();
             allItem.IsEffectivelyEnabled.ShouldBeTrue();
 
@@ -945,7 +947,7 @@ public class MainWindowPrintCommandTests
     }
 
     [Fact]
-    public void Bam_In_sheet_nay_tren_menu_ghi_tep_roi_mo_tep()
+    public void Bam_Xuat_Excel_sheet_nay_tren_menu_ghi_tep_roi_mo_tep()
     {
         var writer = new FakeWriter();
         var launcher = new FakeLauncher();
@@ -956,7 +958,7 @@ public class MainWindowPrintCommandTests
             vm.CurrentContent = new FakePrintableWorkbook("Vị trí 1");
             Click(window, button);
             var item = ((MenuFlyout)button.Flyout!).Items.OfType<MenuItem>()
-                .Single(i => (string?)i.Header == "In sheet này");
+                .Single(i => (string?)i.Header == "Xuất Excel sheet này");
 
             item.RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent));   // như người dùng bấm vào mục menu
             Dispatcher.UIThread.RunJobs();
@@ -989,11 +991,7 @@ public class MainWindowPrintCommandTests
         return services.BuildServiceProvider();
     }
 
-    private static PrintSheet Sheet(string name) => new PrintTableSheet(
-        name,
-        PrintPageProfiles.ViTriLedger,
-        new[] { new PrintColumn("Cột", 10, PrintAlign.Left) },
-        Array.Empty<PrintRow>());
+    private static PrintSheet Sheet(string name) => PrintFakes.Sheet(name);
 
     private static List<string?> Collect(INotifyPropertyChanged source)
     {
@@ -1114,141 +1112,5 @@ public class MainWindowPrintCommandTests
         public CanExecuteChangedCounter(ICommand command) => command.CanExecuteChanged += (_, _) => Count++;
 
         public int Count { get; private set; }
-    }
-
-    /// Màn in được. PrintSheetName đổi được lúc chạy và bắn PropertyChanged như màn thật.
-    private class FakePrintablePage : IPrintablePage, INotifyPropertyChanged
-    {
-        private string? _sheetName;
-
-        public FakePrintablePage(string? sheetName) => _sheetName = sheetName;
-
-        public event PropertyChangedEventHandler? PropertyChanged;
-
-        public string? PrintSheetName => _sheetName;
-
-        /// Mô phỏng một màn vi phạm hợp đồng IPrintablePage: có tên mà không trả được sheet.
-        public bool ReturnsNoSheet { get; init; }
-
-        /// Sheet mà lần BuildPrintSheet gần nhất đã trả (null nếu chưa gọi lần nào).
-        public PrintSheet? BuiltSheet { get; private set; }
-
-        public int BuildCalls { get; private set; }
-
-        /// Khác null thì BuildPrintSheet ném: mô phỏng lỗi trong code của chính màn.
-        public Exception? BuildFailure { get; init; }
-
-        public PrintSheet? BuildPrintSheet()
-        {
-            BuildCalls++;
-            if (BuildFailure is not null) throw BuildFailure;
-            if (ReturnsNoSheet || _sheetName is null) return null;
-            return BuiltSheet = Sheet(_sheetName);
-        }
-
-        public void SetSheetName(string? sheetName)
-        {
-            _sheetName = sheetName;
-            Raise(nameof(PrintSheetName));
-        }
-
-        public void RaiseOther(string propertyName) => Raise(propertyName);
-
-        /// Số handler đang nghe màn này: chứng cứ trực tiếp cho việc gắn/gỡ có đi đôi hay không.
-        public int SubscriberCount => PropertyChanged?.GetInvocationList().Length ?? 0;
-
-        protected void Raise(string propertyName) =>
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
-    }
-
-    private sealed class FakePrintableWorkbook : FakePrintablePage, IPrintableWorkbook
-    {
-        private bool _canPrintAll;
-
-        public FakePrintableWorkbook(string? sheetName, bool canPrintAll = true) : base(sheetName) =>
-            _canPrintAll = canPrintAll;
-
-        public string PrintWorkbookName { get; init; } = "DA-01";
-
-        /// Tên dự án (KHÁC mã trong PrintWorkbookName, cố ý) cho chân trang, để test thấy lỗi dùng nhầm cái này thay cái kia.
-        public string PrintFooterProjectName { get; init; } = "Cầu Thủ Thiêm";
-
-        public bool CanPrintAll => _canPrintAll;
-
-        public List<PrintSheet> AllSheets { get; } = new();
-
-        /// Các trang "In toàn bộ" đã bỏ qua vì không dựng được sheet.
-        public List<SkippedPrintPage> Skipped { get; } = new();
-
-        public int BuildAllCalls { get; private set; }
-
-        /// Khác null thì BuildAllSheets ném (vd. làm mới một tab tổng hợp hỏng).
-        public Exception? BuildAllFailure { get; init; }
-
-        public PrintAllResult BuildAllSheets()
-        {
-            BuildAllCalls++;
-            if (BuildAllFailure is not null) throw BuildAllFailure;
-            return new PrintAllResult(AllSheets, Skipped);
-        }
-
-        public void SetCanPrintAll(bool value)
-        {
-            _canPrintAll = value;
-            Raise(nameof(CanPrintAll));
-        }
-    }
-
-    private sealed class FakeWriter : IPrintWorkbookWriter
-    {
-        public List<PrintSheet> WrittenSheets { get; } = new();
-
-        public string? WrittenPath { get; private set; }
-
-        public PrintFooterInfo? WrittenFooter { get; private set; }
-
-        public int WriteCalls { get; private set; }
-
-        /// Gọi mỗi lần WriteAsync được gọi, để test ghi lại THỨ TỰ so với việc hiện thông báo và mở tệp.
-        public Action? OnWrite { get; init; }
-
-        /// Khác null thì WriteAsync trả một Task lỗi (như bộ ghi thật, vốn chạy trong Task.Run).
-        public Exception? FailWith { get; init; }
-
-        public void Write(IReadOnlyList<PrintSheet> sheets, Stream target, PrintFooterInfo footer) =>
-            throw new NotSupportedException("Lệnh In chỉ được gọi WriteAsync.");
-
-        public Task WriteAsync(
-            IReadOnlyList<PrintSheet> sheets,
-            string targetPath,
-            PrintFooterInfo footer,
-            CancellationToken ct = default)
-        {
-            WriteCalls++;
-            OnWrite?.Invoke();
-            if (FailWith is not null) return Task.FromException(FailWith);
-
-            WrittenSheets.AddRange(sheets);
-            WrittenPath = targetPath;
-            WrittenFooter = footer;
-            return Task.CompletedTask;
-        }
-    }
-
-    private sealed class FakeLauncher : IFileLauncher
-    {
-        public string? Opened { get; private set; }
-
-        public bool Result { get; init; } = true;
-
-        /// Gọi mỗi lần TryOpen được gọi, để test ghi lại THỨ TỰ so với ghi tệp và hiện thông báo.
-        public Action? OnOpen { get; init; }
-
-        public bool TryOpen(string path)
-        {
-            Opened = path;
-            OnOpen?.Invoke();
-            return Result;
-        }
     }
 }
