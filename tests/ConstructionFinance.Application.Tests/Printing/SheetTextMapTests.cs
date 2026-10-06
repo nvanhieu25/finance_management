@@ -4,6 +4,7 @@ using MigraDoc.DocumentObjectModel;
 using MigraDoc.DocumentObjectModel.Tables;
 using Shouldly;
 using Xunit;
+using Xunit.Sdk;
 
 namespace ConstructionFinance.Application.Tests.Printing;
 
@@ -21,6 +22,7 @@ public class SheetTextMapTests
             new("Ngày", 11, PrintAlign.Center),
             new("Nội dung", 38, PrintAlign.Left),
             new("Giá trị HĐ", 16, PrintAlign.Right),
+            new("Nhà thầu / TK", 24, PrintAlign.Left),
         },
         new[]
         {
@@ -29,12 +31,14 @@ public class SheetTextMapTests
                 PrintCell.OfDate(new DateOnly(2026, 10, 7)),
                 PrintCell.OfText("Gói thầu số 01"),
                 PrintCell.OfMoney(50_000_000_000m),
+                PrintCell.OfText("Công ty CP Thành Đạt\n0123456789"),
             }),
             new PrintRow(new[]
             {
                 PrintCell.Empty,
                 PrintCell.OfText("TỔNG CỘNG"),
                 PrintCell.OfMoney(50_000_000_000m),
+                PrintCell.Empty,
             }, IsBold: true, Shade: PrintShade.Light),
         });
 
@@ -73,7 +77,7 @@ public class SheetTextMapTests
 
         using (workbook)
         {
-            var ex = Should.Throw<Exception>(() =>
+            var ex = Should.Throw<XunitException>(() =>
                 SheetTextMap.AssertSameText(sheet.SheetName, worksheet, table));
             ex.Message.ShouldContain("Gói thầu số 01");
         }
@@ -91,7 +95,13 @@ public class SheetTextMapTests
         table.Rows[1]!.Cells[2]!.AddParagraph("Gói thầu số 01");
 
         using (workbook)
-            Should.Throw<Exception>(() => SheetTextMap.AssertSameText(sheet.SheetName, worksheet, table));
+        {
+            var ex = Should.Throw<XunitException>(() =>
+                SheetTextMap.AssertSameText(sheet.SheetName, worksheet, table));
+            // Hai lệch: (2,2) mất chữ, (2,3) mang chữ không phải của nó.
+            ex.Message.ShouldContain("(2,2)");
+            ex.Message.ShouldContain("(2,3)");
+        }
     }
 
     /// Danh sách lệch là chẩn đoán duy nhất của ba task chép biểu mẫu, và ô biểu mẫu thì dài.
@@ -113,15 +123,39 @@ public class SheetTextMapTests
 
         using (workbook)
         {
-            var ex = Should.Throw<Exception>(() =>
+            var ex = Should.Throw<XunitException>(() =>
                 SheetTextMap.AssertSameText(sheet.SheetName, worksheet, table));
             ex.Message.ShouldContain(longText);
         }
+    }
+
+    /// Ô nhiều dòng ("Nhà thầu / TK") phải được đọc đủ ở cả hai bên; xoá nó khỏi MigraDoc phải đỏ.
+    [Fact]
+    public void O_nhieu_dong_duoc_so_du_chu_o_ca_hai_ben()
+    {
+        var sheet = Fixture();
+        var worksheet = ExcelSheet(sheet, out var workbook);
+        var table = MigraDocTable(sheet);
+        SheetTextMap.FromMigraDoc(table)[(2, 4)].ShouldBe("Công ty CP Thành Đạt 0123456789");
+
+        table.Rows[1]!.Cells[3]!.Elements.Clear();
+        using (workbook)
+            Should.Throw<XunitException>(() => SheetTextMap.AssertSameText(sheet.SheetName, worksheet, table))
+                .Message.ShouldContain("Công ty CP Thành Đạt 0123456789");
     }
 
     [Fact]
     public void Chuan_hoa_bo_dau_phan_nghin_de_hai_van_hoa_so_sanh_duoc()
     {
         SheetTextMap.Normalize("50,000,000,000").ShouldBe(SheetTextMap.Normalize("50.000.000.000"));
+    }
+
+    /// Dòng điền của KS chi " + Mục ........, tiểu mục ........" người dùng viết tay lên bản in:
+    /// số chấm khác nhau phải bị phát hiện. Chỉ ô SỐ mới bị bỏ dấu phân cách.
+    [Fact]
+    public void Chuan_hoa_giu_dau_cham_cua_dong_dien_chu()
+    {
+        SheetTextMap.Normalize(" + Mục ........, tiểu mục ........")
+            .ShouldNotBe(SheetTextMap.Normalize(" + Mục ...., tiểu mục ...."));
     }
 }

@@ -1,6 +1,7 @@
 using ClosedXML.Excel;
 using MigraDoc.DocumentObjectModel;
 using MigraDoc.DocumentObjectModel.Tables;
+using System.Text.RegularExpressions;
 using Shouldly;
 using Xunit;
 
@@ -10,14 +11,26 @@ namespace ConstructionFinance.Application.Tests.Printing;
 /// Cả hai bản đồ dùng toạ độ 1-based như ClosedXML, nên so trực tiếp được.
 internal static class SheetTextMap
 {
-    /// Chuẩn hoá trước khi so. Ô tiền trong .xlsx là SỐ THẬT mang định dạng "#,##0", nên chữ
-    /// đọc ra phụ thuộc văn hoá của máy chạy test ("50,000,000,000" hay "50.000.000.000"),
-    /// còn MigraDoc nhận chuỗi đã dựng theo quy ước Việt. Bỏ dấu phân nghìn để so theo CHỮ SỐ.
+    /// Chuẩn hoá trước khi so. Hai việc:
+    ///  1. Khoảng trắng (kể cả xuống dòng và NBSP) gộp thành MỘT dấu cách: ô "Nhà thầu / TK" ghép
+    ///     hai dòng bằng "\n", và mỗi bên biểu diễn dấu xuống dòng một kiểu.
+    ///  2. CHỈ với ô là SỐ (toàn chữ số, dấu phân cách, dấu trừ đầu) mới bỏ "." và ",". Ô tiền trong
+    ///     .xlsx là số thật mang định dạng "#,##0" nên chữ đọc ra phụ thuộc văn hoá máy chạy test
+    ///     ("50,000,000,000" hay "50.000.000.000"), còn MigraDoc nhận chuỗi dựng theo quy ước Việt.
+    ///     Chữ thường GIỮ NGUYÊN dấu câu: dòng điền của KS chi " + Mục ........, tiểu mục ........"
+    ///     người dùng viết tay lên bản in, nên số chấm của nó phải so được.
     ///
-    /// Nói thẳng cái mất đi: sau khi chuẩn hoá, test này không còn phân biệt được dấu chấm với
-    /// dấu phẩy. Quy ước dấu chấm do PrintMoneyTextTests ghim riêng.
-    public static string Normalize(string raw) =>
-        raw.Replace(".", "").Replace(",", "").Replace(" ", " ").Trim();
+    /// Cái mất đi: với ô số, test này không phân biệt được dấu chấm với dấu phẩy. Quy ước dấu chấm do
+    /// PrintMoneyTextTests ghim riêng.
+    ///
+    /// Harness này CHỈ so chữ theo (dòng, cột). Nó KHÔNG so: khoảng gộp ô (MergeRight/MergeDown),
+    /// định dạng (đậm, nền, viền, căn lề), bề rộng cột, số dòng thừa ở MigraDoc, tên và thứ tự sheet,
+    /// chân trang, cấu hình trang. Những thứ đó thuộc phần render và phải xem bằng mắt.
+    public static string Normalize(string raw)
+    {
+        var text = Regex.Replace(raw, @"\s+", " ").Trim();
+        return Regex.IsMatch(text, @"^-?[\d.,]+$") ? text.Replace(".", "").Replace(",", "") : text;
+    }
 
     public static IReadOnlyDictionary<(int Row, int Column), string> FromExcel(IXLWorksheet worksheet)
     {
@@ -75,7 +88,19 @@ internal static class SheetTextMap
     private static string CellText(Table table, int row, int column)
     {
         var cell = table.Rows[row]!.Cells[column]!;
-        return string.Concat(cell.Elements.OfType<Paragraph>()
-            .Select(paragraph => string.Concat(paragraph.Elements.OfType<Text>().Select(text => text.Content))));
+        return string.Concat(cell.Elements.OfType<Paragraph>().Select(paragraph => InlineText(paragraph.Elements)));
     }
+
+    /// MigraDoc đổi "\n" trong AddParagraph/AddText thành Character(LineBreak), nên phải đọc cả
+    /// Character, FormattedText (đệ quy) chứ không chỉ Text.
+    private static string InlineText(DocumentObjectCollection elements) =>
+        string.Concat(elements.Cast<DocumentObject>().Select(element => element switch
+        {
+            Text text => text.Content,
+            FormattedText formatted => InlineText(formatted.Elements),
+            Character { SymbolName: SymbolName.LineBreak } => "\n",
+            Character { SymbolName: SymbolName.Tab } => "\t",
+            Character => " ",
+            _ => string.Empty,
+        }));
 }
