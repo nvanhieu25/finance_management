@@ -98,7 +98,7 @@ public sealed class MigraDocBuilder : IMigraDocBuilder
         // Tab dừng phải ở mép phải vùng chữ, để "Trang x/y" dạt sang phải như đường .xlsx.
         paragraph.Format.TabStops.AddTabStop(
             Unit.FromMillimeter(ExcelFitScale.UsableWidthMm(page.Orientation)), TabAlignment.Right);
-        paragraph.AddText(FooterLeftText(footer, page.Orientation, fontScale));
+        paragraph.AddText(FooterLeftText(footer));
         paragraph.AddTab();
         paragraph.AddText("Trang ");
         paragraph.AddPageField();
@@ -106,29 +106,20 @@ public sealed class MigraDocBuilder : IMigraDocBuilder
         paragraph.AddNumPagesField();
     }
 
-    /// Chỗ chừa bên phải cho "Trang 99/99" cộng một khoảng cách, mm.
-    private const double FooterRightReserveMm = 30.0;
-
-    /// Chặn dưới của ngân sách ký tự, để khổ giấy/tỉ lệ co lạ không bao giờ đẩy nó về 0 hay âm.
-    private const int MinFooterLeftChars = 10;
-
-    /// "Tên dự án · Tên Vị trí", cắt cho vừa tờ giấy. KHÔNG nhân đôi dấu & như đường .xlsx — đó
-    /// mới là luật riêng của Excel (& là mã điều khiển). Còn việc cắt thì là luật của giấy: chữ
-    /// không được chạy ra khỏi mép giấy. Con số 255 là của Excel, nên ngân sách ở đây suy từ
-    /// bề ngang giấy: (vùng chữ − chỗ chừa cho số trang) ÷ bề rộng một ký tự. Một ký tự chân trang
-    /// ước bằng một đơn vị bề rộng Excel (7px) nhân tỉ lệ co. Times New Roman không phải Calibri
-    /// nên đây chỉ là ƯỚC LƯỢNG — chấp nhận được cho một mức TRẦN.
-    private static string FooterLeftText(PrintFooterInfo footer, PrintOrientation orientation, double fontScale)
+    /// "Tên dự án · Tên Vị trí", cắt ở ĐÚNG số ký tự của đường .xlsx
+    /// (PrintWorkbookWriter.MaxFooterLeftChars) để hai bản in đọc giống hệt nhau. Mức cắt này
+    /// KHÔNG nhằm bảo đảm chân trang vừa tờ giấy: một đoạn liền không dấu cách dài hơn trang vẫn
+    /// chạy ra mép phải, vì MigraDoc không ngắt giữa từ. Tên dự án thật có dấu cách nên chúng
+    /// xuống dòng chứ không tràn. KHÔNG nhân đôi dấu & như đường .xlsx — đó mới là luật riêng
+    /// của Excel (& là mã điều khiển).
+    private static string FooterLeftText(PrintFooterInfo footer)
     {
         var text = string.Join(" · ", new[] { footer.ProjectName, footer.ViTriName }
             .Where(part => !string.IsNullOrWhiteSpace(part)));
 
-        var charMm = (ExcelFitScale.ContentWidthMm(new[] { 1.0 }) - ExcelFitScale.ContentWidthMm(new[] { 0.0 })) * fontScale;
-        var budget = Math.Max(MinFooterLeftChars,
-            (int)Math.Floor((ExcelFitScale.UsableWidthMm(orientation) - FooterRightReserveMm) / charMm));
-
-        return text.Length > budget
-            ? TextTruncation.Truncate(text, budget - 1) + "…"   // chừa một chỗ cho "…", như đường .xlsx
+        var cap = PrintWorkbookWriter.MaxFooterLeftChars;
+        return text.Length > cap
+            ? TextTruncation.Truncate(text, cap - 1) + "…"   // chừa một chỗ cho "…", như đường .xlsx
             : text;
     }
 

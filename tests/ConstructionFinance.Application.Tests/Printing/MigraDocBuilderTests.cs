@@ -181,28 +181,30 @@ public class MigraDocBuilderTests
         PdfProbe.Render(document).PageCount.ShouldBe(1);
     }
 
-    /// Tên dự án dài nhưng CÓ dấu cách là trường hợp thường gặp: vừa ngân sách thì giữ nguyên,
-    /// không được cắt thừa.
+    /// Bảo vệ trường hợp THƯỜNG GẶP: một tên dự án hành chính thật phải còn nguyên vẹn. Một bản
+    /// trước của code này từng cắt chân trang ở 83 ký tự và làm cụt đúng tên như thế này.
     [Fact]
-    public void Ten_du_an_dai_co_dau_cach_ma_van_vua_thi_khong_bi_cat()
+    public void Ten_du_an_hanh_chinh_that_khong_bi_cat()
     {
-        const string name = "Dự án xây dựng cầu vượt sông Hồng đoạn qua quận Long Biên";
+        const string name = "Dự án đầu tư xây dựng công trình đường ven biển đoạn qua huyện Hoằng Hóa";
         var document = new MigraDocBuilder().Build(new PrintSheet[] { Sheet() }, new PrintFooterInfo(name, "Vị trí 1"));
 
-        FooterLeftOf(document).ShouldBe(name + " · Vị trí 1");
+        var left = FooterLeftOf(document);
+        left.ShouldNotContain("…");
+        left.ShouldContain(name);
     }
 
-    /// Một tên 600 ký tự không dấu cách vẽ ra sẽ xuống ba dòng và chạy khỏi mép phải tờ giấy
-    /// (đã thấy trên PDF thật), dù vẫn một trang. Test này ghim việc nó bị CẮT cho vừa giấy.
+    /// Một tên 600 ký tự liền không dấu cách bị cắt ở đúng mức của đường .xlsx. (Cắt KHÔNG đủ để
+    /// một đoạn liền vừa tờ giấy — xem FooterLeftText — nên test này ghim việc hai bản cắt giống nhau.)
     [Fact]
-    public void Ten_du_an_dai_ba_tram_ky_tu_bi_cat_cho_vua_giay_chu_khong_chay_ra_mep()
+    public void Ten_du_an_dai_ba_tram_ky_tu_bi_cat_dung_muc_cua_duong_xlsx()
     {
         var footer = new PrintFooterInfo(new string('A', 300), new string('B', 300));
 
         var document = new MigraDocBuilder().Build(new PrintSheet[] { Sheet() }, footer);
 
         var left = FooterLeftOf(document);
-        left.Length.ShouldBeLessThan(200);
+        left.Length.ShouldBeLessThanOrEqualTo(PrintWorkbookWriter.MaxFooterLeftChars);
         left.ShouldEndWith("…");
         PdfProbe.Render(document).PageCount.ShouldBe(1);
     }
