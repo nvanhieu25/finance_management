@@ -317,4 +317,166 @@ public class MigraDocFormSheetTests
         table.Rows[0]!.Cells[0]!.Borders.Width.Point.ShouldBe(0);
         table.Rows[19]!.Cells[0]!.Borders.Width.Point.ShouldBe(0);
     }
+
+    // ===== GĐNTT =====
+
+    private static GdnttForm GdnttFixture() => new(
+        DonViCapTren: "SỞ XÂY DỰNG",
+        DonViCoSo: "Ban QLDA số 1",
+        So: "17",
+        NgayThangNam: "07 tháng 10 năm 2026",
+        KinhGui: "Kho bạc Nhà nước tỉnh",
+        TenDuAnCongTrinh: "Đường ven biển",
+        ChuDauTu: "Ban QLDA số 1",
+        CanCuQuyetDinh: "123/QĐ-UBND",
+        CanCuHopDong: "01/2026/HĐ-XL",
+        CanCuGiayDeNghi: "05/GĐN",
+        ThuocKeHoach: "năm 2026",
+        PackageName: "Gói thầu số 01",
+        ContractorName: "Công ty CP Xây dựng Thành Đạt",
+        BankAccount: "0123456789",
+        TaiNganHang: "Vietcombank chi nhánh tỉnh",
+        UnrecoveredAdvanceBefore: 10_000_000_000m,
+        ContractTotal: 50_000_000_000m,
+        CumulativeBefore: 20_000_000_000m,
+        RequestedThisPeriod: 15_000_000_000m,
+        RequestedInWords: "Mười lăm tỷ đồng",
+        RecoveredThisPeriod: 5_000_000_000m,
+        ChuyenTienBaoHanh: 1_000_000_000m,
+        ChuyenTienTamGiu: 500_000_000m,
+        PaidToContractor: 8_500_000_000m,
+        NguonVon: "NSNN");
+
+    private static IXLWorksheet ExcelGdntt(GdnttForm form, out XLWorkbook workbook)
+    {
+        var sheet = new GdnttPrintSheet("GĐNTT", PrintPageProfiles.Gdntt, form);
+        using var buffer = new MemoryStream();
+        new PrintWorkbookWriter().Write(new PrintSheet[] { sheet }, buffer, Footer);
+        buffer.Position = 0;
+        workbook = new XLWorkbook(buffer);
+        return workbook.Worksheets.First();
+    }
+
+    private static Table MigraDocGdntt(GdnttForm form)
+    {
+        var sheet = new GdnttPrintSheet("GĐNTT", PrintPageProfiles.Gdntt, form);
+        return new MigraDocBuilder().Build(new PrintSheet[] { sheet }, Footer)
+            .Sections[0]!.Elements.OfType<Table>().First();
+    }
+
+    [Fact]
+    public void Gdntt_khop_tung_o_voi_ban_xlsx()
+    {
+        var form = GdnttFixture();
+        var worksheet = ExcelGdntt(form, out var workbook);
+        using (workbook)
+            SheetTextMap.AssertSameText("GĐNTT", worksheet, MigraDocGdntt(form));
+    }
+
+    [Fact]
+    public void Gdntt_co_chin_cot()
+    {
+        MigraDocGdntt(GdnttFixture()).Columns.Count.ShouldBe(9);
+    }
+
+    [Fact]
+    public void Gdntt_in_ngang_tren_A4()
+    {
+        var sheet = new GdnttPrintSheet("GĐNTT", PrintPageProfiles.Gdntt, GdnttFixture());
+        var result = PdfProbe.Render(new MigraDocBuilder().Build(new PrintSheet[] { sheet }, Footer));
+
+        result.Pages[0].IsLandscape.ShouldBeTrue();
+        result.Pages[0].WidthMm.ShouldBe(297.0, 0.5);
+    }
+
+    /// Dòng CỘNG (19) phải gộp 4:5 / 6:7 / 8:9 ĐÚNG NHƯ dòng gói thầu (18): trong cùng một
+    /// khung kẻ, cột của hai dòng phải thẳng nhau, nếu không bản in lệch nhìn thấy rõ.
+    [Theory]
+    [InlineData(18)]
+    [InlineData(19)]
+    public void Gdntt_dong_goi_thau_va_dong_Cong_gop_cot_giong_nhau(int row)
+    {
+        var table = MigraDocGdntt(GdnttFixture());
+
+        table.Rows[row - 1]!.Cells[0]!.MergeRight.ShouldBe(2);   // NỘI DUNG: 1:3
+        table.Rows[row - 1]!.Cells[3]!.MergeRight.ShouldBe(1);   // 4:5
+        table.Rows[row - 1]!.Cells[5]!.MergeRight.ShouldBe(1);   // 6:7
+        table.Rows[row - 1]!.Cells[7]!.MergeRight.ShouldBe(1);   // 8:9
+    }
+
+    /// Sau task này bộ dựng MigraDoc biết cả sáu tài liệu. Cùng luật với
+    /// PrintFormSheet_chi_co_ba_bieu_mau_ma_bo_ghi_biet_ve của đường .xlsx: thêm biểu mẫu mới
+    /// (KH vốn / Vốn / QĐ…) mà quên hàm vẽ MigraDoc thì test này đỏ TRƯỚC khi người dùng bấm In.
+    [Fact]
+    public void Bo_dung_MigraDoc_biet_ve_dung_ba_bieu_mau()
+    {
+        var footer = new PrintFooterInfo("Dự án A", null);
+        PrintSheet[] all =
+        {
+            new ThongTriPrintSheet("Thông tri", PrintPageProfiles.ThongTri, ThongTriFixture()),
+            new KsChiPrintSheet("KS chi", PrintPageProfiles.KsChi, KsChiFixture()),
+            new GdnttPrintSheet("GĐNTT", PrintPageProfiles.Gdntt, GdnttFixture()),
+        };
+
+        Should.NotThrow(() => new MigraDocBuilder().Build(all, footer));
+    }
+
+    // ----- GĐNTT: cấu trúc bố cục -----
+    // Như hai nhóm trên: so chữ từng ô không thấy gộp ô, đậm, căn giữa, viền; nhóm này ghim chúng.
+
+    public static IEnumerable<object[]> GdnttMergeAnchors()
+    {
+        // (dòng, cột, MergeRight, MergeDown)
+        foreach (var row in new[] { 1, 2, 3 })
+            yield return new object[] { row, 4, 5, 0 };
+        yield return new object[] { 4, 1, 8, 0 };
+        foreach (var row in Enumerable.Range(6, 11))
+            yield return new object[] { row, 1, 2, 0 };
+        foreach (var row in new[] { 17, 18, 19 })
+        {
+            yield return new object[] { row, 1, 2, 0 };
+            yield return new object[] { row, 4, 1, 0 };
+            yield return new object[] { row, 6, 1, 0 };
+            yield return new object[] { row, 8, 1, 0 };
+        }
+        yield return new object[] { 21, 2, 7, 0 };
+        yield return new object[] { 29, 2, 7, 0 };
+        yield return new object[] { 31, 1, 2, 0 };
+        yield return new object[] { 31, 5, 4, 0 };
+    }
+
+    [Theory]
+    [MemberData(nameof(GdnttMergeAnchors))]
+    public void Gdntt_gop_o_dung_neo(int row, int column, int mergeRight, int mergeDown)
+    {
+        var cell = MigraDocGdntt(GdnttFixture()).Rows[row - 1]!.Cells[column - 1]!;
+        cell.MergeRight.ShouldBe(mergeRight);
+        cell.MergeDown.ShouldBe(mergeDown);
+    }
+
+    [Fact]
+    public void Gdntt_dong_tieu_de_bang_dam_va_can_giua()
+    {
+        var table = MigraDocGdntt(GdnttFixture());
+        foreach (var (row, column) in new[] { (17, 1), (17, 4), (17, 6), (17, 8) })
+        {
+            var cell = table.Rows[row - 1]!.Cells[column - 1]!;
+            cell.Format.Font.Bold.ShouldBeTrue($"({row},{column}) phải đậm");
+            cell.Elements.OfType<Paragraph>().First().Format.Alignment
+                .ShouldBe(ParagraphAlignment.Center, $"({row},{column}) phải căn giữa");
+        }
+    }
+
+    /// Nửa sau là nửa phân biệt: viền chỉ ở khối (17,1)-(19,9); dòng 1 và dòng 20 không có viền.
+    [Fact]
+    public void Gdntt_vien_chi_o_khoi_bang()
+    {
+        var table = MigraDocGdntt(GdnttFixture());
+
+        table.Rows[16]!.Cells[0]!.Borders.Width.Point.ShouldBeGreaterThan(0);
+        table.Rows[17]!.Cells[3]!.Borders.Width.Point.ShouldBeGreaterThan(0);
+        table.Rows[18]!.Cells[7]!.Borders.Width.Point.ShouldBeGreaterThan(0);
+        table.Rows[0]!.Cells[0]!.Borders.Width.Point.ShouldBe(0);
+        table.Rows[19]!.Cells[0]!.Borders.Width.Point.ShouldBe(0);
+    }
 }

@@ -176,4 +176,113 @@ internal static class MigraDocFormSheets
         grid.Money(row, 4, amounts.NSNN);
         grid.Money(row, 5, amounts.NgoaiHoi);
     }
+
+    /// Chép FormExcelExporter.WriteGdnttSheet. Chín cột: 26 rồi tám cột 16. Giấy NGANG.
+    public static Table WriteGdntt(Section section, GdnttForm form)
+    {
+        var widths = new double[9];
+        widths[0] = 26;
+        for (var index = 1; index < widths.Length; index++) widths[index] = 16;
+        var grid = new FormGrid(widths);
+
+        grid.Text(1, 1, form.DonViCapTren ?? "");
+        grid.Text(2, 1, form.DonViCoSo ?? "");
+        grid.Text(3, 1, $"Số: {FormExcelExporter.Blank(form.So)}");
+        grid.Text(1, 4, "CỘNG HOÀ XÃ HỘI CHỦ NGHĨA VIỆT NAM");
+        grid.Text(2, 4, "Độc lập - Tự do - Hạnh phúc");
+        grid.Text(3, 4, $"Ngày {FormExcelExporter.Blank(form.NgayThangNam)}");
+        foreach (var row in new[] { 1, 2, 3 })
+        {
+            grid.Merge(row, 4, row, 9);
+            grid.Center(row, 4, row, 4);
+        }
+        grid.Bold(1, 4, 1, 4);
+        grid.Bold(2, 4, 2, 4);
+
+        grid.Text(4, 1, "GIẤY ĐỀ NGHỊ THANH TOÁN VỐN ĐẦU TƯ");
+        grid.Merge(4, 1, 4, 9);
+        grid.Bold(4, 1, 4, 1);
+        grid.Center(4, 1, 4, 1);
+
+        grid.Text(6, 1, $"Kính gửi: {form.KinhGui ?? ""}");
+        grid.Text(8, 1, $" - Tên dự án công trình: {form.TenDuAnCongTrinh ?? ""}");
+        grid.Text(9, 1, $" - Chủ đầu tư/Ban QLDA: {form.ChuDauTu ?? ""}");
+        grid.Text(10, 1, $" - Căn cứ Quyết định số: {form.CanCuQuyetDinh ?? ""}");
+        grid.Text(11, 1, $" - Căn cứ Hợp đồng số: {form.CanCuHopDong ?? ""}");
+        grid.Text(12, 1, $" - Căn cứ giấy đề nghị thanh toán vốn đầu tư số: {form.CanCuGiayDeNghi ?? ""}");
+        grid.Text(13, 1, " - Số dư tạm ứng của hạng mục đề nghị thanh toán:");
+        grid.Money(13, 4, form.UnrecoveredAdvanceBefore);
+        grid.Text(14, 1, " - Số tiền đề nghị (tạm ứng, thanh toán KLHT) đến kỳ này:");
+        grid.Text(15, 1, $" - Thuộc nguồn vốn: {form.NguonVon}");
+        grid.Text(16, 1, $" - Thuộc kế hoạch: {form.ThuocKeHoach ?? ""}");
+        foreach (var row in Enumerable.Range(6, 11)) grid.Merge(row, 1, row, 3);
+
+        grid.Text(17, 1, "NỘI DUNG");
+        grid.Merge(17, 1, 17, 3);
+        grid.Text(17, 4, "Dự toán duyệt hoặc giá trị trúng thầu hoặc giá trị HĐ");
+        grid.Merge(17, 4, 17, 5);
+        grid.Text(17, 6, "Lũy kế số vốn đã T/Toán từ K/công đến cuối kỳ trước (Gồm cả tạm ứng)");
+        grid.Merge(17, 6, 17, 7);
+        grid.Text(17, 8, "Số đề nghị tạm ứng, thanh toán KLHT kỳ này (Gồm cả tạm ứng)");
+        grid.Merge(17, 8, 17, 9);
+        grid.Bold(17, 1, 17, 9);
+        grid.Center(17, 1, 17, 9);
+
+        grid.Text(18, 1, form.PackageName);
+        grid.Merge(18, 1, 18, 3);
+        WriteGdnttMoneyMerged(grid, 18, 4, 5, form.ContractTotal);
+        WriteGdnttMoneyMerged(grid, 18, 6, 7, form.CumulativeBefore);
+        WriteGdnttMoneyMerged(grid, 18, 8, 9, form.RequestedThisPeriod);
+
+        grid.Text(19, 1, "CỘNG");
+        grid.Merge(19, 1, 19, 3);
+        // Cùng ba cặp gộp 4:5 / 6:7 / 8:9 như dòng 18 — trong cùng một khung kẻ, cột của
+        // dòng CỘNG phải thẳng với dòng gói thầu bên trên.
+        WriteGdnttMoneyMerged(grid, 19, 4, 5, form.ContractTotal);
+        WriteGdnttMoneyMerged(grid, 19, 6, 7, form.CumulativeBefore);
+        WriteGdnttMoneyMerged(grid, 19, 8, 9, form.RequestedThisPeriod);
+        grid.Bold(19, 1, 19, 9);
+
+        grid.Border(17, 1, 19, 9);
+
+        grid.Text(20, 1, " - Tổng số tiền đề nghị tạm ứng, thanh toán bằng số:");
+        grid.Money(20, 8, form.RequestedThisPeriod);
+        grid.Text(21, 1, " - Bằng chữ:");
+        grid.Text(21, 2, form.RequestedInWords);
+        grid.Merge(21, 2, 21, 9);
+        grid.Text(22, 1, "Trong đó:");
+        grid.Text(23, 2, " - Thanh toán để thu hồi tạm ứng:");
+        grid.Money(23, 8, form.RecoveredThisPeriod);
+        grid.Text(24, 2, " - Chuyển tiền bảo hành:");
+        grid.Money(24, 8, form.ChuyenTienBaoHanh);
+        grid.Text(25, 2, " - Chuyển tiền tạm giữ chờ quyết toán:");
+        grid.Money(25, 8, form.ChuyenTienTamGiu);
+        grid.Text(26, 2, " - Số trả nhà thầu:");
+        grid.Money(26, 8, form.PaidToContractor);
+        grid.Bold(26, 1, 26, 9);
+
+        grid.Text(27, 1, " - Tên đơn vị thụ hưởng:");
+        grid.Text(27, 3, form.ContractorName ?? "");
+        grid.Text(28, 1, " - Tài khoản:");
+        grid.Text(28, 4, form.BankAccount ?? "");
+        grid.Text(29, 1, " - Tại:");
+        grid.Text(29, 2, form.TaiNganHang ?? "");
+        grid.Merge(29, 2, 29, 9);
+
+        grid.Text(31, 1, "Trưởng phòng Tài chính");
+        grid.Text(31, 5, "Chủ đầu tư");
+        grid.Merge(31, 1, 31, 3);
+        grid.Merge(31, 5, 31, 9);
+        grid.Center(31, 1, 31, 9);
+
+        return grid.Render(section, PrintOrientation.Landscape);
+    }
+
+    /// Tiền ghi vào ô ĐẦU của một dải gộp — bảng tổng hợp GĐNTT gộp 4:5 / 6:7 / 8:9 trên cả
+    /// dòng gói thầu và dòng CỘNG bên dưới.
+    private static void WriteGdnttMoneyMerged(FormGrid grid, int row, int fromColumn, int toColumn, decimal value)
+    {
+        grid.Money(row, fromColumn, value);
+        grid.Merge(row, fromColumn, row, toColumn);
+    }
 }
