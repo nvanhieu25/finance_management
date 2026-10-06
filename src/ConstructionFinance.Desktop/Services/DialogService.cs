@@ -21,7 +21,7 @@ public class DialogService : IDialogService
         {
             Title = (viewModel as IHasDialogTitle)?.DialogTitle ?? "",
             Content = content,
-            PrimaryButtonText = "Lưu",
+            PrimaryButtonText = (viewModel as IHasPrimaryButtonText)?.PrimaryButtonText ?? "Lưu",
             CloseButtonText = "Hủy"
         };
         // FluentAvalonia caps content at ContentDialogMaxWidth (~548). Content wider than
@@ -147,4 +147,11 @@ public class DialogService : IDialogService
 public interface IHasDialogTitle
 {
     string DialogTitle { get; }
+}
+
+/// Hộp thoại nào muốn nút chính mang chữ khác "Lưu" thì cài interface này. Hộp thoại chọn máy
+/// in bấm "Lưu" để in là nói sai việc nó làm.
+public interface IHasPrimaryButtonText
+{
+    string PrimaryButtonText { get; }
 }

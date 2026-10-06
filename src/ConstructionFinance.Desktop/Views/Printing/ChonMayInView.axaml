@@ -1,0 +1,20 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:ConstructionFinance.Desktop.ViewModels.Printing"
+             x:Class="ConstructionFinance.Desktop.Views.Printing.ChonMayInView"
+             x:DataType="vm:ChonMayInViewModel">
+    <StackPanel Spacing="12" MinWidth="380" Margin="4">
+        <TextBlock Text="Máy in" FontWeight="SemiBold"/>
+        <ComboBox ItemsSource="{Binding Printers}"
+                  SelectedItem="{Binding SelectedPrinter}"
+                  HorizontalAlignment="Stretch"/>
+
+        <TextBlock Text="Số bản" FontWeight="SemiBold"/>
+        <!-- Value là decimal? của Avalonia, và CopiesValue cũng là decimal?: bind đúng kiểu,
+             không StringFormat. Minimum/Maximum chỉ là lớp chắn đầu tiên — view-model kẹp lại. -->
+        <NumericUpDown Value="{Binding CopiesValue}"
+                       Minimum="1" Maximum="99" Increment="1"
+                       FormatString="0"
+                       HorizontalAlignment="Left" Width="140"/>
+    </StackPanel>
+</UserControl>

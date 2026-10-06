@@ -9,9 +9,15 @@ public class FakeDialogService : IDialogService
     public bool ConfirmResult { get; set; } = true;
     public bool? DialogResult { get; set; } = true;
 
+    /// Gọi mỗi khi một hộp thoại được mở, với chính view-model của nó — để test giả lập việc
+    /// người dùng chọn máy in và gõ số bản TRƯỚC khi hộp thoại "đóng". Không có nó thì mọi
+    /// test chỉ kiểm được giá trị mặc định.
+    public Action<object>? OnDialog { get; set; }
+
     public Task<bool?> ShowDialogAsync<TViewModel>(TViewModel viewModel) where TViewModel : class
     {
         OpenedDialogs.Add(viewModel);
+        OnDialog?.Invoke(viewModel);
         return Task.FromResult(DialogResult);
     }
 
