@@ -39,7 +39,7 @@ public class PrintToPrinterCommandTests
 
     /// Dựng view-model với bản giả cho mọi thứ chạm thế giới ngoài. `printers` rỗng nghĩa là
     /// máy chưa cài máy in nào.
-    private static Harness Create(string[]? printers = null)
+    private static Harness Create(string[]? printers = null, bool withPrinterSupport = true)
     {
         var dialog = new FakeDialogService();
         var port = new FakePrinterPort();
@@ -48,12 +48,15 @@ public class PrintToPrinterCommandTests
         services.AddSingleton<IFileLauncher>(new FakeLauncher());
         services.AddSingleton<IPrintWorkbookWriter>(new PrintWorkbookWriter());
         services.AddSingleton<IMigraDocBuilder>(new MigraDocBuilder());
-        services.AddSingleton<IPrinterPort>(port);
-        services.AddSingleton<IPrinterCatalog>(new FakeCatalog
+        if (withPrinterSupport)
         {
-            InstalledPrinters = printers ?? new[] { "Máy in A", "Máy in B" },
-            DefaultPrinterName = (printers ?? new[] { "Máy in A" }).FirstOrDefault(),
-        });
+            services.AddSingleton<IPrinterPort>(port);
+            services.AddSingleton<IPrinterCatalog>(new FakeCatalog
+            {
+                InstalledPrinters = printers ?? new[] { "Máy in A", "Máy in B" },
+                DefaultPrinterName = (printers ?? new[] { "Máy in A" }).FirstOrDefault(),
+            });
+        }
 
         var provider = services.BuildServiceProvider();
         // Ctor nhận HAI tham số: IServiceProvider và INavigationService.
@@ -143,11 +146,46 @@ public class PrintToPrinterCommandTests
         harness.Port.Jobs.ShouldBeEmpty();
     }
 
-    /// …nhưng nút In vẫn phải sáng, vì hai mục Xuất Excel còn dùng được.
+    /// …nhưng nút In vẫn phải sáng, vì hai mục Xuất Excel còn dùng được. Dựng cấu hình mà hai lệnh
+    /// In ra giấy KHÔNG dùng được (không có cổng máy in), để chỉ còn phía Xuất Excel giữ nút sáng.
     [Fact]
-    public void May_chua_cai_may_in_nao_thi_nut_In_van_sang_cho_hai_muc_Xuat_Excel()
+    public void Hai_lenh_In_giay_mo_ma_hai_muc_Xuat_Excel_con_dung_duoc_thi_nut_In_van_sang()
     {
-        Create(Array.Empty<string>()).Vm.CanPrint.ShouldBeTrue();
+        var vm = Create(withPrinterSupport: false).Vm;
+
+        vm.PrintCurrentSheetCommand.CanExecute(null).ShouldBeFalse();
+        vm.CanPrint.ShouldBeTrue();
+    }
+
+    /// Hợp đồng của đích net8.0: không đăng ký IPrinterPort/IPrinterCatalog thì hai lệnh In ra giấy
+    /// phải MỜ — không ném, không im lặng làm gì đó. Bản phát hành luôn là net8.0-windows; chính hợp
+    /// đồng này cho phép đích net8.0 (bộ test chạy được trên máy không phải Windows) tồn tại.
+    [Fact]
+    public void Khong_co_cong_may_in_thi_hai_lenh_In_giay_mo_con_hai_lenh_Xuat_Excel_van_dung_duoc()
+    {
+        var vm = Create(withPrinterSupport: false).Vm;
+        vm.CurrentContent = new FakePrintableWorkbook();
+
+        vm.PrintCurrentSheetCommand.CanExecute(null).ShouldBeFalse();
+        vm.PrintAllCommand.CanExecute(null).ShouldBeFalse();
+        vm.ExportCurrentSheetCommand.CanExecute(null).ShouldBeTrue();
+        vm.ExportAllCommand.CanExecute(null).ShouldBeTrue();
+    }
+
+    /// Có máy in nhưng người dùng không chọn cái nào: câu thông báo phải nói đúng việc đó,
+    /// không được nói "máy này chưa cài máy in nào".
+    [Fact]
+    public async Task Co_may_in_nhung_khong_chon_cai_nao_thi_noi_dung_viec_do_va_khong_in()
+    {
+        var harness = Create();
+        harness.Dialog.OnDialog = vm => ((ChonMayInViewModel)vm).SelectedPrinter = null;
+
+        await harness.Vm.PrintCurrentSheetCommand.ExecuteAsync(null);
+
+        var message = harness.Dialog.ShownMessages.ShouldHaveSingleItem();
+        message.ShouldContain("chưa chọn máy in");
+        message.ShouldNotContain("chưa cài");
+        harness.Port.Jobs.ShouldBeEmpty();
     }
 
     // ===== Máy in báo lỗi giữa chừng =====
@@ -167,6 +205,20 @@ public class PrintToPrinterCommandTests
         message.ShouldContain("Máy in A");
         message.ShouldContain("Máy in không còn tồn tại.");
         message.ShouldContain("thử lại");
+    }
+
+    /// Lỗi máy in có lời hệ thống rỗng (ctor không cho InnerException null) thì câu không được hở ra hai dấu cách.
+    [Fact]
+    public async Task May_in_bao_loi_khong_kem_loi_he_thong_thi_cau_thong_bao_khong_co_hai_dau_cach()
+    {
+        var harness = Create();
+        harness.Port.Failure = new PrintJobFailedException("Máy in A", new InvalidOperationException(""));
+
+        await harness.Vm.PrintCurrentSheetCommand.ExecuteAsync(null);
+
+        var message = harness.Dialog.ShownMessages.ShouldHaveSingleItem();
+        message.ShouldContain("Máy in A");
+        message.ShouldNotContain("  ");
     }
 
     /// Lỗi lạ ở bất kỳ bước nào cũng không được làm sập app: người dùng có thể đang có sổ chưa lưu.
@@ -211,6 +263,8 @@ public class PrintToPrinterCommandTests
 
         await harness.Vm.PrintAllCommand.ExecuteAsync(null);
 
+        // Cảnh báo phải thật sự đã hiện (và hiện trước khi hủy được), không thì "đọc rồi hủy" là lời nói suông.
+        harness.Dialog.ShownMessages.ShouldHaveSingleItem().ShouldContain("GĐNTT");
         harness.Port.Jobs.ShouldBeEmpty();
     }
 

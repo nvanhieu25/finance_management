@@ -191,6 +191,8 @@ public partial class MainWindowViewModel : ViewModelBase
         // CanExecute là nhét tác dụng phụ vào một phép hỏi bị gọi rất thường xuyên.
 
     private const string PrintPaperTitle = "In ra máy in";
+    private const string NoPrinterSelectedMessage =
+        "Bạn chưa chọn máy in nào nên chưa in. Hãy chọn một máy in trong danh sách rồi bấm In lại.";
     private const string NoPrinterMessage =
         "Máy này chưa cài máy in nào. Bạn có thể dùng \"Xuất Excel\" để lưu tệp rồi in từ máy khác.";
 
@@ -258,7 +260,7 @@ public partial class MainWindowViewModel : ViewModelBase
         var printerName = chooser.SelectedPrinter;
         if (string.IsNullOrWhiteSpace(printerName))
         {
-            await dialog.ShowMessageAsync(PrintPaperTitle, NoPrinterMessage);
+            await dialog.ShowMessageAsync(PrintPaperTitle, NoPrinterSelectedMessage);
             return;
         }
 
@@ -275,15 +277,16 @@ public partial class MainWindowViewModel : ViewModelBase
         {
             Log.Error(ex, "Máy in {Printer} báo lỗi", ex.PrinterName);
             await dialog.ShowMessageAsync(PrintPaperTitle,
-                $"Máy in \"{ex.PrinterName}\" không in được. {ex.InnerException?.Message} " +
-                "Hãy kiểm tra máy in đã bật, có giấy và còn kết nối, rồi thử lại.");
+                $"Máy in \"{ex.PrinterName}\" không in được." +
+                (string.IsNullOrWhiteSpace(ex.InnerException?.Message) ? "" : $" {ex.InnerException!.Message}") +
+                " Hãy kiểm tra máy in đã bật, có giấy và còn kết nối, rồi thử lại.");
         }
     }
 
     private Task ShowNothingToPrintAsync() =>
         _services.GetRequiredService<IDialogService>().ShowMessageAsync(PrintTitle, "Chưa có nội dung nào để in.");
 
-    /// Vỏ của cả hai lệnh In. Lỗi nào lọt ra khỏi một AsyncRelayCommand đều bị CommunityToolkit ném lại lên luồng giao
+    /// Vỏ của cả bốn lệnh In/Xuất. Lỗi nào lọt ra khỏi một AsyncRelayCommand đều bị CommunityToolkit ném lại lên luồng giao
     /// diện (mặc định của nó) và làm sập cả app, trong khi người dùng có thể đang có sổ chưa lưu. Nên lỗi ở BẤT KỲ
     /// bước nào — dựng sheet của màn, lấy dịch vụ, hộp thoại chọn nơi lưu... — dừng ở đây: ghi nhật ký rồi báo bằng
     /// một câu chung. Lỗi ở bước GHI TỆP thì PrintAsync đã xử lý riêng từ trước (câu riêng, nhật ký có đường dẫn).

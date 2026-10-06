@@ -927,6 +927,8 @@ public class MainWindowPrintCommandTests
             var flyout = (MenuFlyout)button.Flyout!;
             flyout.IsOpen.ShouldBeTrue();
             var items = flyout.Items.OfType<MenuItem>().ToList();
+            // Placement=Top không phải trang trí: menu mở xuống chỉ còn ~10px trên màn 1080px và che nút Import Excel.
+            flyout.Placement.ShouldBe(PlacementMode.Top);
             items.Count.ShouldBe(4);
             var currentItem = items.Single(i => (string?)i.Header == "Xuất Excel sheet này");
             var allItem = items.Single(i => (string?)i.Header == "Xuất Excel toàn bộ");
