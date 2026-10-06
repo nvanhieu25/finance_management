@@ -94,6 +94,31 @@ public class SheetTextMapTests
             Should.Throw<Exception>(() => SheetTextMap.AssertSameText(sheet.SheetName, worksheet, table));
     }
 
+    /// Danh sách lệch là chẩn đoán duy nhất của ba task chép biểu mẫu, và ô biểu mẫu thì dài.
+    /// Nếu thông báo bị cắt ngắn thì hai ô khác nhau ở cuối chuỗi hiện ra giống hệt nhau, và người
+    /// sửa không biết lệch chỗ nào. Test này ghim rằng thông báo mang NGUYÊN chữ của ô.
+    [Fact]
+    public void Thong_bao_lech_mang_nguyen_chu_cua_o_khong_bi_cat_ngan()
+    {
+        const string longText = "Lũy kế số vốn đã T/Toán từ K/công đến cuối kỳ trước (Gồm cả tạm ứng)";
+        var sheet = new PrintTableSheet(
+            "Sổ Vị trí",
+            PrintPageProfiles.ViTriLedger,
+            new PrintColumn[] { new("Cột dài", 60, PrintAlign.Left) },
+            new[] { new PrintRow(new[] { PrintCell.OfText(longText) }) });
+        var worksheet = ExcelSheet(sheet, out var workbook);
+        var table = MigraDocTable(sheet);
+
+        table.Rows[1]!.Cells[0]!.Elements.Clear();
+
+        using (workbook)
+        {
+            var ex = Should.Throw<Exception>(() =>
+                SheetTextMap.AssertSameText(sheet.SheetName, worksheet, table));
+            ex.Message.ShouldContain(longText);
+        }
+    }
+
     [Fact]
     public void Chuan_hoa_bo_dau_phan_nghin_de_hai_van_hoa_so_sanh_duoc()
     {

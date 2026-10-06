@@ -2,6 +2,7 @@ using ClosedXML.Excel;
 using MigraDoc.DocumentObjectModel;
 using MigraDoc.DocumentObjectModel.Tables;
 using Shouldly;
+using Xunit;
 
 namespace ConstructionFinance.Application.Tests.Printing;
 
@@ -60,9 +61,15 @@ internal static class SheetTextMap
                 mismatches.Add($"  ({row},{column}) .xlsx = \"{text}\" — MigraDoc = \"{found}\"");
         }
 
-        mismatches.ShouldBeEmpty(
+        if (mismatches.Count == 0) return;
+
+        // KHÔNG dùng ShouldBeEmpty: Shouldly tự kết xuất tập hợp và CẮT NGẮN từng phần tử bằng
+        // "...", nên hai ô chữ dài khác nhau ở cuối sẽ hiện ra giống hệt nhau. Danh sách lệch này
+        // là chẩn đoán duy nhất của ba task chép biểu mẫu, nên nó phải nguyên vẹn: tự dựng chuỗi
+        // rồi Assert.Fail.
+        Assert.Fail(
             $"Sheet \"{sheetName}\": hai bộ dựng đã trôi khỏi nhau ở {mismatches.Count} ô:\n"
-            + string.Join("\n", mismatches.Take(20)));
+            + string.Join("\n", mismatches));
     }
 
     private static string CellText(Table table, int row, int column)
