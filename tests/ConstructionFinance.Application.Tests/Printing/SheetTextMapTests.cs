@@ -158,4 +158,13 @@ public class SheetTextMapTests
         SheetTextMap.Normalize(" + Mục ........, tiểu mục ........")
             .ShouldNotBe(SheetTextMap.Normalize(" + Mục ...., tiểu mục ...."));
     }
+
+    /// Ô chỉ có dấu chấm dẫn "........" không phải số: không được bị bỏ hết dấu thành rỗng
+    /// (FromExcel bỏ chuỗi rỗng, ô sẽ thành không phân biệt được với ô vắng).
+    [Fact]
+    public void Chuan_hoa_khong_xoa_o_chi_co_dau_cham_dan()
+    {
+        SheetTextMap.Normalize("........").ShouldNotBeEmpty();
+        SheetTextMap.Normalize("50,000,000,000").ShouldBe(SheetTextMap.Normalize("50.000.000.000"));
+    }
 }

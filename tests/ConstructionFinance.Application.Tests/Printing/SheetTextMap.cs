@@ -29,7 +29,7 @@ internal static class SheetTextMap
     public static string Normalize(string raw)
     {
         var text = Regex.Replace(raw, @"\s+", " ").Trim();
-        return Regex.IsMatch(text, @"^-?[\d.,]+$") ? text.Replace(".", "").Replace(",", "") : text;
+        return Regex.IsMatch(text, @"^-?(?=.*\d)[\d.,]+$") ? text.Replace(".", "").Replace(",", "") : text;
     }
 
     public static IReadOnlyDictionary<(int Row, int Column), string> FromExcel(IXLWorksheet worksheet)
