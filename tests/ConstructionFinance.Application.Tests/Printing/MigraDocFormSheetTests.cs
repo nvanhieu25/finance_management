@@ -101,10 +101,11 @@ public class MigraDocFormSheetTests
         result.Pages[0].WidthMm.ShouldBe(210.0, 0.5);
     }
 
-    /// Ô thủ tục bỏ trống in dấu chấm cho người dùng điền tay, đúng như đường .xlsx
-    /// (FormExcelExporter.Blank). Bản MigraDoc không được in ô trống.
+    /// Ô thủ tục bỏ trống in "…………" (bốn dấu chấm lửng U+2026, không phải dấu chấm ASCII) cho
+    /// người dùng điền tay, đúng như đường .xlsx (FormExcelExporter.Blank). Bản MigraDoc không
+    /// được in ô trống.
     [Fact]
-    public void Thong_tri_o_thu_tuc_bo_trong_in_dau_cham()
+    public void Thong_tri_o_thu_tuc_bo_trong_in_dau_cham_lung()
     {
         var form = ThongTriFixture() with { SoThongTri = null, NgayGhiSo = "   " };
         var worksheet = ExcelThongTri(form, out var workbook);
@@ -140,5 +141,64 @@ public class MigraDocFormSheetTests
             failure.Message.ShouldContain("(12,1)");
             failure.Message.ShouldContain("Loại ngân sách");
         }
+    }
+
+    // ===== Cấu trúc bố cục =====
+    // So từng ô theo chữ (SheetTextMap) KHÔNG thấy bố cục: ô gộp, đậm, căn giữa, viền đều vô hình
+    // với nó. Nhóm test dưới đây là chốt chặn duy nhất cho gộp ô và định dạng; KS chi và GĐNTT
+    // được kỳ vọng có nhóm tương tự.
+
+    /// Dòng "Bằng chữ" phụ thuộc số dòng nội dung: 15 (dòng đầu) + Lines.Count là dòng "Cộng",
+    /// liền sau là "Bằng chữ". Tính từ fixture, không viết cứng — chính sự phụ thuộc này cũng
+    /// cần được ghim.
+    private static int BangChuRow(ThongTriForm form) => 15 + form.Lines.Count + 1;
+
+    public static IEnumerable<object[]> MergeAnchors()
+    {
+        var bangChu = BangChuRow(ThongTriFixture());
+        // (dòng, cột, MergeRight, MergeDown)
+        yield return new object[] { 4, 1, 7, 0 };
+        yield return new object[] { 5, 1, 7, 0 };
+        yield return new object[] { 6, 1, 7, 0 };
+        yield return new object[] { 12, 1, 0, 1 };
+        yield return new object[] { 12, 2, 4, 0 };
+        yield return new object[] { 12, 7, 0, 1 };
+        yield return new object[] { 12, 8, 0, 1 };
+        yield return new object[] { bangChu, 1, 7, 0 };
+    }
+
+    [Theory]
+    [MemberData(nameof(MergeAnchors))]
+    public void Thong_tri_gop_o_dung_neo(int row, int column, int mergeRight, int mergeDown)
+    {
+        var cell = MigraDocThongTri(ThongTriFixture()).Rows[row - 1]!.Cells[column - 1]!;
+        cell.MergeRight.ShouldBe(mergeRight);
+        cell.MergeDown.ShouldBe(mergeDown);
+    }
+
+    [Fact]
+    public void Thong_tri_dau_bang_dam_va_can_giua()
+    {
+        var table = MigraDocThongTri(ThongTriFixture());
+        foreach (var (row, column) in new[] { (12, 1), (13, 3) })
+        {
+            var cell = table.Rows[row - 1]!.Cells[column - 1]!;
+            cell.Format.Font.Bold.ShouldBeTrue($"({row},{column}) phải đậm");
+            cell.Elements.OfType<Paragraph>().First().Format.Alignment
+                .ShouldBe(ParagraphAlignment.Center, $"({row},{column}) phải căn giữa");
+        }
+    }
+
+    /// Nửa sau là nửa phân biệt: viền chỉ ở khối 12..Cộng, dòng 1 không có viền.
+    [Fact]
+    public void Thong_tri_vien_chi_o_khoi_bang()
+    {
+        var form = ThongTriFixture();
+        var table = MigraDocThongTri(form);
+        var congRow = BangChuRow(form) - 1;
+
+        table.Rows[congRow - 1]!.Cells[7]!.Borders.Width.Point.ShouldBeGreaterThan(0);
+        table.Rows[13]!.Cells[3]!.Borders.Width.Point.ShouldBeGreaterThan(0);
+        table.Rows[0]!.Cells[0]!.Borders.Width.Point.ShouldBe(0);
     }
 }

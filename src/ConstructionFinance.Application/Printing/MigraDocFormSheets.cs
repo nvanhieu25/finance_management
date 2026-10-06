@@ -8,6 +8,10 @@ namespace ConstructionFinance.Application.Printing;
 /// FormExcelExporter, GIỮ NGUYÊN THỨ TỰ DÒNG của bản gốc để người review đối chiếu được từng
 /// dòng giữa hai bộ vẽ. Đừng "dọn gọn" lại thứ tự — nó là tài sản của bản chép này.
 ///
+/// Hai chỗ bản chép KHÔNG có dòng tương ứng: bề rộng cột (hoist lên đầu, xem WriteThongTri) và
+/// ApplyPageDefaults(ws, Portrait) — câu đầu tiên của bản Excel. Việc đó (khổ A4, lề, font,
+/// hướng giấy) do MigraDocBuilder.ApplyPage làm TRƯỚC khi gọi vào đây.
+///
 /// MigraDocFormSheetTests so từng ô với bản .xlsx của cùng dữ liệu, nên hai bộ vẽ trôi khỏi
 /// nhau là đỏ ngay.
 internal static class MigraDocFormSheets
