@@ -35,6 +35,12 @@ public sealed class MigraDocBuilder : IMigraDocBuilder
     /// xấp xỉ gần nhất ở cỡ chữ đã co.
     private const double IndentUnitsPerLevel = 3.0;
 
+    /// Lề trên và lề dưới của bản giấy (xem ApplyPage về lý do khác .xlsx).
+    internal const double VerticalMarginInches = 0.4;
+
+    /// Từ mép giấy đến chân trang; ràng buộc bởi bất biến ghi ở ApplyPage.
+    internal const double FooterDistanceInches = 0.18;
+
     public Document Build(IReadOnlyList<PrintSheet> sheets, PrintFooterInfo footer)
     {
         var document = new Document();
@@ -94,11 +100,14 @@ public sealed class MigraDocBuilder : IMigraDocBuilder
         // CỐ Ý khác đường .xlsx (PrintWorkbookWriter.VerticalMargin = 0,6"): bản giấy XUỐNG DÒNG
         // những dòng mà Excel cắt (GĐNTT dòng 6–16), nên cần thêm chỗ để biểu mẫu cỡ cố định
         // vẫn vừa một tờ. Xem Gdntt_dong_dai_van_vua_mot_trang.
-        setup.TopMargin = Unit.FromInch(0.4);
-        setup.BottomMargin = Unit.FromInch(0.4);
-        // Khoảng cách từ mép giấy đến chân trang. Mặc định của MigraDoc (1,25cm) cao hơn mép
-        // trên của lề dưới 0,6" nên chân trang đè lên dòng cuối; 0,3" như đường .xlsx.
-        setup.FooterDistance = Unit.FromInch(0.3);
+        setup.TopMargin = Unit.FromInch(VerticalMarginInches);
+        setup.BottomMargin = Unit.FromInch(VerticalMarginInches);
+        // FooterDistance tính từ MÉP GIẤY. BẤT BIẾN: (lề dưới − FooterDistance) phải lớn hơn chiều
+        // cao một dòng chân trang, nếu không chân trang đội lên vùng thân và đè dòng cuối của bảng
+        // đầy trang (Sổ Vị trí). Bất biến này đã vỡ hai lần: mặc định 1,25cm của MigraDoc với lề
+        // 0,6" (Task 4), rồi hạ lề xuống 0,4" mà giữ FooterDistance 0,3" (Task 9).
+        // Xem Chan_trang_nam_gon_duoi_le_duoi.
+        setup.FooterDistance = Unit.FromInch(FooterDistanceInches);
 
         // Chân trang: tên dự án (kèm tên Vị trí) bên trái, số trang bên phải. KHÔNG phải nhân
         // đôi dấu & hay cắt ở 255 ký tự như đường .xlsx — đó là luật riêng của Excel, MigraDoc

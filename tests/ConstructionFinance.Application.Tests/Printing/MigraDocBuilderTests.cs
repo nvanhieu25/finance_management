@@ -1,3 +1,4 @@
+using ConstructionFinance.Application.Forms;
 using ConstructionFinance.Application.Printing;
 using MigraDoc.DocumentObjectModel;
 using MigraDoc.DocumentObjectModel.Tables;
@@ -301,6 +302,22 @@ public class MigraDocBuilderTests
 
         PdfProbe.Render(new MigraDocBuilder().Build(new PrintSheet[] { Sheet(rows: rows) }, Footer))
             .PageCount.ShouldBeGreaterThan(1);
+    }
+
+    /// BẤT BIẾN chân trang: (lề dưới − FooterDistance) phải chứa vừa một dòng chân trang ở cỡ chữ
+    /// lớn nhất. Vỡ hai lần rồi: lần đầu (Task 4) mặc định 1,25cm của MigraDoc cao hơn lề 0,6";
+    /// lần hai (Task 9) hạ lề dọc xuống 0,4" mà giữ FooterDistance 0,3" — chỉ còn 7,2pt cho dòng
+    /// ~15pt, và chỉ lộ ra ở bảng đầy trang. PDF không đo được vị trí nên ghim bằng số học.
+    /// Ở FooterDistance 0,3" và lề 0,4" test này ĐỎ (7,2 &lt; 14,95).
+    [Fact]
+    public void Chan_trang_nam_gon_duoi_le_duoi()
+    {
+        const double lineHeightFactor = 1.15;   // dòng ≈ 1,15 × cỡ chữ với phông serif dùng ở đây
+        var footerLinePoints = FormExcelExporter.FontSize * ExcelFitScale.MaxScale * lineHeightFactor;
+
+        var room = (MigraDocBuilder.VerticalMarginInches - MigraDocBuilder.FooterDistanceInches) * 72.0;
+
+        room.ShouldBeGreaterThanOrEqualTo(footerLinePoints);
     }
 
     private static string CellText(Table table, int row, int column)

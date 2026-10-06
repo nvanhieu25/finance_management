@@ -37,6 +37,9 @@ public static class ExcelFitScale
         return pageWidth - 2 * SideMarginInches * MillimetersPerInch;
     }
 
+    /// Tỉ lệ lớn nhất ScaleFor có thể trả về (cỡ chữ gốc). Chân trang cao nhất ở tỉ lệ này.
+    internal const double MaxScale = 1.0;
+
     /// Tỉ lệ áp cho CẢ bề rộng cột lẫn cỡ chữ. Chặn trên ở 1,0: nội dung hẹp hơn giấy thì in
     /// đúng cỡ gốc với dải trắng bên phải, chứ không kéo giãn — 13pt là cỡ của biểu mẫu gốc,
     /// phóng to lên là tự ý đổi hình thức văn bản hành chính (spec §5).
@@ -44,6 +47,6 @@ public static class ExcelFitScale
     {
         var content = ContentWidthMm(widthChars);
         if (content <= 0) return 1.0;
-        return Math.Min(1.0, UsableWidthMm(orientation) / content);
+        return Math.Min(MaxScale, UsableWidthMm(orientation) / content);
     }
 }
