@@ -333,6 +333,9 @@ nói gì, mã làm gì, và vì sao.
   `FormattedDocument.GetPageInfo(n).Orientation`, cộng ưu tiên khổ A4. Plan không đặt cái nào, nên
   mọi tài liệu nằm ngang (Sổ Vị trí, Tổng hợp, GĐNTT, tức một nửa tính năng) sẽ in ra giấy đứng và
   mất một phần ba bên phải.
+- Vòng `QueryPageSettings` có một **chốt chặn biên** (`queriedPage > PageCount` thì thoát). Vòng in
+  của .NET bắn đúng một lần mỗi trang, nhưng một trình điều khiển bắn thừa sẽ làm `GetPageInfo`
+  ném và hỏng mọi lệnh in trên máy đó, mà đây là vùng mù không thử được.
 - **Dòng tiêu đề lặp mỗi trang chỉ được ghim ở mức mô hình** (`Row.HeadingFormat == true`), không
   ghim bằng cách đọc chữ trên từng trang PDF như §8 ngụ ý. PDFsharp không trích được chữ.
 - **`SheetTextMap` báo hỏng bằng `Assert.Fail` với chuỗi riêng**, không dùng `ShouldBeEmpty`, vì

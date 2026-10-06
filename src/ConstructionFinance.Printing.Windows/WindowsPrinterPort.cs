@@ -40,6 +40,12 @@ public sealed class WindowsPrinterPort : IPrinterPort
         printDocument.QueryPageSettings += (_, e) =>
         {
             queriedPage++;
+            // Vòng in của .NET bắn đúng một QueryPageSettings mỗi trang. Nếu một trình điều khiển
+            // bắn thừa, GetPageInfo sẽ ném, lỗi bị gói thành PrintJobFailedException, và người dùng
+            // thấy "Máy in báo lỗi" ở MỌI lần in trên máy đó. Chỗ này không chạy thử được ở máy phát
+            // triển, nên một dòng phòng thủ đáng giá hơn bình thường.
+            if (queriedPage > formatted.PageCount) return;
+
             e.PageSettings.Landscape =
                 formatted.GetPageInfo(queriedPage).Orientation == PdfSharp.PageOrientation.Landscape;
 
