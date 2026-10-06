@@ -49,6 +49,7 @@
     <PackageVersion Include="ClosedXML" Version="0.102.2" />
     <!-- In: MigraDoc dàn trang; bản GDI + System.Drawing.Printing để ra giấy trên Windows -->
     <PackageVersion Include="PDFsharp-MigraDoc" Version="6.2.4" />
+    <PackageVersion Include="PDFsharp" Version="6.2.4" />
     <PackageVersion Include="PDFsharp-MigraDoc-GDI" Version="6.2.4" />
     <PackageVersion Include="System.Drawing.Common" Version="8.0.10" />
   </ItemGroup>

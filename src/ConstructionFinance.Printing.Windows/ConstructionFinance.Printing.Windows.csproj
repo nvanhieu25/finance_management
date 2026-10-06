@@ -16,10 +16,13 @@
   <ItemGroup>
     <PackageReference Include="PDFsharp-MigraDoc-GDI" />
     <PackageReference Include="System.Drawing.Common" />
-    <!-- Application kéo theo bản lõi PDFsharp-MigraDoc; cùng với bản GDI sẽ trùng kiểu
-         (XGraphics, DocumentRenderer...). Dự án này chỉ dùng bản GDI nên tắt bản lõi. -->
+    <!-- ĐỪNG XOÁ hai dòng dưới. Application kéo theo bản lõi PDFsharp-MigraDoc, còn dự án này
+         dùng bản GDI; thiếu hai dòng này build hỏng với CS0433 (XGraphics, XSize,
+         DocumentRenderer tồn tại ở cả hai). Hai file MigraDoc.DocumentObjectModel.dll của hai
+         bản giống hệt từng byte nên Document vẫn là MỘT kiểu; chỉ bộ dàn trang (renderer)
+         khác nhau, và chỉ bản GDI được phép nạp. Trông như vô tác dụng nhưng không phải. -->
     <PackageReference Include="PDFsharp-MigraDoc" ExcludeAssets="all" />
-    <PackageReference Include="PDFsharp" VersionOverride="6.2.4" ExcludeAssets="all" />
+    <PackageReference Include="PDFsharp" ExcludeAssets="all" />
   </ItemGroup>
 
 </Project>

@@ -21,6 +21,7 @@ public sealed record PrinterJob
 
     public PrinterJob(Document document, string printerName, int copies)
     {
+        ArgumentNullException.ThrowIfNull(document);
         if (string.IsNullOrWhiteSpace(printerName))
             throw new ArgumentException("Lệnh in phải có tên máy in.", nameof(printerName));
 
