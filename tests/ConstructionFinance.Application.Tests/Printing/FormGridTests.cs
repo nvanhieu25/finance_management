@@ -1,0 +1,154 @@
+using ConstructionFinance.Application.Printing;
+using MigraDoc.DocumentObjectModel;
+using MigraDoc.DocumentObjectModel.Tables;
+using Shouldly;
+using Xunit;
+
+namespace ConstructionFinance.Application.Tests.Printing;
+
+/// Lưới ô thưa dùng để chép bố cục ba biểu mẫu từ ClosedXML sang MigraDoc.
+public class FormGridTests
+{
+    private static Table Render(FormGrid grid, PrintOrientation orientation = PrintOrientation.Portrait)
+    {
+        var document = new Document();
+        var section = document.AddSection();
+        return grid.Render(section, orientation);
+    }
+
+    private static string CellText(Table table, int row, int column)
+    {
+        var cell = table.Rows[row - 1]!.Cells[column - 1]!;
+        return string.Concat(cell.Elements.OfType<Paragraph>()
+            .Select(p => string.Concat(p.Elements.OfType<Text>().Select(t => t.Content))));
+    }
+
+    [Fact]
+    public void Toa_do_mot_based_nhu_ClosedXML()
+    {
+        var grid = new FormGrid(new double[] { 9, 9 }).Text(1, 1, "góc trên trái");
+
+        CellText(Render(grid), 1, 1).ShouldBe("góc trên trái");
+    }
+
+    [Fact]
+    public void Ghi_o_o_dong_xa_tu_dong_them_cac_dong_o_giua()
+    {
+        var grid = new FormGrid(new double[] { 9, 9 }).Text(5, 2, "x");
+        var table = Render(grid);
+
+        table.Rows.Count.ShouldBe(5);
+        CellText(table, 5, 2).ShouldBe("x");
+        CellText(table, 3, 1).ShouldBe("");
+    }
+
+    [Fact]
+    public void Tien_dinh_dang_theo_quy_uoc_Viet()
+    {
+        var grid = new FormGrid(new double[] { 18 }).Money(1, 1, 1_500_000m);
+
+        CellText(Render(grid), 1, 1).ShouldBe("1.500.000");
+    }
+
+    [Fact]
+    public void Gop_o_tuong_minh_dung_bang_lenh_Merge_cua_Excel()
+    {
+        // ws.Range(4, 1, 4, 3).Merge() → một ô trải ba cột
+        var grid = new FormGrid(new double[] { 9, 9, 9 }).Text(4, 1, "THÔNG TRI").Merge(4, 1, 4, 3);
+
+        Render(grid).Rows[3]!.Cells[0]!.MergeRight.ShouldBe(2);
+    }
+
+    [Fact]
+    public void Gop_o_doc_dung_bang_Merge_nhieu_dong()
+    {
+        // ws.Range(12, 1, 13, 1).Merge() → một ô cao hai dòng
+        var grid = new FormGrid(new double[] { 9 }).Text(12, 1, "Loại ngân sách").Merge(12, 1, 13, 1);
+
+        Render(grid).Rows[11]!.Cells[0]!.MergeDown.ShouldBe(1);
+    }
+
+    // ===== Luật bù tràn chữ =====
+
+    /// Excel cho chữ tràn sang ô trống bên phải; MigraDoc xuống dòng trong lòng ô. Không bù
+    /// thì cả ba biểu mẫu vỡ bố cục. 44 ký tự trong cột rộng 34 phải tự gộp sang phải.
+    [Fact]
+    public void Chu_dai_hon_cot_tu_gop_sang_cac_o_trong_ben_phai()
+    {
+        var grid = new FormGrid(new double[] { 34, 14, 18 })
+            .Text(3, 1, "Ngày nhận giấy đề nghị thanh toán vốn đầu tư:");
+
+        Render(grid).Rows[2]!.Cells[0]!.MergeRight.ShouldBe(2);
+    }
+
+    /// …nhưng dừng lại trước ô CÓ CHỮ: Excel cũng cắt chữ ở đúng chỗ đó.
+    [Fact]
+    public void Tu_gop_dung_truoc_o_da_co_chu()
+    {
+        var grid = new FormGrid(new double[] { 34, 14, 18 })
+            .Text(3, 1, "Ngày nhận giấy đề nghị thanh toán vốn đầu tư:")
+            .Text(3, 3, "Ngày ………");
+
+        Render(grid).Rows[2]!.Cells[0]!.MergeRight.ShouldBe(1);
+    }
+
+    [Fact]
+    public void Chu_vua_cot_thi_khong_tu_gop()
+    {
+        var grid = new FormGrid(new double[] { 34, 14 }).Text(1, 1, "Ghi chú:");
+
+        Render(grid).Rows[0]!.Cells[0]!.MergeRight.ShouldBe(0);
+    }
+
+    [Fact]
+    public void Gop_tuong_minh_thang_luat_tu_gop()
+    {
+        var grid = new FormGrid(new double[] { 9, 9, 9 })
+            .Text(1, 1, "một dòng chữ rất dài vượt xa bề rộng chín đơn vị")
+            .Merge(1, 1, 1, 2);
+
+        Render(grid).Rows[0]!.Cells[0]!.MergeRight.ShouldBe(1);   // 1, không phải 2
+    }
+
+    // ===== Kiểu =====
+
+    [Fact]
+    public void Bold_dat_cho_ca_dai_o()
+    {
+        var grid = new FormGrid(new double[] { 9, 9 }).Text(1, 1, "a").Text(1, 2, "b").Bold(1, 1, 1, 2);
+        var table = Render(grid);
+
+        table.Rows[0]!.Cells[0]!.Format.Font.Bold.ShouldBeTrue();
+        table.Rows[0]!.Cells[1]!.Format.Font.Bold.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void Border_ke_khung_ca_khoi()
+    {
+        var grid = new FormGrid(new double[] { 9, 9 }).Text(1, 1, "a").Border(1, 1, 2, 2);
+        var table = Render(grid);
+
+        table.Rows[0]!.Cells[0]!.Borders.Width.Point.ShouldBeGreaterThan(0);
+        table.Rows[1]!.Cells[1]!.Borders.Width.Point.ShouldBeGreaterThan(0);
+    }
+
+    [Fact]
+    public void Lenh_ghi_sau_thang_lenh_ghi_truoc_tren_cung_mot_o()
+    {
+        var grid = new FormGrid(new double[] { 9 }).Text(1, 1, "cũ").Text(1, 1, "mới");
+
+        CellText(Render(grid), 1, 1).ShouldBe("mới");
+    }
+
+    [Fact]
+    public void Luoi_khong_co_cot_nao_la_loi_cua_ben_goi()
+    {
+        Should.Throw<ArgumentException>(() => new FormGrid(Array.Empty<double>()));
+    }
+
+    [Fact]
+    public void Ghi_ngoai_so_cot_la_loi_cua_ben_goi()
+    {
+        Should.Throw<ArgumentOutOfRangeException>(() => new FormGrid(new double[] { 9 }).Text(1, 2, "x"));
+    }
+}
