@@ -386,8 +386,8 @@ public class PrintWorkbookTests
     {
         var workbook = BuildWorkbookWithTwoViTri();
 
-        // Qua bộ ghi thật: một sheet biểu mẫu có FormPayload rỗng (hoặc hai thành viên) sẽ làm bộ ghi ném
-        // ArgumentException, hỏng cả workbook. Đây là chỗ canh ba trang biểu mẫu trao đúng model cho bộ ghi.
+        // Qua bộ ghi thật: một sheet biểu mẫu mà bộ ghi chưa có hàm vẽ sẽ làm nó ném
+        // NotSupportedException, hỏng cả workbook. Đây là chỗ canh ba trang biểu mẫu trao đúng model cho bộ ghi.
         using var stream = new MemoryStream();
         new PrintWorkbookWriter().Write(workbook.BuildAllSheets().Sheets, stream, new PrintFooterInfo(workbook.PrintFooterProjectName, null));
         stream.Position = 0;
@@ -453,9 +453,9 @@ public class PrintWorkbookTests
     public void In_toan_bo_Thong_tri_mang_so_cua_lan_sua_thu_hai()
     {
         var thongTri = PrintAllAfterEditingTheSameCellTwice()
-            .OfType<PrintFormSheet>().Single(s => s.SheetName == "Thông tri");
+            .OfType<ThongTriPrintSheet>().Single(s => s.SheetName == "Thông tri");
 
-        thongTri.Form.ThongTri.ShouldNotBeNull().Total.ShouldBe(2_500_000m);
+        thongTri.Form.Total.ShouldBe(2_500_000m);
     }
 
     // ===== Trang GĐNTT: tên sheet và nội dung đi cùng nhau =====
@@ -515,12 +515,12 @@ public class PrintWorkbookTests
 
         page.PrintSheetName.ShouldBe("GĐNTT");
         page.PrintUnavailableReason.ShouldBeNull("in được thì không có lý do nào để nói");
-        var sheet = page.BuildPrintSheet().ShouldBeOfType<PrintFormSheet>();
+        // Kiểu của sheet CHÍNH LÀ biểu mẫu nó mang, nên ShouldBeOfType đã thay cho mấy dòng
+        // kiểm "hai biểu mẫu kia phải null" trước đây — và kiểm chặt hơn, ngay lúc biên dịch.
+        var sheet = page.BuildPrintSheet().ShouldBeOfType<GdnttPrintSheet>();
         sheet.SheetName.ShouldBe("GĐNTT");
         sheet.Page.ShouldBeSameAs(PrintPageProfiles.Gdntt);
-        sheet.Form.ThongTri.ShouldBeNull();
-        sheet.Form.KsChi.ShouldBeNull();
-        var form = sheet.Form.Gdntt.ShouldNotBeNull();
+        var form = sheet.Form;
         form.PackageName.ShouldBe("Gói A");
         form.RequestedThisPeriod.ShouldBe(30_000_000m);
     }
@@ -539,14 +539,12 @@ public class PrintWorkbookTests
         var page = new ThongTriFormPageViewModel(inner);
 
         page.PrintSheetName.ShouldBe("Thông tri");
-        var sheet = page.BuildPrintSheet().ShouldBeOfType<PrintFormSheet>();
+        var sheet = page.BuildPrintSheet().ShouldBeOfType<ThongTriPrintSheet>();
         sheet.SheetName.ShouldBe("Thông tri");
         // ShouldBeSameAs chứ không ShouldBe: hồ sơ Thông tri và KS chi bằng nhau theo GIÁ TRỊ (cả hai dọc, ép
         // một trang ngang), nên so giá trị không nhận ra hai trang dùng nhầm hồ sơ của nhau.
         sheet.Page.ShouldBeSameAs(PrintPageProfiles.ThongTri);
-        sheet.Form.KsChi.ShouldBeNull();
-        sheet.Form.Gdntt.ShouldBeNull();
-        var form = sheet.Form.ThongTri.ShouldNotBeNull();
+        var form = sheet.Form;
         form.Total.ShouldBe(40_000_000m);
         form.SoThongTri.ShouldBe("12/TT");
     }
@@ -562,12 +560,10 @@ public class PrintWorkbookTests
         var page = new KsChiFormPageViewModel(inner);
 
         page.PrintSheetName.ShouldBe("KS chi");
-        var sheet = page.BuildPrintSheet().ShouldBeOfType<PrintFormSheet>();
+        var sheet = page.BuildPrintSheet().ShouldBeOfType<KsChiPrintSheet>();
         sheet.SheetName.ShouldBe("KS chi");
         sheet.Page.ShouldBeSameAs(PrintPageProfiles.KsChi);   // ShouldBeSameAs vì sao: xem test Thông tri
-        sheet.Form.ThongTri.ShouldBeNull();
-        sheet.Form.Gdntt.ShouldBeNull();
-        var form = sheet.Form.KsChi.ShouldNotBeNull();
+        var form = sheet.Form;
         form.Accepted.Total.ShouldBe(210_000_000m);
         form.PaidToBeneficiary.Total.ShouldBe(205_000_000m);
     }
@@ -595,7 +591,7 @@ public class PrintWorkbookTests
         var printable = (IPrintablePage)workbook;
 
         printable.PrintSheetName.ShouldBe("GĐNTT");
-        printable.BuildPrintSheet().ShouldBeOfType<PrintFormSheet>().SheetName.ShouldBe("GĐNTT");
+        printable.BuildPrintSheet().ShouldBeOfType<GdnttPrintSheet>().SheetName.ShouldBe("GĐNTT");
     }
 
     // ===== CanPrintAll: câu hỏi "có gì để In toàn bộ không" =====
@@ -628,11 +624,11 @@ public class PrintWorkbookTests
     {
         var tongHop = (PrintTableSheet)workbook.ViTriPages.OfType<ProjectTongHopPageViewModel>().Single().BuildPrintSheet()!;
         var quyetToan = (PrintTableSheet)workbook.ViTriPages.OfType<YearSettlementPageViewModel>().Single().BuildPrintSheet()!;
-        var thongTri = (PrintFormSheet)workbook.ViTriPages.OfType<ThongTriFormPageViewModel>().Single().BuildPrintSheet()!;
+        var thongTri = (ThongTriPrintSheet)workbook.ViTriPages.OfType<ThongTriFormPageViewModel>().Single().BuildPrintSheet()!;
         return new AggregatesShown(
             CellAt(tongHop, 2, "Tạm ứng"),       // dòng TỔNG CỘNG của Tổng hợp (Vị trí 1, Vị trí 2, TỔNG CỘNG)
             CellAt(quyetToan, 1, "Tổng"),        // dòng TỔNG CỘNG của Quyết toán năm (năm 2026, TỔNG CỘNG)
-            thongTri.Form.ThongTri!.Total);
+            thongTri.Form.Total);
     }
 
     [Fact]

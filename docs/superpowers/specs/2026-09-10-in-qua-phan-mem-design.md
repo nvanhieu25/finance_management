@@ -73,19 +73,36 @@ public sealed record PrintTableSheet(
     IReadOnlyList<PrintRow> Rows,
     int HeaderRowCount) : PrintSheet(SheetName, Page);
 
-/// Biểu mẫu: dùng lại nguyên bộ ghi đã có trong FormExcelExporter.
-public sealed record PrintFormSheet(
-    string SheetName,
-    PrintPageProfile Page,
-    FormPayload Form) : PrintSheet(SheetName, Page);
+/// Biểu mẫu: dùng lại nguyên bộ ghi đã có trong FormExcelExporter. Mỗi biểu mẫu một record
+/// con, nên KIỂU của sheet chính là biểu mẫu nó mang — không biểu diễn được "không mang biểu
+/// mẫu nào" hay "mang hai biểu mẫu" (xem §4.1.1).
+public abstract record PrintFormSheet(string SheetName, PrintPageProfile Page)
+    : PrintSheet(SheetName, Page);
 
-public sealed record FormPayload
-{
-    public ThongTriForm? ThongTri { get; init; }
-    public KsChiForm? KsChi { get; init; }
-    public GdnttForm? Gdntt { get; init; }
-}
+public sealed record ThongTriPrintSheet(
+    string SheetName, PrintPageProfile Page, ThongTriForm Form) : PrintFormSheet(SheetName, Page);
+
+public sealed record KsChiPrintSheet(
+    string SheetName, PrintPageProfile Page, KsChiForm Form) : PrintFormSheet(SheetName, Page);
+
+public sealed record GdnttPrintSheet(
+    string SheetName, PrintPageProfile Page, GdnttForm Form) : PrintFormSheet(SheetName, Page);
 ```
+
+#### 4.1.1 Vì sao mỗi biểu mẫu một record, không phải một `FormPayload` nhiều ô nullable
+
+Bản đầu dùng `FormPayload(ThongTriForm?, KsChiForm?, GdnttForm?)` với quy ước "đúng một khác
+null", và bộ ghi phải kiểm quy ước đó **lúc chạy** rồi ném `ArgumentException`. Nghĩa là tồn tại
+hai trạng thái sai *biểu diễn được*: rỗng, và từ hai biểu mẫu trở lên.
+
+Chuyển sang mỗi biểu mẫu một record con thì hai trạng thái đó biến mất khỏi kiểu, nên lời bảo vệ
+lúc chạy cho chúng cũng biến mất cùng hai test canh chúng. Đổi lúc đang ba biểu mẫu là rẻ; để tới
+lúc KH vốn / Vốn / QĐ nâng lên sáu thì thành một đợt refactor giữa việc đang xây.
+
+Lưu ý giới hạn: C# **không** vét cạn được `switch` trên cây kế thừa (khác F#/Rust), nên
+`PrintWorkbookWriter.WriteForm` vẫn giữ một nhánh cuối ném `NotSupportedException` cho trường hợp
+"thêm record con mà quên hàm vẽ". Cái bắt lỗi đó sớm là test tripwire
+`PrintFormSheet_chi_co_ba_bieu_mau_ma_bo_ghi_biet_ve`, đỏ ngay khi có record con thứ tư.
 
 ### 4.2 Ô mang giá trị có kiểu, không phải chuỗi
 

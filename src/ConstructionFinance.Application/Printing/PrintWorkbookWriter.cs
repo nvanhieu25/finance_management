@@ -153,23 +153,27 @@ public sealed class PrintWorkbookWriter : IPrintWorkbookWriter
     /// những ô Mẫu để trắng.
     private static void WriteForm(IXLWorksheet ws, PrintFormSheet form, PrintFooterInfo footer)
     {
-        // Mỗi biểu mẫu khác null thêm đúng một hàm vẽ; số hàm vẽ CHÍNH LÀ số biểu mẫu, nên điều kiện
-        // "đúng một" và việc chọn hàm vẽ không thể lệch nhau. Thêm biểu mẫu thứ tư vào FormPayload
-        // là thêm một dòng `if` ở đây — test FormPayload_chi_co_ba_bieu_mau_ma_bo_ghi_biet_ve nhắc.
-        var payload = form.Form;
-        var drawers = new List<Action>();
-        if (payload is { ThongTri: { } thongTri })
-            drawers.Add(() => FormExcelExporter.WriteThongTriSheet(ws, thongTri));
-        if (payload is { KsChi: { } ksChi })
-            drawers.Add(() => FormExcelExporter.WriteKsChiSheet(ws, ksChi));
-        if (payload is { Gdntt: { } gdntt })
-            drawers.Add(() => FormExcelExporter.WriteGdnttSheet(ws, gdntt));
+        // Kiểu của sheet chính là biểu mẫu nó mang, nên ở đây chỉ còn việc chọn hàm vẽ — không
+        // còn trạng thái "rỗng" hay "hai biểu mẫu" để phải chặn. C# không vét cạn được switch
+        // trên cây kế thừa nên vẫn phải có nhánh cuối; nó bắt đúng một lỗi: thêm record con mà
+        // quên hàm vẽ. Test PrintFormSheet_chi_co_ba_bieu_mau_ma_bo_ghi_biet_ve đỏ trước khi
+        // người dùng bấm In, để lỗi đó không phải đợi tới lúc chạy mới lộ.
+        switch (form)
+        {
+            case ThongTriPrintSheet sheet:
+                FormExcelExporter.WriteThongTriSheet(ws, sheet.Form);
+                break;
+            case KsChiPrintSheet sheet:
+                FormExcelExporter.WriteKsChiSheet(ws, sheet.Form);
+                break;
+            case GdnttPrintSheet sheet:
+                FormExcelExporter.WriteGdnttSheet(ws, sheet.Form);
+                break;
+            default:
+                throw new NotSupportedException(
+                    $"Sheet \"{form.SheetName}\": chưa có hàm vẽ cho {form.GetType().Name}.");
+        }
 
-        if (drawers.Count != 1)
-            throw new ArgumentException(
-                $"Sheet \"{form.SheetName}\": FormPayload phải có đúng một biểu mẫu khác null, hiện có {drawers.Count}.");
-
-        drawers[0]();
         ApplyPage(ws, form.Page, footer);
     }
 

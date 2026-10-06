@@ -7,7 +7,7 @@ namespace ConstructionFinance.Desktop.ViewModels.Finance.Forms;
 /// ô nhập tay của chính nó đổi qua sự kiện DeclarationChanged; workbook lưu chung
 /// cũng theo dõi cùng sự kiện đó để bật IsDirty tổng (xem OnFormDeclarationChanged).
 ///
-/// Cả ba cũng khai báo nội dung in: một PrintFormSheet bọc đúng model biểu mẫu mà view-model bên trong
+/// Cả ba cũng khai báo nội dung in: record PrintFormSheet của riêng biểu mẫu đó, mang đúng model mà view-model bên trong
 /// dựng (BuildForm) — cùng model với bản xem trước và nút "Xuất Excel", không dựng riêng cho bản in.
 /// Tên sheet theo Mẫu.xlsx; cùng chữ với tiêu đề tab nhưng là hai thứ độc lập: đổi chữ trên tab không
 /// được làm đổi tên sheet trong bản in.
@@ -27,10 +27,10 @@ public sealed class ThongTriFormPageViewModel : WorkbookPageViewModel
 
     public override string? PrintSheetName => SheetName;
 
-    public override PrintSheet? BuildPrintSheet() => new PrintFormSheet(
+    public override PrintSheet? BuildPrintSheet() => new ThongTriPrintSheet(
         SheetName,
         PrintPageProfiles.ThongTri,
-        new FormPayload(ThongTri: Inner.BuildForm()));
+        Inner.BuildForm());
 }
 
 public sealed class KsChiFormPageViewModel : WorkbookPageViewModel
@@ -49,10 +49,10 @@ public sealed class KsChiFormPageViewModel : WorkbookPageViewModel
 
     public override string? PrintSheetName => SheetName;
 
-    public override PrintSheet? BuildPrintSheet() => new PrintFormSheet(
+    public override PrintSheet? BuildPrintSheet() => new KsChiPrintSheet(
         SheetName,
         PrintPageProfiles.KsChi,
-        new FormPayload(KsChi: Inner.BuildForm()));
+        Inner.BuildForm());
 }
 
 public sealed class GdnttFormPageViewModel : WorkbookPageViewModel
@@ -81,7 +81,7 @@ public sealed class GdnttFormPageViewModel : WorkbookPageViewModel
 
     public override PrintSheet? BuildPrintSheet() =>
         Inner.BuildForm() is { } form
-            ? new PrintFormSheet(SheetName, PrintPageProfiles.Gdntt, new FormPayload(Gdntt: form))
+            ? new GdnttPrintSheet(SheetName, PrintPageProfiles.Gdntt, form)
             : null;
 
     // Vì sao chưa in được, đúng với việc người dùng đã làm (GdnttBuilder có hai lỗi): chưa tích đợt nào thì "chưa chọn gói thầu"

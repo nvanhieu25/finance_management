@@ -100,23 +100,6 @@ public class PrintFormSheetTests
         return new XLWorkbook(buffer);
     }
 
-    /// Ghi `payload` vào một sheet biểu mẫu tên `sheetName` và đòi bộ ghi ném ĐÚNG ArgumentException,
-    /// không phải lớp con, với thông báo nêu tên sheet. Should.Throw<ArgumentException> chấp nhận cả
-    /// lớp con, nên chỉ kiểm kiểu thì ArgumentOutOfRangeException văng ra từ việc lấy hàm vẽ trên danh
-    /// sách rỗng cũng làm test xanh dù lời bảo vệ chưa hề chạy. Hai nhánh (không có biểu mẫu nào, và
-    /// quá một) cùng đi qua hàm này nên không nhánh nào xanh được bằng đường vòng.
-    private static void AssertRejectsPayload(string sheetName, FormPayload payload, string label)
-    {
-        var sheets = new PrintSheet[] { new PrintFormSheet(sheetName, PrintPageProfiles.ThongTri, payload) };
-        using var buffer = new MemoryStream();
-
-        var error = Should.Throw<ArgumentException>(() =>
-            new PrintWorkbookWriter().Write(sheets, buffer, Footer), label);
-
-        error.GetType().ShouldBe(typeof(ArgumentException), label);
-        error.Message.ShouldContain(sheetName, Case.Sensitive, label);
-    }
-
     private static XLBorderStyleValues[] Sides(IXLCell cell)
     {
         var border = cell.Style.Border;
@@ -129,8 +112,7 @@ public class PrintFormSheetTests
         var sheets = new PrintSheet[]
         {
             SampleTableSheet(),
-            new PrintFormSheet("Thông tri", PrintPageProfiles.ThongTri,
-                new FormPayload(ThongTri: SampleThongTriForm())),
+            new ThongTriPrintSheet("Thông tri", PrintPageProfiles.ThongTri, SampleThongTriForm()),
         };
 
         using var buffer = new MemoryStream();
@@ -146,55 +128,26 @@ public class PrintFormSheetTests
     }
 
     [Fact]
-    public void FormPayload_rong_thi_nem_loi_neu_ten_sheet()
+    public void PrintFormSheet_chi_co_ba_bieu_mau_ma_bo_ghi_biet_ve()
     {
-        // Đòi đúng kiểu ArgumentException (so GetType, trong AssertRejectsPayload) và thông báo gọi đúng tên sheet. Should.Throw<T>
-        // một mình không đủ: nó chấp nhận cả lớp con, nên một ArgumentOutOfRangeException văng ra khi lấy hàm vẽ trên danh
-        // sách rỗng cũng làm nó xanh. Bản đầu của test này chỉ làm đúng việc đó (đo: nó vẫn xanh khi bộ ghi ném
-        // ArgumentOutOfRangeException) nên đã bị xóa, để không ai chép nhầm nó.
-        AssertRejectsPayload("Trống", new FormPayload(), "không có biểu mẫu nào");
-    }
-
-    [Fact]
-    public void FormPayload_co_hon_mot_bieu_mau_thi_nem_loi_neu_ten_sheet()
-    {
-        var thongTri = SampleThongTriForm();
-        var ksChi = SampleKsChiForm();
-        var gdntt = SampleGdnttForm();
-
-        // Mọi cách có từ hai biểu mẫu trở lên, không chỉ cặp đầu tiên.
-        var payloads = new (string Label, FormPayload Payload)[]
-        {
-            ("ThongTri + KsChi", new FormPayload(ThongTri: thongTri, KsChi: ksChi)),
-            ("ThongTri + Gdntt", new FormPayload(ThongTri: thongTri, Gdntt: gdntt)),
-            ("KsChi + Gdntt", new FormPayload(KsChi: ksChi, Gdntt: gdntt)),
-            ("cả ba", new FormPayload(ThongTri: thongTri, KsChi: ksChi, Gdntt: gdntt)),
-        };
-
-        foreach (var (label, payload) in payloads)
-            AssertRejectsPayload("Hai biểu mẫu", payload, label);
-    }
-
-    [Fact]
-    public void FormPayload_chi_co_ba_bieu_mau_ma_bo_ghi_biet_ve()
-    {
-        // Tripwire. PrintWorkbookWriter.WriteForm dựng danh sách hàm vẽ từ TỪNG thành viên của
-        // FormPayload. Thêm biểu mẫu thứ tư (KH vốn / Vốn / QĐ...) mà quên thêm hàm vẽ thì payload
-        // mang nó cùng một biểu mẫu cũ sẽ chỉ vẽ biểu mẫu cũ, lặng lẽ bỏ biểu mẫu mới. Test này đỏ
-        // để ai thêm thành viên phải mở WriteForm ra: thêm hàm vẽ ở đó rồi sửa danh sách bên dưới.
-        typeof(FormPayload).GetProperties()
-            .Select(property => property.Name)
+        // Tripwire. PrintWorkbookWriter.WriteForm chọn hàm vẽ bằng switch trên record con của
+        // PrintFormSheet. C# không vét cạn được switch trên cây kế thừa, nên thêm biểu mẫu thứ tư
+        // (KH vốn / Vốn / QĐ...) mà quên thêm nhánh sẽ chỉ lộ lúc chạy, bằng NotSupportedException
+        // ngay khi người dùng bấm In. Test này đỏ trước, để ai thêm record con phải mở WriteForm ra.
+        typeof(PrintFormSheet).Assembly.GetTypes()
+            .Where(type => type.IsSubclassOf(typeof(PrintFormSheet)) && !type.IsAbstract)
+            .Select(type => type.Name)
             .OrderBy(name => name)
-            .ShouldBe(new[] { "Gdntt", "KsChi", "ThongTri" });
+            .ShouldBe(new[] { "GdnttPrintSheet", "KsChiPrintSheet", "ThongTriPrintSheet" });
     }
 
     [Fact]
     public void Moi_bieu_mau_duoc_ve_bang_ham_cua_no_va_dat_huong_giay_theo_ho_so_cua_no()
     {
         using var wb = WriteAndReopen(
-            new PrintFormSheet("Thông tri", PrintPageProfiles.ThongTri, new FormPayload(ThongTri: SampleThongTriForm())),
-            new PrintFormSheet("KS chi", PrintPageProfiles.KsChi, new FormPayload(KsChi: SampleKsChiForm())),
-            new PrintFormSheet("GĐNTT", PrintPageProfiles.Gdntt, new FormPayload(Gdntt: SampleGdnttForm())));
+            new ThongTriPrintSheet("Thông tri", PrintPageProfiles.ThongTri, SampleThongTriForm()),
+            new KsChiPrintSheet("KS chi", PrintPageProfiles.KsChi, SampleKsChiForm()),
+            new GdnttPrintSheet("GĐNTT", PrintPageProfiles.Gdntt, SampleGdnttForm()));
 
         wb.Worksheets.Count.ShouldBe(3);
 
@@ -223,7 +176,7 @@ public class PrintFormSheetTests
         var ngang = PrintPageProfiles.ThongTri with { Orientation = PrintOrientation.Landscape };
 
         using var wb = WriteAndReopen(
-            new PrintFormSheet("Thông tri", ngang, new FormPayload(ThongTri: SampleThongTriForm())));
+            new ThongTriPrintSheet("Thông tri", ngang, SampleThongTriForm()));
 
         wb.Worksheet(1).PageSetup.PageOrientation.ShouldBe(XLPageOrientation.Landscape);
     }
@@ -233,7 +186,7 @@ public class PrintFormSheetTests
     {
         using var wb = WriteAndReopen(
             SampleTableSheet(),
-            new PrintFormSheet("Thông tri", PrintPageProfiles.ThongTri, new FormPayload(ThongTri: SampleThongTriForm())));
+            new ThongTriPrintSheet("Thông tri", PrintPageProfiles.ThongTri, SampleThongTriForm()));
 
         var table = wb.Worksheet(1).PageSetup.Footer;
         var form = wb.Worksheet(2).PageSetup.Footer;
@@ -253,7 +206,7 @@ public class PrintFormSheetTests
     public void Bieu_mau_giu_nguyen_duong_ke_cua_chinh_no_va_khong_bi_ke_luoi_cua_bang()
     {
         using var wb = WriteAndReopen(
-            new PrintFormSheet("Thông tri", PrintPageProfiles.ThongTri, new FormPayload(ThongTri: SampleThongTriForm())));
+            new ThongTriPrintSheet("Thông tri", PrintPageProfiles.ThongTri, SampleThongTriForm()));
         var ws = wb.Worksheet(1);
 
         // Dòng tên đơn vị nằm ngoài khung bảng của Thông tri, nên không có nét kẻ nào. Lưới của
@@ -270,7 +223,7 @@ public class PrintFormSheetTests
         // Sheet bảng và sheet biểu mẫu dùng chung một tập tên, không phân biệt hoa thường.
         using var wb = WriteAndReopen(
             SampleTableSheet() with { SheetName = "Thông tri" },
-            new PrintFormSheet("THÔNG TRI", PrintPageProfiles.ThongTri, new FormPayload(ThongTri: SampleThongTriForm())));
+            new ThongTriPrintSheet("THÔNG TRI", PrintPageProfiles.ThongTri, SampleThongTriForm()));
 
         wb.Worksheet(2).Name.ShouldBe("THÔNG TRI (2)");
         wb.Worksheet(2).Cell(4, 1).GetString().ShouldBe("THÔNG TRI");
@@ -280,9 +233,9 @@ public class PrintFormSheetTests
     public void Bieu_mau_giu_chu_dam_va_font_Times_New_Roman_13_sau_khi_ap_ho_so()
     {
         using var wb = WriteAndReopen(
-            new PrintFormSheet("Thông tri", PrintPageProfiles.ThongTri, new FormPayload(ThongTri: SampleThongTriForm())),
-            new PrintFormSheet("KS chi", PrintPageProfiles.KsChi, new FormPayload(KsChi: SampleKsChiForm())),
-            new PrintFormSheet("GĐNTT", PrintPageProfiles.Gdntt, new FormPayload(Gdntt: SampleGdnttForm())));
+            new ThongTriPrintSheet("Thông tri", PrintPageProfiles.ThongTri, SampleThongTriForm()),
+            new KsChiPrintSheet("KS chi", PrintPageProfiles.KsChi, SampleKsChiForm()),
+            new GdnttPrintSheet("GĐNTT", PrintPageProfiles.Gdntt, SampleGdnttForm()));
 
         // Bộ ghi áp hồ sơ SAU khi hàm vẽ đã vẽ ô, và hồ sơ đặt lại FontName/FontSize của cả sheet.
         // Ô tiêu đề do hàm vẽ in đậm phải vẫn đậm, và phải đúng font của Mẫu.

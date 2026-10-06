@@ -1326,3 +1326,19 @@ Ba thứ phát sinh trong lúc thực thi mà không môi trường nào ở đ�
 `FormPayload` đang là "đúng một trong N thuộc tính nullable", với một guard kiểm lúc chạy (`drawers.Count != 1`). Ở ba biểu mẫu thì ổn và đã có test chốt chặn (`FormPayload_chi_co_ba_bieu_mau_ma_bo_ghi_biet_ve` là một tripwire bằng reflection, đỏ ngay khi ai đó thêm thành viên thứ tư mà quên thêm drawer). Ở **sáu** biểu mẫu thì thành sáu thuộc tính nullable, sáu nhánh `if`, và một bất biến vẫn chỉ được kiểm lúc chạy.
 
 Phương án thay thế: mỗi biểu mẫu một record con của `PrintSheet`, khi đó `switch` trong bộ ghi vét cạn **lúc biên dịch** và guard biến mất. Làm lúc đang ba thành viên thì rẻ; làm lúc đã sáu thì là một đợt refactor. Chốt trước, đừng chốt sau.
+
+**ĐÃ CHỐT VÀ ĐÃ LÀM (2026-10-06).** Người dùng chọn đổi ngay. `FormPayload` bị xóa; `PrintFormSheet`
+thành record trừu tượng với ba record con `ThongTriPrintSheet` / `KsChiPrintSheet` / `GdnttPrintSheet`,
+mỗi cái mang đúng model biểu mẫu của nó (không nullable). Hệ quả:
+
+- Hai trạng thái sai (rỗng · từ hai biểu mẫu trở lên) không còn biểu diễn được, nên guard
+  `drawers.Count != 1` và hai test canh nó (`FormPayload_rong_...`, `FormPayload_co_hon_mot_...`)
+  đã **xóa** — không phải bỏ phủ, mà là bỏ thứ không còn xảy ra được. Suite 816 → 814.
+- Tripwire đổi tên thành `PrintFormSheet_chi_co_ba_bieu_mau_ma_bo_ghi_biet_ve` và soi **record con**
+  của `PrintFormSheet` thay vì thuộc tính của `FormPayload`.
+- Ở test, `ShouldBeOfType<PrintFormSheet>()` + ba dòng "hai biểu mẫu kia phải null" thu lại còn
+  `ShouldBeOfType<ThongTriPrintSheet>()` — chặt hơn, và chặt lúc biên dịch.
+
+Một điều chỉnh so với đoạn viết ở trên: C# **không** vét cạn `switch` trên cây kế thừa, nên bộ ghi
+vẫn giữ nhánh cuối ném `NotSupportedException`. Cái lợi thật là xóa trạng thái sai khỏi kiểu, không
+phải compiler bắt thiếu nhánh. Chi tiết ở spec §4.1.1.
