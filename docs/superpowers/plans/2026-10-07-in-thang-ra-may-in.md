@@ -3809,6 +3809,44 @@ dotnet test --nologo 2>&1 | grep -E "Passed!|Failed:"
 
 Ghi tổng mới vào mục **Global Constraints** của plan này (thay `817`) và vào §4.3 của spec.
 
+- [ ] **Step 2b: Chặn một lỗi trôi âm thầm — nối lề Excel vào hằng số của bản in**
+
+`FormExcelExporter.ApplyPageDefaults` đặt `Margins.Left = 0.5` / `Margins.Right = 0.5` bằng số
+viết thẳng, còn `ExcelFitScale.SideMarginInches` là **bản sao thứ hai** của đúng con số đó. Ai đổi
+lề của đường `.xlsx` sẽ làm tỉ lệ co của bản in MigraDoc sai, mà không test nào đỏ.
+
+Trong `src/ConstructionFinance.Application/Forms/FormExcelExporter.cs`, đổi hai dòng đó thành:
+
+```csharp
+        // Cùng MỘT con số với ExcelFitScale.SideMarginInches: bộ dựng MigraDoc tính tỉ lệ co dựa
+        // trên lề này, nên hai nơi dùng hai bản sao là một lỗi trôi âm thầm chờ xảy ra.
+        ws.PageSetup.Margins.Left = Printing.ExcelFitScale.SideMarginInches;
+        ws.PageSetup.Margins.Right = Printing.ExcelFitScale.SideMarginInches;
+```
+
+và ghim bằng một test trong `tests/ConstructionFinance.Application.Tests/Printing/ExcelFitScaleTests.cs`:
+
+```csharp
+    /// Đường .xlsx và bộ dựng MigraDoc phải dùng CÙNG MỘT lề: ExcelFitScale tính tỉ lệ co dựa
+    /// trên lề đó, nên hai bản sao lệch nhau là bản in sai mà không ai thấy.
+    [Fact]
+    public void Duong_xlsx_dung_dung_le_ma_bo_dung_MigraDoc_tinh_theo()
+    {
+        using var workbook = new ClosedXML.Excel.XLWorkbook();
+        var worksheet = workbook.AddWorksheet("x");
+        ConstructionFinance.Application.Forms.FormExcelExporter.ApplyPageDefaults(
+            worksheet, ClosedXML.Excel.XLPageOrientation.Landscape);
+
+        worksheet.PageSetup.Margins.Left.ShouldBe(ExcelFitScale.SideMarginInches);
+        worksheet.PageSetup.Margins.Right.ShouldBe(ExcelFitScale.SideMarginInches);
+    }
+```
+
+(`ApplyPageDefaults` là `internal`, và `Application` đã có `InternalsVisibleTo` cho
+`ConstructionFinance.Application.Tests`.)
+
+Run: `dotnet test tests/ConstructionFinance.Application.Tests --filter ExcelFitScaleTests --nologo` → xanh.
+
 - [ ] **Step 3: Ghi vào spec những gì đã lệch khỏi nó**
 
 Thêm vào cuối spec, mục `## 12. Khác với thiết kế ban đầu`, mỗi dòng một chỗ thực thi đã phải đổi — tối thiểu là:
