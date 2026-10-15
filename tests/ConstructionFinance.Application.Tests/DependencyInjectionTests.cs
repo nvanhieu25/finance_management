@@ -28,7 +28,6 @@ public class DependencyInjectionTests
         sp.GetService<IProjectService>().ShouldNotBeNull();
         sp.GetService<IPaymentService>().ShouldNotBeNull();
         sp.GetService<ICostService>().ShouldNotBeNull();
-        sp.GetService<IAuditService>().ShouldNotBeNull();
         sp.GetService<IFormExcelExporter>().ShouldNotBeNull();
     }
 }
