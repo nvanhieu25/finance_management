@@ -23,6 +23,9 @@ public sealed class FormSheetControl : Border
     internal const double CellPaddingPixels = 5.0;
     internal const double PixelsPerPoint = 96.0 / 72.0;
 
+    /// Bề rộng tối thiểu của một chỗ điền: đủ để bấm vào và gõ được vài ký tự dù ô hẹp.
+    private const double MinInputPixels = 44;
+
     private static readonly IBrush Ink = Brushes.Black;
     private static readonly IBrush ComputedFill = new SolidColorBrush(Color.Parse("#F2F2F2"));
     private static readonly IBrush OverriddenFill = new SolidColorBrush(Color.Parse("#FFF1D6"));
@@ -193,12 +196,15 @@ public sealed class FormSheetControl : Border
             content = BuildStrip(cell);
         }
 
-        content.VerticalAlignment = cell.Style.VAlign switch
-        {
-            CellVAlign.Top => VerticalAlignment.Top,
-            CellVAlign.Center => VerticalAlignment.Center,
-            _ => VerticalAlignment.Bottom,
-        };
+        // Ô nhập trải kín CHIỀU CAO ô (cả ô là chỗ bấm, như Excel); chữ trong ô tự canh giữa dọc. Chỉ chữ khoá mới canh theo ô.
+        content.VerticalAlignment = cell.IsEditable
+            ? VerticalAlignment.Stretch
+            : cell.Style.VAlign switch
+            {
+                CellVAlign.Top => VerticalAlignment.Top,
+                CellVAlign.Center => VerticalAlignment.Center,
+                _ => VerticalAlignment.Bottom,
+            };
 
         // Chữ tràn: nội dung chiếm cả dải TextColSpan, còn đường kẻ ở lớp dưới vẫn chỉ trong ColSpan.
         var span = Math.Min(Math.Max(cell.ColSpan, cell.TextColSpan), _columnX.Length - cell.Col);
@@ -239,7 +245,25 @@ public sealed class FormSheetControl : Border
             return panel;
         }
 
-        // Canh trái: nhãn đứng yên, chỗ điền cuối cùng chiếm phần còn lại của ô (đúng Excel — chữ nối đuôi nhãn).
+        if (!overflowing)
+        {
+            // Ô nhiều chỗ điền trong một ô gộp (" TK… Đơn vị… Số CT…"): nhãn rộng vừa chữ, mọi chỗ điền chia đều phần còn
+            // lại theo độ dài chữ chấm chấm — chỗ điền nào cũng có chỗ gõ (trước đây chỗ điền cuối bị đẩy ra ngoài ô).
+            var grid = new Grid();
+            for (var i = 0; i < segments.Count; i++)
+            {
+                var isInput = segments[i].Kind is not (SegmentKind.Fixed or SegmentKind.Computed);
+                grid.ColumnDefinitions.Add(isInput
+                    ? new ColumnDefinition(Math.Max(1, EstimateWidth(segments[i], pixels)), GridUnitType.Star) { MinWidth = MinInputPixels }
+                    : new ColumnDefinition(GridLength.Auto));
+                var part = StripPart(cell, segments[i], pixels, fill: isInput);
+                Grid.SetColumn(part, i);
+                grid.Children.Add(part);
+            }
+            return grid;
+        }
+
+        // Canh trái, ô tràn: nhãn đứng yên, chỗ điền chỉ rộng bằng chữ chấm chấm.
         var dock = new DockPanel { LastChildFill = lastIsInput };
         for (var i = 0; i < segments.Count; i++)
         {
@@ -291,7 +315,7 @@ public sealed class FormSheetControl : Border
             Padding = new Thickness(2, 0),
             MinHeight = 0,
             VerticalContentAlignment = VerticalAlignment.Center,
-            VerticalAlignment = VerticalAlignment.Center,
+            VerticalAlignment = VerticalAlignment.Stretch,
             HorizontalAlignment = fill ? HorizontalAlignment.Stretch : HorizontalAlignment.Left,
             MinWidth = fill ? 0 : EstimateWidth(segment, pixels),
             TextAlignment = segment.Kind == SegmentKind.InputNumber ? TextAlignment.Right : InputAlignmentOf(cell),

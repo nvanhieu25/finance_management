@@ -1,4 +1,6 @@
+using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Media;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 using ConstructionFinance.Application.Forms;
@@ -275,6 +277,60 @@ public class FormSheetControlTests
             var vm = new FormPageViewModel(FormDefinitions.ThongTri, Mock.Of<IFormExcelExporter>(), new FakeDialogService());
 
             new ConstructionFinance.Desktop.ViewLocator().Build(vm).ShouldBeOfType<FormPageView>();
+        });
+    }
+
+    // ===== ô nhập đủ to để bấm và gõ =====
+
+    [Fact]
+    public void Every_input_of_a_multi_input_cell_fits_inside_the_cell_and_is_wide_enough_to_type()
+    {
+        Run(() =>
+        {
+            var host = Show(FormDefinitions.ThongTri);
+            var canvas = (Canvas)host.Sheet.Child!;
+            // G8:H8 " TK… Đơn vị… Số CT…": ba chỗ điền trong MỘT ô gộp. G:H là hai cột cuối nên mép phải của ô = mép phải tờ.
+            foreach (var key in new[] { "TaiKhoan1", "DonVi1", "SoChungTu1", "TaiKhoan2", "DonVi2", "SoChungTu2" })
+            {
+                var box = Box(host, key);
+                box.Bounds.Width.ShouldBeGreaterThanOrEqualTo(40, $"ô {key} quá hẹp để gõ");
+                var right = box.TranslatePoint(new Point(box.Bounds.Width, 0), canvas)!.Value.X;
+                right.ShouldBeLessThanOrEqualTo(canvas.Width + 0.5, $"ô {key} bị đẩy ra ngoài ô");
+            }
+            host.Window.Close();
+        });
+    }
+
+    [Fact]
+    public void Single_input_cells_fill_the_whole_cell_height()
+    {
+        Run(() =>
+        {
+            var host = Show(FormDefinitions.ThongTri);
+            var rowPx = host.Vm.Sheet.RowHeights[14] * 96.0 / 72.0;       // hàng 15: Mục lục ngân sách
+            Box(host, "LoaiNganSach").Bounds.Height.ShouldBe(rowPx, 1.0);
+            host.Window.Close();
+        });
+    }
+
+    [Fact]
+    public void Zoom_buttons_scale_the_sheet_and_are_clamped()
+    {
+        Run(() =>
+        {
+            var host = Show(FormDefinitions.ThongTri);
+            var page = host.View;
+
+            page.Zoom = 1.5;
+            Dispatcher.UIThread.RunJobs();
+            var transformed = page.GetVisualDescendants().OfType<LayoutTransformControl>().Single();
+            ((ScaleTransform)transformed.LayoutTransform!).ScaleX.ShouldBe(1.5);
+
+            page.Zoom = 99;
+            page.Zoom.ShouldBe(FormPageView.MaxZoom);
+            page.Zoom = 0;
+            page.Zoom.ShouldBe(FormPageView.MinZoom);
+            host.Window.Close();
         });
     }
 }
