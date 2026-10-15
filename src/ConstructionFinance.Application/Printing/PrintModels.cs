@@ -78,3 +78,10 @@ public sealed record GdnttPrintSheet(
     string SheetName,
     PrintPageProfile Page,
     GdnttForm Form) : PrintFormSheet(SheetName, Page);
+
+/// Sheet biểu mẫu dựng từ bản gốc: bộ ghi .xlsx, bộ dựng MigraDoc và màn hình cùng đọc MỘT ResolvedSheet,
+/// nên thêm biểu mẫu mới không cần thêm record nào ở đây.
+public sealed record FormTemplatePrintSheet(
+    string SheetName,
+    PrintPageProfile Page,
+    ResolvedSheet Sheet) : PrintSheet(SheetName, Page);

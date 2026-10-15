@@ -78,6 +78,10 @@ public sealed class PrintWorkbookWriter : IPrintWorkbookWriter
                 case PrintTableSheet table:
                     WriteTable(ws, table, footer);
                     break;
+                case FormTemplatePrintSheet template:
+                    FormExcelExporter.WriteSheet(ws, template.Sheet);
+                    ApplyPage(ws, template.Page, footer, resetFont: false);
+                    break;
                 case PrintFormSheet form:
                     WriteForm(ws, form, footer);
                     break;
@@ -108,13 +112,14 @@ public sealed class PrintWorkbookWriter : IPrintWorkbookWriter
     /// Căn trang + chân trang theo hồ sơ. Một chỗ duy nhất cho mọi loại sheet, để bảng và
     /// biểu mẫu không có hai đường căn trang. Áp lại lên cùng một sheet cho kết quả như áp một
     /// lần; `internal` để test kiểm đúng điều đó.
-    internal static void ApplyPage(IXLWorksheet ws, PrintPageProfile page, PrintFooterInfo footer)
+    internal static void ApplyPage(IXLWorksheet ws, PrintPageProfile page, PrintFooterInfo footer, bool resetFont = true)
     {
         // Font, khổ A4, hướng giấy, lề trái/phải — dùng lại đúng bộ đang áp cho ba biểu mẫu. Với sheet
         // biểu mẫu dòng này chạy SAU khi ô đã vẽ và đặt lại FontName/FontSize của cả sheet (đo bằng
         // ClosedXML: ô, dòng, cột tự đặt cỡ 9 đều về 13), nên hàm vẽ biểu mẫu không được tự đặt
         // FontName/FontSize riêng cho ô — Bold thì không sao.
-        FormExcelExporter.ApplyPageDefaults(ws, ToExcel(page.Orientation));
+        if (resetFont) FormExcelExporter.ApplyPageDefaults(ws, ToExcel(page.Orientation));
+        else FormExcelExporter.ApplyPaper(ws, ToExcel(page.Orientation));
 
         var setup = ws.PageSetup;
         setup.Margins.Top = VerticalMargin;

@@ -128,15 +128,22 @@ public partial class FormExcelExporter : IFormExcelExporter
         cell.Style.NumberFormat.Format = MoneyFormat;
     }
 
-    internal static void ApplyPageDefaults(IXLWorksheet ws, XLPageOrientation orientation)
+    /// Khổ A4, hướng giấy, lề trái/phải — KHÔNG đụng tới phông. Bộ vẽ từ bản gốc dùng hàm này vì cỡ chữ
+    /// của nó đặt từng ô; `ApplyPageDefaults` đặt phông cả sheet và sẽ nghiền mọi cỡ chữ riêng.
+    internal static void ApplyPaper(IXLWorksheet ws, XLPageOrientation orientation)
     {
-        ws.Style.Font.FontName = FontName;
-        ws.Style.Font.FontSize = FontSize;
         ws.PageSetup.PaperSize = XLPaperSize.A4Paper;
         ws.PageSetup.PageOrientation = orientation;
         // Cùng MỘT con số với ExcelFitScale.SideMarginInches: bộ dựng MigraDoc tính tỉ lệ co dựa
         // trên lề này, nên hai nơi dùng hai bản sao là một lỗi trôi âm thầm chờ xảy ra.
         ws.PageSetup.Margins.Left = Printing.ExcelFitScale.SideMarginInches;
         ws.PageSetup.Margins.Right = Printing.ExcelFitScale.SideMarginInches;
+    }
+
+    internal static void ApplyPageDefaults(IXLWorksheet ws, XLPageOrientation orientation)
+    {
+        ws.Style.Font.FontName = FontName;
+        ws.Style.Font.FontSize = FontSize;
+        ApplyPaper(ws, orientation);
     }
 }

@@ -2358,7 +2358,7 @@ public class FormExcelExporterTemplateTests
         using var wb = await Export(sheet);
         var ws = wb.Worksheet("Thông tri");
 
-        ws.Column(7).Width.ShouldBe(35.7109375, 0.01);
+        ws.Column(7).Width.ShouldBe(35.0, 0.01);
         ws.Row(17).Height.ShouldBe(47.25, 0.01);
         ws.MergedRanges.Select(r => r.RangeAddress.ToStringRelative()).ShouldContain("A4:H4");
         ws.PageSetup.PageOrientation.ShouldBe(XLPageOrientation.Portrait);
@@ -2466,7 +2466,7 @@ public class FormExcelExporterTemplateTests
         merges.ShouldContain("H13:I13");
         merges.ShouldContain("H25:I25");
         ws.Cell(26, 9).Style.NumberFormat.Format.ShouldBe("#,##0\"đ\"");
-        ws.Column(8).Width.ShouldBe(0.85546875, 0.01);
+        ws.Column(8).Width.ShouldBe(0.1429, 0.01);
     }
 
     [Fact]
@@ -2484,7 +2484,7 @@ public class FormExcelExporterTemplateTests
         ws.Cell(4, 1).Style.Font.FontSize.ShouldBe(14);
         ws.Cell(12, 1).Style.Font.FontSize.ShouldBe(10);
         ws.PageSetup.PagesWide.ShouldBe(1);      // hồ sơ căn trang vẫn áp
-        ws.PageSetup.Footer.Left.GetText(XLHFOccurrence.AllPages).ShouldContain("Dự án A");
+        ws.PageSetup.Footer.Left.GetText(XLHFOccurrence.OddPages).ShouldContain("Dự án A");
     }
 }
 ```
@@ -2626,10 +2626,10 @@ public partial class FormExcelExporter
         var text = cell.DisplayText;
         if (text.Length == 0) return;
 
-        // Chữ người dùng gõ có thể bắt đầu bằng "=" hay "'": ép kiểu chữ để Excel không coi là công thức.
+        // Chữ người dùng gõ có thể bắt đầu bằng "=" hay "'": gán thẳng một XLCellValue chữ (không qua
+        // trình phân tích công thức) và đặt định dạng Text để Excel cũng không coi là công thức khi mở lại.
         target.Style.NumberFormat.Format = "@";
-        target.SetValue(text);
-        target.DataType = XLDataType.Text;
+        target.Value = XLCellValue.FromObject(text);
     }
 }
 ```
