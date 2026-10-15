@@ -8,7 +8,6 @@ using ConstructionFinance.Desktop.ViewModels.Decisions;
 using ConstructionFinance.Desktop.ViewModels.Printing;
 using ConstructionFinance.Desktop.ViewModels.ThongTri;
 using ConstructionFinance.Desktop.ViewModels.TongHop;
-using ConstructionFinance.Desktop.ViewModels.Vendors;
 using Microsoft.Extensions.DependencyInjection;
 using Serilog;
 
@@ -59,31 +58,6 @@ public partial class MainWindowViewModel : ViewModelBase
                 _nav.Reset();
                 _nav.NavigateTo(dvm);
                 await dvm.LoadAsync();
-                break;
-            case "Vendors":
-                var vvm = _services.GetRequiredService<VendorListViewModel>();
-                _nav.Reset();
-                _nav.NavigateTo(vvm);
-                await vvm.LoadAsync();
-                break;
-            case "Projects":
-                var pvm = _services.GetRequiredService<ViewModels.Projects.ProjectListViewModel>();
-                pvm.SetContractId(0);
-                _nav.Reset();
-                _nav.NavigateTo(pvm);
-                await pvm.LoadAsync();
-                break;
-            case "FinanceGrid":
-                var fgvm = _services.GetRequiredService<ViewModels.Finance.FinanceProjectGridViewModel>();
-                _nav.Reset();
-                _nav.NavigateTo(fgvm);
-                fgvm.InitializeNew();
-                break;
-            case "FinanceSummary":
-                var fsvm = _services.GetRequiredService<ViewModels.Finance.FinanceSummaryViewModel>();
-                _nav.Reset();
-                _nav.NavigateTo(fsvm);
-                await fsvm.LoadAsync();
                 break;
             case "FinanceWorkbook":
                 var fwvm = _services.GetRequiredService<ViewModels.Finance.FinanceWorkbookViewModel>();

@@ -44,7 +44,6 @@ public static partial class HostBuilder
                 // này không có thân, lời gọi bị xoá hẳn khi biên dịch, nên không IPrinterPort
                 // nào được đăng ký và hai lệnh In ra giấy mờ đi — đúng như CanPrint* kiểm.
                 AddPrinterServices(services);
-                services.AddTransient<ViewModels.Vendors.VendorListViewModel>();
                 services.AddTransient<ViewModels.Decisions.DecisionListViewModel>();
                 services.AddTransient<ViewModels.Contracts.ContractListViewModel>();
                 services.AddTransient<ViewModels.Projects.ProjectListViewModel>();
