@@ -47,10 +47,12 @@ public partial class MainWindowViewModel : ViewModelBase
                 await tvm.LoadAsync();
                 break;
             case "ThongTri":
-                var ttvm = _services.GetRequiredService<ThongTriViewModel>();
-                _nav.Reset();
-                _nav.NavigateTo(ttvm);
-                await ttvm.LoadAsync();
+                // Màn Thông tri cũ (từ dữ liệu import) không còn lối vào: mục này mở tab Thông tri của dự án đang
+                // chọn trong sổ. Đang ở sổ rồi thì chỉ chuyển tab, không nạp lại (giữ dự án và chữ chưa lưu).
+                if (_nav.CurrentContent is not ViewModels.Finance.FinanceWorkbookViewModel)
+                    await NavigateToAsync("FinanceWorkbook");
+                if (_nav.CurrentContent is ViewModels.Finance.FinanceWorkbookViewModel workbook)
+                    await workbook.OpenFormTabAsync("thongtri");
                 break;
             case "Decisions":
                 var dvm = _services.GetRequiredService<DecisionListViewModel>();

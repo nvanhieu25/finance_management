@@ -5163,6 +5163,7 @@ Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>"
 - [ ] **Step 1: Viết test (đỏ)**
 
 ```csharp file=tests/ConstructionFinance.Desktop.Tests/MainWindowNavigationTests.cs
+using ConstructionFinance.Application.Calc;
 using ConstructionFinance.Application.DTOs;
 using ConstructionFinance.Application.Services.Interfaces;
 using ConstructionFinance.Desktop.Services;
