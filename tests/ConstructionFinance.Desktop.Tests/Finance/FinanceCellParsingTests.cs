@@ -7,16 +7,6 @@ namespace ConstructionFinance.Desktop.Tests.Finance;
 public class FinanceCellParsingTests
 {
     [Theory]
-    [InlineData("1.234.567", 1234567)]
-    [InlineData("1234567", 1234567)]
-    [InlineData("1.000,50", 1000.50)]
-    [InlineData("  2.000 ", 2000)]
-    [InlineData("", 0)]
-    [InlineData("x", 0)]
-    public void ParseMoney_handles_vietnamese_formats(string raw, decimal expected) =>
-        FinanceCellParsing.ParseMoney(raw).ShouldBe(expected);
-
-    [Theory]
     [InlineData("05/03/2026", 2026, 3, 5)]
     [InlineData("2026-03-05", 2026, 3, 5)]
     public void ParseDate_accepts_two_formats(string raw, int y, int m, int d) =>

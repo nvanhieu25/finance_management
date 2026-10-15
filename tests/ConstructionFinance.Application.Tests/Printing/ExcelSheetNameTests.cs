@@ -6,13 +6,9 @@ using Xunit;
 
 namespace ConstructionFinance.Application.Tests.Printing;
 
-/// ExcelSheetName tách ra từ FinanceExportService.UniqueSheetName — tệp đó nằm trong
-/// danh sách 7E sẽ xóa, mà tính năng in phụ thuộc quy tắc này, nên nó phải sống ở chỗ
-/// dùng chung KÈM TEST trước khi 7E chạy.
-///
-/// Hành vi là của hàm GỐC, giữ nguyên: tên dự phòng "DA", và loại MỌI dấu nháy đơn
-/// (Excel từ chối tên bắt đầu HOẶC kết thúc bằng dấu nháy). Các dòng InlineData bên dưới
-/// là chốt duy nhất của hai hành vi này.
+/// Quy tắc đặt tên sheet Excel của tính năng in: tên dự phòng "Sheet" khi làm sạch xong không còn gì, và loại
+/// MỌI dấu nháy đơn (Excel từ chối tên bắt đầu HOẶC kết thúc bằng dấu nháy). Các dòng InlineData bên dưới là chốt
+/// duy nhất của hai hành vi này.
 public class ExcelSheetNameTests
 {
     /// Tập tên đã dùng đúng cách: Excel coi tên sheet là KHÔNG phân biệt hoa thường. Mọi test gọi Unique đều lấy tập từ đây,
@@ -63,9 +59,9 @@ public class ExcelSheetNameTests
     [InlineData("A/B:C*D?E[F]G\\H", "ABCDEFGH")]   // ký tự Excel cấm bị loại
     [InlineData("'Mở đầu", "Mở đầu")]              // dấu nháy đơn đầu chuỗi bị loại
     [InlineData("Mở đầu'", "Mở đầu")]              // ...và cuối chuỗi: Excel cũng từ chối tên kết thúc bằng '
-    [InlineData("Cầu O'Brien", "Cầu OBrien")]      // hàm gốc loại MỌI dấu nháy đơn, không chỉ ở hai đầu
-    [InlineData("   ", "DA")]                       // rỗng sau khi làm sạch → tên dự phòng của hàm gốc
-    [InlineData(null, "DA")]                        // null → cùng tên dự phòng, không ném
+    [InlineData("Cầu O'Brien", "Cầu OBrien")]      // loại MỌI dấu nháy đơn, không chỉ ở hai đầu
+    [InlineData("   ", "Sheet")]                    // rỗng sau khi làm sạch → tên dự phòng
+    [InlineData(null, "Sheet")]                     // null → cùng tên dự phòng, không ném
     public void Lam_sach_ten_sheet(string? raw, string expected)
     {
         ExcelSheetName.Unique(raw, NewUsed()).ShouldBe(expected);
@@ -127,8 +123,7 @@ public class ExcelSheetNameTests
         result.ShouldNotEndWith("'");
     }
 
-    // Ba test dưới đây chốt MỘT chỗ khác với hàm gốc, và là chỗ cố ý: cắt không xé đôi cặp
-    // surrogate. Hàm gốc cắt cứng theo đơn vị UTF-16, nên một tên có emoji vắt qua ranh giới để
+    // Ba test dưới đây chốt chỗ cắt không xé đôi cặp surrogate. Cắt cứng theo đơn vị UTF-16 thì một tên có emoji vắt qua ranh giới để
     // lại surrogate cao lẻ ở cuối — ClosedXML ném ArgumentException khi LƯU workbook (không phải
     // lúc AddWorksheet), làm hỏng cả lần in.
 

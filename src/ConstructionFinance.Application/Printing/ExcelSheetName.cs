@@ -3,18 +3,16 @@ using System.Text;
 namespace ConstructionFinance.Application.Printing;
 
 /// Tên sheet Excel: tối đa 31 ký tự, không được chứa \ / * ? : [ ] và không được
-/// bắt đầu hoặc kết thúc bằng dấu nháy đơn. Tách ra từ FinanceExportService (7E sẽ xóa
-/// tệp đó) để cả đường xuất cũ lẫn tính năng in dùng chung một quy tắc. Hành vi giữ
-/// nguyên so với hàm gốc, trừ một chỗ cố ý sửa: cắt không xé đôi cặp surrogate (xem
-/// TextTruncation) — hàm gốc cắt cứng, nên tên có emoji vắt qua ranh giới làm ClosedXML ném.
+/// bắt đầu hoặc kết thúc bằng dấu nháy đơn. Mọi sheet của tính năng in đi qua đây. Cắt tên không
+/// xé đôi cặp surrogate (xem TextTruncation): cắt cứng theo đơn vị UTF-16 sẽ để lại surrogate lẻ
+/// khi tên có emoji vắt qua ranh giới, và ClosedXML ném lúc LƯU workbook.
 public static class ExcelSheetName
 {
     private const int MaxLength = 31;
 
     /// Tên khi làm sạch xong không còn gì (rỗng, toàn khoảng trắng, toàn ký tự cấm, hoặc
-    /// null). "DA" là giá trị hàm gốc đang dùng; giữ nguyên để việc chuyển chỗ không đổi
-    /// tên sheet của bản xuất cũ. Với tính năng in đây chỉ là lưới an toàn.
-    private const string Fallback = "DA";
+    /// null). Tên trung tính vì đây chỉ là lưới an toàn: sheet in luôn có tên thật (Tổng hợp, Vị trí…).
+    private const string Fallback = "Sheet";
 
     /// Bảy ký tự Excel cấm hẳn, cộng dấu nháy đơn. Excel chỉ cấm nháy đơn ở hai đầu tên,
     /// nhưng ta loại nó ở MỌI vị trí: nếu chỉ tỉa hai đầu rồi mới cắt còn 31 ký tự, một
