@@ -249,4 +249,26 @@ public class FormDotPickerViewModelTests
         ((IHasDialogTitle)vm).DialogTitle.ShouldBe("Chọn đợt — X");
         ((IHasPrimaryButtonText)vm).PrimaryButtonText.ShouldBe("OK");
     }
+
+    [Fact]
+    public void SelectAll_ClearSelection_and_RestoreSelection_report_the_change_once()
+    {
+        var vm = new FormDotPickerViewModel(null);
+        vm.Refresh(Enumerable.Range(0, 50).Select(i => Row(i, Fund.NSNN, new DateOnly(2026, 3, 1))).ToList(), NoSources);
+        var raised = 0;
+        vm.SelectionChanged += (_, _) => raised++;
+
+        vm.SelectAllCommand.Execute(null);
+        raised.ShouldBe(1);
+        vm.SelectedCount.ShouldBe(50);
+
+        var snapshot = vm.SaveSelection();
+        vm.ClearSelectionCommand.Execute(null);
+        raised.ShouldBe(2);
+        vm.SelectedCount.ShouldBe(0);
+
+        vm.RestoreSelection(snapshot);
+        raised.ShouldBe(3);
+        vm.SelectedCount.ShouldBe(50);
+    }
 }

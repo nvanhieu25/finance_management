@@ -33,7 +33,10 @@ public partial class FormDotPickerViewModel : ViewModelBase, IHasDialogTitle, IH
 
     public void RestoreSelection(IReadOnlySet<object> tokens)
     {
-        foreach (var item in _allItems) item.IsSelected = tokens.Contains(item.Token);
+        InBatch(() =>
+        {
+            foreach (var item in _allItems) item.IsSelected = tokens.Contains(item.Token);
+        });
     }
 
     /// Các dòng đang hiển thị (sau bộ lọc tháng/năm).
@@ -112,19 +115,35 @@ public partial class FormDotPickerViewModel : ViewModelBase, IHasDialogTitle, IH
         int.TryParse(raw?.Trim(), out var value) ? value : null;
 
     [RelayCommand]
-    private void SelectAll()
+    private void SelectAll() => InBatch(() =>
     {
         foreach (var item in Items) item.IsSelected = true;
-    }
+    });
 
     [RelayCommand]
-    private void ClearSelection()
+    private void ClearSelection() => InBatch(() =>
     {
         foreach (var item in _allItems) item.IsSelected = false;
+    });
+
+    // Đổi nhiều ô tích một lượt (Chọn tất cả / Bỏ chọn / Hủy khôi phục) chỉ báo SelectionChanged MỘT lần: mỗi lần báo là
+    // một lần dựng lại cả biểu mẫu, nên báo từng ô thì 300 đợt thành 300 lần dựng (đo được 16 giây).
+    private int _batchDepth;
+
+    private void InBatch(Action change)
+    {
+        _batchDepth++;
+        try { change(); }
+        finally
+        {
+            _batchDepth--;
+            if (_batchDepth == 0) RaiseSelectionState();
+        }
     }
 
     private void RaiseSelectionState()
     {
+        if (_batchDepth > 0) return;
         OnPropertyChanged(nameof(SelectedCount));
         OnPropertyChanged(nameof(SelectionSummary));
         OnPropertyChanged(nameof(SelectedKeys));
