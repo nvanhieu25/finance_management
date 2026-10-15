@@ -5,8 +5,7 @@ using ConstructionFinance.Application.Printing;
 
 namespace ConstructionFinance.Desktop.ViewModels.Finance;
 
-/// One Vị trí tab within the selected project's Vị trí tab strip. Mirrors
-/// ProjectPageViewModel's role for the old flat grid: wraps a VitriLedgerViewModel,
+/// One Vị trí tab within the selected project's Vị trí tab strip: wraps a VitriLedgerViewModel,
 /// tracks its dirty state for the tab bullet, and follows its Name for the tab title.
 public sealed class ViTriPageViewModel : WorkbookPageViewModel
 {

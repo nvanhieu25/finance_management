@@ -16,9 +16,6 @@ public abstract partial class WorkbookPageViewModel : ViewModelBase, IPrintableP
     /// Tab caption; unsaved pages get an Excel-style bullet.
     public string Header => IsDirty ? $"• {Title}" : Title;
 
-    /// The TH page is pinned: always first, never closed or renamed.
-    public virtual bool IsPinned => false;
-
     /// Inner view-model rendered in the tab body (resolved by ViewLocator).
     public abstract object Content { get; }
 

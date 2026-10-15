@@ -6,7 +6,7 @@ using ConstructionFinance.Domain.Finance;
 namespace ConstructionFinance.Desktop.ViewModels.Finance.Forms;
 
 /// Một dòng trong panel chọn đợt: dữ liệu đợt đã trải phẳng + ô tích + các chuỗi
-/// hiển thị (không bind thẳng decimal/DateOnly - bài học 6A).
+/// hiển thị (không bind thẳng decimal/DateOnly - vì Avalonia chặn cú OnPropertyChanged cùng-thuộc-tính).
 public partial class FormDotItemViewModel : ViewModelBase
 {
     public FormDotItemViewModel(FormDotRow data, object token)

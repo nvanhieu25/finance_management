@@ -10,7 +10,7 @@
         <!-- Local-only, crisp Excel-style gridline color for THIS grid — deliberately
              stronger contrast than the app-wide GridLineBrush (#EAEEF4, near-invisible
              against white cells), scoped here via UserControl.Resources so it does NOT
-             touch Theme.axaml or FinanceProjectGridView's (6A) look. -->
+             touch Theme.axaml. -->
         <ResourceDictionary>
             <ResourceDictionary.ThemeDictionaries>
                 <ResourceDictionary x:Key="Light">
