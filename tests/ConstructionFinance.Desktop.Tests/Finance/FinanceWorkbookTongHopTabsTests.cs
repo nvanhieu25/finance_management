@@ -63,9 +63,9 @@ public class FinanceWorkbookTongHopTabsTests
         sut.ViTriPages[0].ShouldBeOfType<ProjectTongHopPageViewModel>();
         // Quyết toán năm now sits right before the three fixed form tabs (Task 13).
         sut.ViTriPages[^4].ShouldBeOfType<YearSettlementPageViewModel>();
-        sut.ViTriPages[^3].ShouldBeOfType<ThongTriFormPageViewModel>();
-        sut.ViTriPages[^2].ShouldBeOfType<KsChiFormPageViewModel>();
-        sut.ViTriPages[^1].ShouldBeOfType<GdnttFormPageViewModel>();
+        sut.ViTriPages[^3].ShouldBeOfType<FormTabPageViewModel>();
+        sut.ViTriPages[^2].ShouldBeOfType<FormTabPageViewModel>();
+        sut.ViTriPages[^1].ShouldBeOfType<FormTabPageViewModel>();
     }
 
     [Fact]

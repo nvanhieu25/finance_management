@@ -3,6 +3,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using ConstructionFinance.Application.Forms;
 using ConstructionFinance.Desktop.Common;
+using ConstructionFinance.Desktop.Services;
 using ConstructionFinance.Domain.Finance;
 
 namespace ConstructionFinance.Desktop.ViewModels.Finance.Forms;
@@ -10,7 +11,7 @@ namespace ConstructionFinance.Desktop.ViewModels.Finance.Forms;
 /// Panel chọn đợt dùng chung cho ba tab biểu mẫu. Danh sách đã lọc sẵn theo Nguồn
 /// của form; ô lọc tháng/năm chỉ THU HẸP phần hiển thị - đợt đang tích mà bị ẩn vẫn
 /// nằm trong form, nên SelectionSummary luôn hiện số đang chọn.
-public partial class FormDotPickerViewModel : ViewModelBase
+public partial class FormDotPickerViewModel : ViewModelBase, IHasDialogTitle, IHasPrimaryButtonText
 {
     private readonly Fund? _fundFilter;
 
@@ -20,6 +21,20 @@ public partial class FormDotPickerViewModel : ViewModelBase
     private List<FormDotItemViewModel> _allItems = new();
 
     public FormDotPickerViewModel(Fund? fundFilter) => _fundFilter = fundFilter;
+
+    /// Tiêu đề hộp thoại (ghi theo biểu mẫu: "Chọn đợt — Thông tri").
+    public string Title { get; init; } = "Chọn đợt";
+
+    string IHasDialogTitle.DialogTitle => Title;
+    string IHasPrimaryButtonText.PrimaryButtonText => "OK";
+
+    /// Chụp lựa chọn trước khi mở hộp thoại, để Hủy trả lại đúng như cũ.
+    public IReadOnlySet<object> SaveSelection() => _selectedTokens.ToHashSet();
+
+    public void RestoreSelection(IReadOnlySet<object> tokens)
+    {
+        foreach (var item in _allItems) item.IsSelected = tokens.Contains(item.Token);
+    }
 
     /// Các dòng đang hiển thị (sau bộ lọc tháng/năm).
     public ObservableCollection<FormDotItemViewModel> Items { get; } = new();

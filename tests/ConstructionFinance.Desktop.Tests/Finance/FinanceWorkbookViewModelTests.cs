@@ -455,9 +455,9 @@ public class FinanceWorkbookViewModelTests
         ledgers[1].Title.ShouldBe("V2");
         sut.ViTriPages[^4].ShouldBeOfType<YearSettlementPageViewModel>();
         sut.ViTriPages[^4].Title.ShouldBe("Quyết toán năm");
-        sut.ViTriPages[^3].ShouldBeOfType<ThongTriFormPageViewModel>();
-        sut.ViTriPages[^2].ShouldBeOfType<KsChiFormPageViewModel>();
-        sut.ViTriPages[^1].ShouldBeOfType<GdnttFormPageViewModel>();
+        sut.ViTriPages[^3].ShouldBeOfType<FormTabPageViewModel>();
+        sut.ViTriPages[^2].ShouldBeOfType<FormTabPageViewModel>();
+        sut.ViTriPages[^1].ShouldBeOfType<FormTabPageViewModel>();
         sut.SelectedViTriPage.ShouldBe(sut.ViTriPages[0]);   // lands on Tổng hợp
     }
 

@@ -1,4 +1,5 @@
 using ConstructionFinance.Application.Forms;
+using ConstructionFinance.Desktop.Services;
 using ConstructionFinance.Desktop.ViewModels.Finance;
 using ConstructionFinance.Desktop.ViewModels.Finance.Forms;
 using ConstructionFinance.Domain.Finance;
@@ -218,5 +219,34 @@ public class FormDotPickerViewModelTests
         item.DisbursedText.ShouldBe("10.000.000");
         item.ContentText.ShouldBe("Đợt 0");
         item.PackageName.ShouldBe("Gói A");
+    }
+
+    [Fact]
+    public void SaveSelection_then_RestoreSelection_returns_to_the_snapshot()
+    {
+        var vm = new FormDotPickerViewModel(null);
+        vm.Refresh(new[]
+        {
+            Row(0, Fund.NSNN, new DateOnly(2026, 3, 1)),
+            Row(1, Fund.NSNN, new DateOnly(2026, 3, 2))
+        }, NoSources);
+        vm.Items[0].IsSelected = true;
+        var snapshot = vm.SaveSelection();
+
+        vm.Items[0].IsSelected = false;
+        vm.Items[1].IsSelected = true;
+        vm.RestoreSelection(snapshot);
+
+        vm.Items.Select(i => i.IsSelected).ShouldBe(new[] { true, false });
+        vm.SelectedCount.ShouldBe(1);
+    }
+
+    [Fact]
+    public void Picker_is_a_dialog_with_a_title_and_an_OK_button()
+    {
+        var vm = new FormDotPickerViewModel(null) { Title = "Chọn đợt — X" };
+
+        ((IHasDialogTitle)vm).DialogTitle.ShouldBe("Chọn đợt — X");
+        ((IHasPrimaryButtonText)vm).PrimaryButtonText.ShouldBe("OK");
     }
 }

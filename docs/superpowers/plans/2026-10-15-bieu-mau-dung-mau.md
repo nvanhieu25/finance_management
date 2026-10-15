@@ -3756,7 +3756,7 @@ public class FormPageViewModelTests
     {
         var (vm, _, _) = Create(FormDefinitions.Gdntt);
         foreach (var item in vm.Picker.Items.Where(i => i.Data.PackageName == "Gói A")) item.IsSelected = true;
-        Segment(vm, "UnrecoveredAdvanceBefore").Number.ShouldBe(0m);
+        Segment(vm, "UnrecoveredAdvanceBefore").Number.ShouldBe(10_000_000m);   // đợt 0 (tạm ứng 10tr) đứng trước đợt được chọn
 
         vm.SetInput("UnrecoveredAdvanceBefore", "15.000.000");
 

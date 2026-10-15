@@ -33,7 +33,10 @@ public class FinanceWorkbookFormTabsTests
     };
 
     private static (FinanceWorkbookViewModel vm, Mock<IFinanceProjectService> service) CreateSut(
-        Project? tree = null)
+        Project? tree = null) => CreateSut(tree, out _);
+
+    private static (FinanceWorkbookViewModel vm, Mock<IFinanceProjectService> service) CreateSut(
+        Project? tree, out Mock<ICompanyInfoService> companyInfo)
     {
         var project = tree ?? new Project { Id = 7, Name = "Dự án A", ViTris = { ViTriWithDots() } };
 
@@ -49,7 +52,7 @@ public class FinanceWorkbookFormTabsTests
             service.Object, Mock.Of<IFinanceImportService>(),
             Mock.Of<IFinanceExportService>(), Mock.Of<IDialogService>());
 
-        var companyInfo = new Mock<ICompanyInfoService>();
+        companyInfo = new Mock<ICompanyInfoService>();
         companyInfo.Setup(c => c.GetAsync(It.IsAny<CancellationToken>()))
                    .ReturnsAsync(new CompanyInfoDto(null, null, null, null, null, null, null, null,
                        DonViCapTren: "Sở Tài chính", DonViCoSo: "Ban QLDA số 1"));
@@ -82,9 +85,9 @@ public class FinanceWorkbookFormTabsTests
 
         await vm.LoadAsync();
 
-        var thongTri = vm.ViTriPages.OfType<ThongTriFormPageViewModel>().Single().Inner;
-        var gdntt = vm.ViTriPages.OfType<GdnttFormPageViewModel>().Single().Inner;
-        var ksChi = vm.ViTriPages.OfType<KsChiFormPageViewModel>().Single().Inner;
+        var thongTri = vm.ViTriPages.FormTab("thongtri").Inner;
+        var gdntt = vm.ViTriPages.FormTab("gdntt").Inner;
+        var ksChi = vm.ViTriPages.FormTab("kschi").Inner;
 
         thongTri.Picker.Items.Count.ShouldBe(1);      // chỉ đợt NSNN
         gdntt.Picker.Items.Count.ShouldBe(1);         // chỉ đợt ngoại hối
@@ -98,7 +101,7 @@ public class FinanceWorkbookFormTabsTests
         await vm.LoadAsync();
         vm.IsDirty.ShouldBeFalse();
 
-        vm.ViTriPages.OfType<ThongTriFormPageViewModel>().Single().Inner.SoThongTri = "12/TT";
+        vm.ViTriPages.FormTab("thongtri").Inner.SetInput("SoThongTri", "12/TT");
 
         vm.IsDirty.ShouldBeTrue();
     }
@@ -110,11 +113,11 @@ public class FinanceWorkbookFormTabsTests
         service.Setup(s => s.ReplaceTreeAsync(It.IsAny<Project>(), It.IsAny<CancellationToken>()))
                .Returns(Task.CompletedTask);
         await vm.LoadAsync();
-        var thongTriPage = vm.ViTriPages.OfType<ThongTriFormPageViewModel>().Single();
+        var thongTriPage = vm.ViTriPages.FormTab("thongtri");
         thongTriPage.IsDirty.ShouldBeFalse();
         thongTriPage.Header.ShouldBe("Thông tri");
 
-        thongTriPage.Inner.SoThongTri = "12/TT";
+        thongTriPage.Inner.SetInput("SoThongTri", "12/TT");
 
         thongTriPage.IsDirty.ShouldBeTrue();
         thongTriPage.Header.ShouldBe("• Thông tri");
@@ -126,7 +129,7 @@ public class FinanceWorkbookFormTabsTests
     }
 
     [Fact]
-    public async Task SaveAll_persists_the_three_declarations_with_the_tree()
+    public async Task SaveAll_persists_the_typed_text_as_FormInputs()
     {
         var (vm, service) = CreateSut();
         Project? saved = null;
@@ -135,32 +138,36 @@ public class FinanceWorkbookFormTabsTests
                .Returns(Task.CompletedTask);
         await vm.LoadAsync();
 
-        vm.ViTriPages.OfType<ThongTriFormPageViewModel>().Single().Inner.SoThongTri = "12/TT";
-        vm.ViTriPages.OfType<KsChiFormPageViewModel>().Single().Inner.ThueGTGTText = "2.000.000";
-        vm.ViTriPages.OfType<GdnttFormPageViewModel>().Single().Inner.TaiNganHang = "Vietcombank";
+        vm.ViTriPages.FormTab("thongtri").Inner.SetInput("SoThongTri", "12/TT");
+        vm.ViTriPages.FormTab("kschi").Inner.SetInput("ThueGTGT", "2.000.000");
+        vm.ViTriPages.FormTab("gdntt").Inner.SetInput("TaiNganHang", "Vietcombank");
         await vm.SaveAllCommand.ExecuteAsync(null);
 
         saved.ShouldNotBeNull();
-        saved!.ThongTri!.SoThongTri.ShouldBe("12/TT");
-        saved.KsChi!.ThueGTGT.ShouldBe(2_000_000m);
-        saved.Gdntt!.TaiNganHang.ShouldBe("Vietcombank");
+        saved!.FormInputs.Select(i => (i.Form, i.Key, i.Value)).OrderBy(t => t.Key).ShouldBe(new (string, string, string?)[]
+        {
+            ("thongtri", "SoThongTri", "12/TT"),
+            ("gdntt", "TaiNganHang", "Vietcombank"),
+            ("kschi", "ThueGTGT", "2000000"),
+        }.OrderBy(t => t.Item2));
         vm.IsDirty.ShouldBeFalse();
     }
 
     [Fact]
-    public async Task Stored_declarations_load_into_the_form_tabs()
+    public async Task Stored_inputs_load_into_the_form_tabs()
     {
         var project = new Project
         {
             Id = 7, Name = "Dự án A",
             ViTris = { ViTriWithDots() },
-            ThongTri = new ThongTriDeclaration { SoThongTri = "9/TT" }
+            FormInputs = { new FormInput { Form = "thongtri", Key = "SoThongTri", Value = "9/TT" } }
         };
         var (vm, _) = CreateSut(project);
 
         await vm.LoadAsync();
 
-        vm.ViTriPages.OfType<ThongTriFormPageViewModel>().Single().Inner.SoThongTri.ShouldBe("9/TT");
+        vm.ViTriPages.FormTab("thongtri").Inner.Sheet.Cells.SelectMany(c => c.Segments)
+            .First(x => x.Key == "SoThongTri").Value.ShouldBe("9/TT");
         vm.IsDirty.ShouldBeFalse();
     }
 
@@ -170,12 +177,54 @@ public class FinanceWorkbookFormTabsTests
         var (vm, _) = CreateSut();
         await vm.LoadAsync();
         var ledgerPage = vm.ViTriPages.OfType<ViTriPageViewModel>().Single();
-        var ksChi = vm.ViTriPages.OfType<KsChiFormPageViewModel>().Single();
+        var ksChi = vm.ViTriPages.FormTab("kschi");
 
         var packageRow = ledgerPage.Ledger.Rows.First(r => r.Kind == RowKind.Package);
         ledgerPage.Ledger.AddEntryCommand.Execute(packageRow);
         vm.SelectedViTriPage = ksChi;      // chọn tab form → làm mới
 
         ksChi.Inner.Picker.Items.Count.ShouldBe(3);
+    }
+
+    [Fact]
+    public async Task Editing_the_org_on_one_form_shows_on_the_others_and_is_saved_to_company_settings()
+    {
+        var (vm, service) = CreateSut(null, out var companyInfo);
+        service.Setup(s => s.ReplaceTreeAsync(It.IsAny<Project>(), It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
+        await vm.LoadAsync();
+
+        vm.ViTriPages.FormTab("thongtri").Inner.SetInput("don_vi_co_so", "Ban mới");
+
+        vm.ViTriPages.FormTab("gdntt").Inner.Sheet.Cells.Single(c => c.Row == 2 && c.Col == 1)
+            .DisplayText.ShouldBe("Ban mới");
+        vm.IsDirty.ShouldBeTrue();
+        await vm.SaveAllCommand.ExecuteAsync(null);
+        companyInfo.Verify(c => c.SaveAsync(
+            It.Is<CompanyInfoDto>(i => i.DonViCoSo == "Ban mới" && i.DonViCapTren == "Sở Tài chính"),
+            It.IsAny<CancellationToken>()), Times.Once);
+        vm.IsDirty.ShouldBeFalse();
+    }
+
+    [Fact]
+    public async Task OpenFormTabAsync_waits_for_the_tree_and_selects_the_tab()
+    {
+        var (vm, _) = CreateSut();
+        await vm.LoadAsync();
+
+        await vm.OpenFormTabAsync("kschi");
+
+        vm.SelectedViTriPage.ShouldBeSameAs(vm.ViTriPages.FormTab("kschi"));
+    }
+
+    [Fact]
+    public async Task A_new_project_gets_three_empty_form_tabs()
+    {
+        var (vm, _) = CreateSut();
+        await vm.LoadAsync();
+
+        vm.AddProjectCommand.Execute(null);
+
+        vm.ViTriPages.OfType<FormTabPageViewModel>().Count().ShouldBe(3);
+        vm.ViTriPages.FormTab("thongtri").Inner.ToFormInputs().ShouldBeEmpty();
     }
 }

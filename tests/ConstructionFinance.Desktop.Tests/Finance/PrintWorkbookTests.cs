@@ -106,17 +106,17 @@ public class PrintWorkbookTests
     private static FinanceWorkbookViewModel BuildWorkbookWithTwoViTri()
     {
         var workbook = LoadWorkbook(ProjectWithTwoViTri());
-        var gdntt = workbook.ViTriPages.OfType<GdnttFormPageViewModel>().Single();
+        var gdntt = workbook.ViTriPages.FormTab("gdntt");
         gdntt.Inner.Picker.Items[0].IsSelected = true;
         gdntt.Inner.CanExport.ShouldBeTrue("tiền đề của helper: tab GĐNTT đã có gói thầu để in");
         return workbook;
     }
 
-    /// Cùng dự án nhưng tab GĐNTT chưa chọn gói thầu nào, tức GdnttFormViewModel.CanExport == false.
+    /// Cùng dự án nhưng tab GĐNTT chưa chọn gói thầu nào, tức FormPageViewModel.CanExport == false.
     private static FinanceWorkbookViewModel BuildWorkbookWhereGdnttHasNoPackage()
     {
         var workbook = LoadWorkbook(ProjectWithTwoViTri());
-        var gdntt = workbook.ViTriPages.OfType<GdnttFormPageViewModel>().Single();
+        var gdntt = workbook.ViTriPages.FormTab("gdntt");
         gdntt.Inner.CanExport.ShouldBeFalse("tiền đề của helper: tab GĐNTT có mặt nhưng chưa chọn gói thầu");
         return workbook;
     }
@@ -256,7 +256,7 @@ public class PrintWorkbookTests
     public void GDNTT_chon_dot_cua_hai_goi_thi_ly_bo_qua_noi_la_nhieu_goi_chu_khong_phai_chua_chon()
     {
         var workbook = LoadWorkbook(ProjectWithTwoViTri());
-        var gdntt = workbook.ViTriPages.OfType<GdnttFormPageViewModel>().Single();
+        var gdntt = workbook.ViTriPages.FormTab("gdntt");
         gdntt.Inner.Picker.SelectAllCommand.Execute(null);          // đợt Ngoại hối của cả hai Vị trí = hai gói thầu
         gdntt.Inner.CanExport.ShouldBeFalse("tiền đề: hai gói thầu thì không dựng được một giấy");
 
@@ -412,7 +412,7 @@ public class PrintWorkbookTests
         var workbook = BuildWorkbookWithTwoViTri();
         var viTri1 = workbook.ViTriPages.OfType<ViTriPageViewModel>().First();
         workbook.SelectedViTriPage = viTri1;
-        workbook.ViTriPages.OfType<ThongTriFormPageViewModel>().Single().Inner.Picker.Items[0].IsSelected = true;
+        workbook.ViTriPages.FormTab("thongtri").Inner.Picker.Items[0].IsSelected = true;
 
         var dot = viTri1.Ledger.Rows.Single(r => r.Kind == RowKind.Entry && r.Fund == Fund.NSNN);
         dot.AdvanceText = "1.000.000";
@@ -453,9 +453,9 @@ public class PrintWorkbookTests
     public void In_toan_bo_Thong_tri_mang_so_cua_lan_sua_thu_hai()
     {
         var thongTri = PrintAllAfterEditingTheSameCellTwice()
-            .OfType<ThongTriPrintSheet>().Single(s => s.SheetName == "Thông tri");
+            .OfType<FormTemplatePrintSheet>().Single(s => s.SheetName == "Thông tri");
 
-        thongTri.Form.Total.ShouldBe(2_500_000m);
+        NumberAt(thongTri, 24, 8).ShouldBe(2_500_000m);
     }
 
     // ===== Trang GĐNTT: tên sheet và nội dung đi cùng nhau =====
@@ -470,19 +470,26 @@ public class PrintWorkbookTests
             "Cty XL A", "123456789", 50_000_000_000m, 2_000_000_000m, new DateOnly(2026, 3, 1), "Đợt", "CT01",
             fund, advance, klht, recovered, Disbursed: advance + klht - recovered);
 
-    private static GdnttFormViewModel NewGdntt(params FormDotRow[] rows)
+    private static FormPageViewModel NewForm(FormDefinition definition, params FormDotRow[] rows)
     {
-        var inner = new GdnttFormViewModel(Mock.Of<IFormExcelExporter>(), new FakeDialogService());
-        inner.Refresh(rows, Array.Empty<LedgerRowViewModel>(), new GdnttDeclaration(),
-            new FormOrgInfo("Sở Tài chính", "Ban QLDA số 1"), "Dự án A");
+        var inner = new FormPageViewModel(definition, Mock.Of<IFormExcelExporter>(), new FakeDialogService()) { Year = 2026 };
+        inner.Refresh(rows, Array.Empty<LedgerRowViewModel>(), new FormOrgInfo("Sở Tài chính", "Ban QLDA số 1"), "Dự án A");
         return inner;
     }
+
+    private static FormPageViewModel NewGdntt(params FormDotRow[] rows) => NewForm(FormDefinitions.Gdntt, rows);
+
+    private static decimal? NumberAt(FormTemplatePrintSheet sheet, int row, int col) =>
+        sheet.Sheet.Cells.Single(c => c.Row == row && c.Col == col).Segments.Single().Number;
+
+    private static string TextAt(FormTemplatePrintSheet sheet, int row, int col) =>
+        sheet.Sheet.Cells.Single(c => c.Row == row && c.Col == col).DisplayText;
 
     [Fact]
     public void Trang_GDNTT_chua_chon_goi_thau_thi_ca_ten_lan_noi_dung_deu_null()
     {
         var inner = NewGdntt(Row(0, Fund.NgoaiHoi, 10_000_000m));
-        var page = new GdnttFormPageViewModel(inner);
+        var page = new FormTabPageViewModel(inner);
 
         inner.CanExport.ShouldBeFalse("tiền đề: chưa tích đợt nào");
         page.PrintSheetName.ShouldBeNull();
@@ -497,7 +504,7 @@ public class PrintWorkbookTests
             Row(0, Fund.NgoaiHoi, 10_000_000m),
             Row(0, Fund.NgoaiHoi, 20_000_000m, packageIndex: 1, packageName: "Gói B"));
         inner.Picker.SelectAllCommand.Execute(null);
-        var page = new GdnttFormPageViewModel(inner);
+        var page = new FormTabPageViewModel(inner);
 
         inner.CanExport.ShouldBeFalse("tiền đề: một giấy đề nghị chỉ dựng cho một gói thầu");
         page.PrintSheetName.ShouldBeNull();
@@ -511,18 +518,17 @@ public class PrintWorkbookTests
     {
         var inner = NewGdntt(Row(0, Fund.NgoaiHoi, 10_000_000m), Row(1, Fund.NgoaiHoi, 30_000_000m));
         inner.Picker.Items[1].IsSelected = true;
-        var page = new GdnttFormPageViewModel(inner);
+        var page = new FormTabPageViewModel(inner);
 
         page.PrintSheetName.ShouldBe("GĐNTT");
         page.PrintUnavailableReason.ShouldBeNull("in được thì không có lý do nào để nói");
         // Kiểu của sheet CHÍNH LÀ biểu mẫu nó mang, nên ShouldBeOfType đã thay cho mấy dòng
         // kiểm "hai biểu mẫu kia phải null" trước đây — và kiểm chặt hơn, ngay lúc biên dịch.
-        var sheet = page.BuildPrintSheet().ShouldBeOfType<GdnttPrintSheet>();
+        var sheet = page.BuildPrintSheet().ShouldBeOfType<FormTemplatePrintSheet>();
         sheet.SheetName.ShouldBe("GĐNTT");
         sheet.Page.ShouldBeSameAs(PrintPageProfiles.Gdntt);
-        var form = sheet.Form;
-        form.PackageName.ShouldBe("Gói A");
-        form.RequestedThisPeriod.ShouldBe(30_000_000m);
+        TextAt(sheet, 18, 1).ShouldBe("Gói A");
+        NumberAt(sheet, 18, 8).ShouldBe(30_000_000m);
     }
 
     // ===== Thông tri và KS chi =====
@@ -530,42 +536,35 @@ public class PrintWorkbookTests
     [Fact]
     public void Thong_tri_in_ra_sheet_Thong_tri_voi_model_dang_hien()
     {
-        var inner = new ThongTriFormViewModel(Mock.Of<IFormExcelExporter>(), new FakeDialogService());
-        inner.Refresh(
-            new[] { Row(0, Fund.NSNN, 10_000_000m), Row(1, Fund.NSNN, 30_000_000m) },
-            Array.Empty<LedgerRowViewModel>(), new ThongTriDeclaration { SoThongTri = "12/TT" },
-            new FormOrgInfo("Sở Tài chính", "Ban QLDA số 1"), "Dự án A");
+        var inner = NewForm(FormDefinitions.ThongTri, Row(0, Fund.NSNN, 10_000_000m), Row(1, Fund.NSNN, 30_000_000m));
+        inner.SetInput("SoThongTri", "12/TT");
         inner.Picker.SelectAllCommand.Execute(null);
-        var page = new ThongTriFormPageViewModel(inner);
+        var page = new FormTabPageViewModel(inner);
 
         page.PrintSheetName.ShouldBe("Thông tri");
-        var sheet = page.BuildPrintSheet().ShouldBeOfType<ThongTriPrintSheet>();
+        var sheet = page.BuildPrintSheet().ShouldBeOfType<FormTemplatePrintSheet>();
         sheet.SheetName.ShouldBe("Thông tri");
         // ShouldBeSameAs chứ không ShouldBe: hồ sơ Thông tri và KS chi bằng nhau theo GIÁ TRỊ (cả hai dọc, ép
         // một trang ngang), nên so giá trị không nhận ra hai trang dùng nhầm hồ sơ của nhau.
         sheet.Page.ShouldBeSameAs(PrintPageProfiles.ThongTri);
-        var form = sheet.Form;
-        form.Total.ShouldBe(40_000_000m);
-        form.SoThongTri.ShouldBe("12/TT");
+        NumberAt(sheet, 24, 8).ShouldBe(40_000_000m);
+        TextAt(sheet, 3, 1).ShouldBe("Số      12/TT");
     }
 
     [Fact]
     public void KS_chi_in_ra_sheet_KS_chi_voi_model_dang_hien()
     {
-        var inner = new KsChiFormViewModel(Mock.Of<IFormExcelExporter>(), new FakeDialogService());
-        inner.Refresh(
-            new[] { Row(0, Fund.NSNN, 10_000_000m), Row(1, Fund.NgoaiHoi, 0m, klht: 200_000_000m, recovered: 5_000_000m) },
-            Array.Empty<LedgerRowViewModel>(), new KsChiDeclaration(), "Dự án A");
+        var inner = NewForm(FormDefinitions.KsChi,
+            Row(0, Fund.NSNN, 10_000_000m), Row(1, Fund.NgoaiHoi, 0m, klht: 200_000_000m, recovered: 5_000_000m));
         inner.Picker.SelectAllCommand.Execute(null);
-        var page = new KsChiFormPageViewModel(inner);
+        var page = new FormTabPageViewModel(inner);
 
         page.PrintSheetName.ShouldBe("KS chi");
-        var sheet = page.BuildPrintSheet().ShouldBeOfType<KsChiPrintSheet>();
+        var sheet = page.BuildPrintSheet().ShouldBeOfType<FormTemplatePrintSheet>();
         sheet.SheetName.ShouldBe("KS chi");
         sheet.Page.ShouldBeSameAs(PrintPageProfiles.KsChi);   // ShouldBeSameAs vì sao: xem test Thông tri
-        var form = sheet.Form;
-        form.Accepted.Total.ShouldBe(210_000_000m);
-        form.PaidToBeneficiary.Total.ShouldBe(205_000_000m);
+        NumberAt(sheet, 7, 3).ShouldBe(210_000_000m);
+        NumberAt(sheet, 17, 3).ShouldBe(205_000_000m);
     }
 
     // ===== Trang GĐNTT qua đường ủy quyền của workbook =====
@@ -574,7 +573,7 @@ public class PrintWorkbookTests
     public void Tab_GDNTT_chua_chon_goi_thau_thi_workbook_khong_in_duoc_sheet_nay()
     {
         var workbook = BuildWorkbookWhereGdnttHasNoPackage();
-        workbook.SelectedViTriPage = workbook.ViTriPages.OfType<GdnttFormPageViewModel>().Single();
+        workbook.SelectedViTriPage = workbook.ViTriPages.FormTab("gdntt");
 
         var printable = (IPrintablePage)workbook;
 
@@ -586,12 +585,12 @@ public class PrintWorkbookTests
     public void Tab_GDNTT_da_chon_goi_thau_thi_workbook_in_duoc_sheet_nay()
     {
         var workbook = BuildWorkbookWithTwoViTri();
-        workbook.SelectedViTriPage = workbook.ViTriPages.OfType<GdnttFormPageViewModel>().Single();
+        workbook.SelectedViTriPage = workbook.ViTriPages.FormTab("gdntt");
 
         var printable = (IPrintablePage)workbook;
 
         printable.PrintSheetName.ShouldBe("GĐNTT");
-        printable.BuildPrintSheet().ShouldBeOfType<GdnttPrintSheet>().SheetName.ShouldBe("GĐNTT");
+        printable.BuildPrintSheet().ShouldBeOfType<FormTemplatePrintSheet>().SheetName.ShouldBe("GĐNTT");
     }
 
     // ===== CanPrintAll: câu hỏi "có gì để In toàn bộ không" =====
@@ -624,11 +623,11 @@ public class PrintWorkbookTests
     {
         var tongHop = (PrintTableSheet)workbook.ViTriPages.OfType<ProjectTongHopPageViewModel>().Single().BuildPrintSheet()!;
         var quyetToan = (PrintTableSheet)workbook.ViTriPages.OfType<YearSettlementPageViewModel>().Single().BuildPrintSheet()!;
-        var thongTri = (ThongTriPrintSheet)workbook.ViTriPages.OfType<ThongTriFormPageViewModel>().Single().BuildPrintSheet()!;
+        var thongTri = (FormTemplatePrintSheet)workbook.ViTriPages.FormTab("thongtri").BuildPrintSheet()!;
         return new AggregatesShown(
             CellAt(tongHop, 2, "Tạm ứng"),       // dòng TỔNG CỘNG của Tổng hợp (Vị trí 1, Vị trí 2, TỔNG CỘNG)
             CellAt(quyetToan, 1, "Tổng"),        // dòng TỔNG CỘNG của Quyết toán năm (năm 2026, TỔNG CỘNG)
-            thongTri.Form.Total);
+            NumberAt(thongTri, 24, 8)!.Value);
     }
 
     [Fact]
@@ -712,7 +711,7 @@ public class PrintWorkbookTests
     public void Tich_goi_thau_thi_trang_GDNTT_bao_PrintSheetName_da_doi()
     {
         var inner = NewGdntt(Row(0, Fund.NgoaiHoi, 10_000_000m));
-        var page = new GdnttFormPageViewModel(inner);
+        var page = new FormTabPageViewModel(inner);
         var changed = new List<string>();
         page.PropertyChanged += (_, e) => changed.Add(e.PropertyName ?? "");
 
@@ -730,21 +729,21 @@ public class PrintWorkbookTests
     {
         // Hai đợt cùng một gói: tích thêm đợt thứ hai không làm đổi chuyện "in được hay không".
         var inner = NewGdntt(Row(0, Fund.NgoaiHoi, 10_000_000m), Row(1, Fund.NgoaiHoi, 30_000_000m));
-        var page = new GdnttFormPageViewModel(inner);
+        var page = new FormTabPageViewModel(inner);
         inner.Picker.Items[0].IsSelected = true;                       // null → "GĐNTT"
         var pageChanged = new List<string>();
         var canExportRaised = 0;
         page.PropertyChanged += (_, e) => pageChanged.Add(e.PropertyName ?? "");
         inner.PropertyChanged += (_, e) =>
         {
-            if (e.PropertyName == nameof(GdnttFormViewModel.CanExport)) canExportRaised++;
+            if (e.PropertyName == nameof(FormPageViewModel.CanExport)) canExportRaised++;
         };
 
         inner.Picker.Items[1].IsSelected = true;                       // vẫn một gói: CanExport vẫn true
-        inner.TaiNganHang = "Vietcombank";                             // gõ một ô chữ
-        inner.ChuyenTienBaoHanhText = "1.000";                         // gõ một ô tiền
+        inner.SetInput("TaiNganHang", "Vietcombank");                  // gõ một ô chữ
+        inner.SetInput("ChuyenTienBaoHanh", "1.000");                   // gõ một ô tiền
 
-        // Tiền đề làm test có nghĩa: Rebuild() của GdnttFormViewModel bắn CanExport ở MỌI lần dựng, kể cả khi giá trị
+        // Tiền đề làm test có nghĩa: Rebuild() của FormPageViewModel bắn CanExport ở MỌI lần dựng, kể cả khi giá trị
         // không đổi. Chuyển tiếp nguyên xi thì mỗi lần tích hay gõ đều làm nút In cập nhật lại.
         canExportRaised.ShouldBeGreaterThanOrEqualTo(3, "tiền đề: mỗi lần tích/gõ view-model đều bắn lại CanExport");
         page.PrintSheetName.ShouldBe("GĐNTT", "tiền đề: vẫn in được suốt thời gian đó");
@@ -755,7 +754,7 @@ public class PrintWorkbookTests
     public void Tich_goi_thau_o_tab_GDNTT_dang_mo_thi_workbook_bao_PrintSheetName_va_CanPrintAll()
     {
         var workbook = BuildWorkbookWhereGdnttHasNoPackage();
-        var gdntt = workbook.ViTriPages.OfType<GdnttFormPageViewModel>().Single();
+        var gdntt = workbook.ViTriPages.FormTab("gdntt");
         workbook.SelectedViTriPage = gdntt;
         var changed = new List<string>();
         workbook.PropertyChanged += (_, e) => changed.Add(e.PropertyName ?? "");
@@ -772,7 +771,7 @@ public class PrintWorkbookTests
     public void Tich_goi_thau_o_GDNTT_sau_khi_roi_tab_do_thi_workbook_khong_bao()
     {
         var workbook = BuildWorkbookWhereGdnttHasNoPackage();
-        var gdntt = workbook.ViTriPages.OfType<GdnttFormPageViewModel>().Single();
+        var gdntt = workbook.ViTriPages.FormTab("gdntt");
         workbook.SelectedViTriPage = gdntt;                                                      // đã mở GĐNTT: workbook từng nghe nó
         workbook.SelectedViTriPage = workbook.ViTriPages.OfType<ViTriPageViewModel>().First();   // rồi rời sang Vị trí 1
         var changed = new List<string>();

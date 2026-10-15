@@ -129,9 +129,16 @@ public partial class FinanceWorkbookViewModel : ViewModelBase, IPrintablePage, I
     private ProjectTongHopPageViewModel? _tongHopPage;
     private YearSettlementPageViewModel? _yearPage;
 
-    private ThongTriFormPageViewModel? _thongTriPage;
-    private KsChiFormPageViewModel? _ksChiPage;
-    private GdnttFormPageViewModel? _gdnttPage;
+    private FormTabPageViewModel? _thongTriPage;
+    private FormTabPageViewModel? _ksChiPage;
+    private FormTabPageViewModel? _gdnttPage;
+
+    // Tên đơn vị sửa trên biểu mẫu nhưng chưa lưu vào Cài đặt.
+    private bool _orgDirty;
+
+    // Lần nạp cây của dự án đang chọn. OnSelectedProjectChanged không async nên chỉ giữ lại Task để
+    // OpenFormTabAsync chờ được.
+    private Task _treeLoad = Task.CompletedTask;
 
     // Ô nhập tay của biểu mẫu bẩn riêng: không ledger nào đánh dấu hộ được.
     private bool _formDeclarationDirty;
@@ -161,6 +168,7 @@ public partial class FinanceWorkbookViewModel : ViewModelBase, IPrintablePage, I
             _ksChiPage = null;
             _gdnttPage = null;
             _formDeclarationDirty = false;
+            _orgDirty = false;
             _selectedProjectTree = null;
             _viTriStructureDirty = false;
 
@@ -212,7 +220,7 @@ public partial class FinanceWorkbookViewModel : ViewModelBase, IPrintablePage, I
             return;
         }
 
-        _ = LoadSelectedProjectTreeAsync(value);
+        _treeLoad = LoadSelectedProjectTreeAsync(value);
     }
 
     private async Task LoadSelectedProjectTreeAsync(Project? project)
@@ -225,6 +233,7 @@ public partial class FinanceWorkbookViewModel : ViewModelBase, IPrintablePage, I
         _ksChiPage = null;
         _gdnttPage = null;
         _formDeclarationDirty = false;
+        _orgDirty = false;
         _selectedProjectTree = null;
         _viTriStructureDirty = false;
         OnPropertyChanged(nameof(IsDirty));
@@ -255,17 +264,9 @@ public partial class FinanceWorkbookViewModel : ViewModelBase, IPrintablePage, I
                 AddViTriPage(new VitriLedgerViewModel(viTri));
             ViTriPages.Add(_yearPage);
 
-            _thongTriPage = new ThongTriFormPageViewModel(new ThongTriFormViewModel(_formExporter, _dialog));
-            _ksChiPage = new KsChiFormPageViewModel(new KsChiFormViewModel(_formExporter, _dialog));
-            _gdnttPage = new GdnttFormPageViewModel(new GdnttFormViewModel(_formExporter, _dialog));
+            CreateFormPages();
 
-            _thongTriPage.Inner.DeclarationChanged += OnFormDeclarationChanged;
-            _ksChiPage.Inner.DeclarationChanged += OnFormDeclarationChanged;
-            _gdnttPage.Inner.DeclarationChanged += OnFormDeclarationChanged;
-
-            ViTriPages.Add(_thongTriPage);
-            ViTriPages.Add(_ksChiPage);
-            ViTriPages.Add(_gdnttPage);
+            foreach (var formPage in FormPages()) ViTriPages.Add(formPage);
 
             RefreshAggregateTabs();
             SelectedViTriPage = ViTriPages.FirstOrDefault();   // the Tổng hợp tab
@@ -340,14 +341,55 @@ public partial class FinanceWorkbookViewModel : ViewModelBase, IPrintablePage, I
 
         // Bản khai sống ngay trên cây đã nạp, nên Save-All ghi kèm mà không phải
         // ghép lại thủ công.
-        _selectedProjectTree.ThongTri ??= new ThongTriDeclaration();
-        _selectedProjectTree.KsChi ??= new KsChiDeclaration();
-        _selectedProjectTree.Gdntt ??= new GdnttDeclaration();
-
         var projectName = _selectedProjectTree.Name;
-        _thongTriPage.Inner.Refresh(rows, sources, _selectedProjectTree.ThongTri, _orgInfo, projectName);
-        _ksChiPage.Inner.Refresh(rows, sources, _selectedProjectTree.KsChi, projectName);
-        _gdnttPage.Inner.Refresh(rows, sources, _selectedProjectTree.Gdntt, _orgInfo, projectName);
+        _thongTriPage.Inner.Refresh(rows, sources, _orgInfo, projectName);
+        _ksChiPage.Inner.Refresh(rows, sources, _orgInfo, projectName);
+        _gdnttPage.Inner.Refresh(rows, sources, _orgInfo, projectName);
+    }
+
+    /// Dựng ba tab biểu mẫu cho dự án đang chọn (cây đã nằm ở _selectedProjectTree): nạp chữ đã gõ từ cây và nghe
+    /// thay đổi của từng tab.
+    private void CreateFormPages()
+    {
+        _thongTriPage = NewFormPage(FormDefinitions.ThongTri);
+        _ksChiPage = NewFormPage(FormDefinitions.KsChi);
+        _gdnttPage = NewFormPage(FormDefinitions.Gdntt);
+    }
+
+    private FormTabPageViewModel NewFormPage(FormDefinition definition)
+    {
+        var page = new FormTabPageViewModel(new FormPageViewModel(definition, _formExporter, _dialog));
+        page.Inner.InputsChanged += OnFormDeclarationChanged;
+        page.Inner.OrgEdited += OnOrgEdited;
+        if (_selectedProjectTree is not null) page.Inner.LoadInputs(_selectedProjectTree.FormInputs);
+        return page;
+    }
+
+    private IEnumerable<FormTabPageViewModel> FormPages() =>
+        new[] { _thongTriPage, _ksChiPage, _gdnttPage }.OfType<FormTabPageViewModel>();
+
+    /// Tên đơn vị sửa trên MỘT biểu mẫu phải hiện ngay trên mọi biểu mẫu và ở Cài đặt (lưu cùng Ctrl+S).
+    private void OnOrgEdited(object? sender, OrgEditedEventArgs e)
+    {
+        _orgInfo = _orgInfo.With(e.Key, e.Value);
+        _orgDirty = true;
+        _formDeclarationDirty = true;
+        OnPropertyChanged(nameof(IsDirty));
+        RefreshAggregateTabs();
+    }
+
+    /// Mở thẳng một tab biểu mẫu ("thongtri" | "kschi" | "gdntt") của dự án đang chọn. Chờ nạp cây xong rồi mới chọn.
+    public async Task OpenFormTabAsync(string formId)
+    {
+        await _treeLoad;
+        var page = formId switch
+        {
+            "thongtri" => _thongTriPage,
+            "kschi" => _ksChiPage,
+            "gdntt" => _gdnttPage,
+            _ => null,
+        };
+        if (page is not null) SelectedViTriPage = page;
     }
 
     private void OnFormDeclarationChanged(object? sender, EventArgs e)
@@ -366,7 +408,7 @@ public partial class FinanceWorkbookViewModel : ViewModelBase, IPrintablePage, I
 
         // 2. Làm mới tab tổng hợp/biểu mẫu vừa được mở, để nó hiện số mới nhất.
         if (newValue is ProjectTongHopPageViewModel or YearSettlementPageViewModel
-            or ThongTriFormPageViewModel or KsChiFormPageViewModel or GdnttFormPageViewModel)
+            or FormTabPageViewModel)
             RefreshAggregateTabs();
 
         // 3. Nghe trang mới (sau lần làm mới, để lần làm mới không tự gây ra thông báo chuyển tiếp thừa).
@@ -453,15 +495,8 @@ public partial class FinanceWorkbookViewModel : ViewModelBase, IPrintablePage, I
         AddViTriPage(new VitriLedgerViewModel(viTri));
         ViTriPages.Add(_yearPage);
 
-        _thongTriPage = new ThongTriFormPageViewModel(new ThongTriFormViewModel(_formExporter, _dialog));
-        _ksChiPage = new KsChiFormPageViewModel(new KsChiFormViewModel(_formExporter, _dialog));
-        _gdnttPage = new GdnttFormPageViewModel(new GdnttFormViewModel(_formExporter, _dialog));
-        _thongTriPage.Inner.DeclarationChanged += OnFormDeclarationChanged;
-        _ksChiPage.Inner.DeclarationChanged += OnFormDeclarationChanged;
-        _gdnttPage.Inner.DeclarationChanged += OnFormDeclarationChanged;
-        ViTriPages.Add(_thongTriPage);
-        ViTriPages.Add(_ksChiPage);
-        ViTriPages.Add(_gdnttPage);
+        CreateFormPages();
+        foreach (var formPage in FormPages()) ViTriPages.Add(formPage);
 
         RefreshAggregateTabs();
         SelectedViTriPage = ViTriPages.OfType<ViTriPageViewModel>().First();  // land on the ledger to type
@@ -607,10 +642,7 @@ public partial class FinanceWorkbookViewModel : ViewModelBase, IPrintablePage, I
             Id = loaded.Id,
             Code = loaded.Code,
             Name = loaded.Name,
-            Notes = loaded.Notes,
-            ThongTri = _thongTriPage?.Inner.ToDeclaration(),
-            KsChi = _ksChiPage?.Inner.ToDeclaration(),
-            Gdntt = _gdnttPage?.Inner.ToDeclaration()
+            Notes = loaded.Notes
         };
 
         var ledgerPages = ViTriPages.OfType<ViTriPageViewModel>().ToList();
@@ -621,8 +653,19 @@ public partial class FinanceWorkbookViewModel : ViewModelBase, IPrintablePage, I
             toSave.ViTris.Add(viTri);
         }
 
+        foreach (var page in FormPages())
+            foreach (var input in page.Inner.ToFormInputs())
+                toSave.FormInputs.Add(input);
+
         try
         {
+            if (_orgDirty)
+            {
+                // Tên đơn vị lưu ở Cài đặt: đọc-sửa-ghi bản ghi công ty, chỉ đổi hai trường này.
+                var info = await _companyInfo.GetAsync();
+                await _companyInfo.SaveAsync(info with { DonViCapTren = _orgInfo.DonViCapTren, DonViCoSo = _orgInfo.DonViCoSo });
+                _orgDirty = false;
+            }
             await _service.ReplaceTreeAsync(toSave);
             foreach (var page in ViTriPages.OfType<ViTriPageViewModel>())
                 page.Ledger.IsDirty = false;
