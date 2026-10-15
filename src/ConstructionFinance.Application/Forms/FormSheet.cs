@@ -36,13 +36,15 @@ public sealed record ResolvedCell(
 }
 
 /// Tờ biểu mẫu đã trộn xong — thứ DUY NHẤT mà ba bộ vẽ (màn hình, Excel, in) đọc.
-/// `RowHeights[i]` là chiều cao hàng i+1 (pt); `ColumnWidths[i]` là bề rộng cột i+1 (ký tự Excel).
+/// `RowHeights[i]` là chiều cao hàng i+1 (pt); `ColumnWidths[i]` là bề rộng cột i+1 (ký tự Excel). `RowKeys[i]` là khoá
+/// cỡ của hàng i+1 (xem FormLayoutKeys) — để lưu cỡ hàng người dùng kéo.
 public sealed record ResolvedSheet(
     string SheetName,
     PrintOrientation Orientation,
     IReadOnlyList<double> ColumnWidths,
     IReadOnlyList<double> RowHeights,
-    IReadOnlyList<ResolvedCell> Cells)
+    IReadOnlyList<ResolvedCell> Cells,
+    IReadOnlyList<string> RowKeys)
 {
     public int RowCount => RowHeights.Count;
     public int ColumnCount => ColumnWidths.Count;

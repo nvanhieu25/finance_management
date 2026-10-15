@@ -28,6 +28,7 @@ public static class FormSheetResolver
         var context = new Context(template, computed, inputs, org, year.ToString(CultureInfo.InvariantCulture));
         var cells = new List<ResolvedCell>();
         var heights = new Dictionary<int, double>();
+        var regionKeys = new Dictionary<int, string>();   // khoá cỡ hàng của các hàng trong vùng lặp (theo loại hàng mẫu)
         var shift = 0;
         var regionEnd = int.MaxValue;
 
@@ -47,6 +48,7 @@ public static class FormSheetResolver
                     : line.Level switch { 0 => region.ProjectRow, 1 => region.ViTriRow, _ => region.DotRow };
 
                 heights[row] = prototype.Height;
+                regionKeys[row] = line is null ? "blank" : line.Level switch { 0 => "proj", 1 => "vitri", _ => "dot" };
                 foreach (var cell in prototype.Cells)
                     cells.Add(ResolveCell(cell with { Row = row }, context, line));
             }
@@ -68,10 +70,24 @@ public static class FormSheetResolver
             .Select(row => heights.TryGetValue(row, out var h) ? h : DefaultRowHeight)
             .ToList();
 
+        // Khoá cỡ hàng: hàng ngoài vùng lặp theo SỐ HÀNG CỦA MẪU (không dời khi vùng lặp dài ra), hàng trong vùng lặp theo loại
+        // hàng mẫu — chỉnh một dòng "đợt" là chỉnh mọi dòng đợt, như chỉnh một kiểu ô.
+        var rowKeys = Enumerable.Range(1, rowCount)
+            .Select(row => regionKeys.TryGetValue(row, out var kind) ? kind : $"r{(row >= regionEnd ? row - shift : row)}")
+            .ToList();
+
+        // Cỡ ô người dùng đã kéo (nếu có) đè lên cỡ của Mẫu. Mặc định (chưa kéo) là đúng Mẫu.
+        var columnWidths = template.ColumnWidths
+            .Select((width, index) => FormLayoutKeys.TryGetWidth(inputs, index + 1, out var custom) ? custom : width)
+            .ToList();
+        for (var i = 0; i < rowHeights.Count; i++)
+            if (FormLayoutKeys.TryGetHeight(inputs, rowKeys[i], out var customHeight))
+                rowHeights[i] = customHeight;
+
         var ordered = cells.OrderBy(c => c.Row).ThenBy(c => c.Col).ToList();
         return new ResolvedSheet(
-            template.SheetName, template.Orientation, template.ColumnWidths, rowHeights,
-            WithOverflow(ordered, template.ColumnWidths.Count));
+            template.SheetName, template.Orientation, columnWidths, rowHeights,
+            WithOverflow(ordered, columnWidths.Count), rowKeys);
     }
 
     private static ResolvedCell ResolveCell(TemplateCell cell, Context context, ThongTriLine? line) =>
@@ -131,7 +147,9 @@ public static class FormSheetResolver
 
         var placeholder = Year(segment.Text, context)!;
         return new ResolvedSegment(
-            segment.Kind, segment.Key, placeholder, "", hint ?? (placeholder.Length > 0 ? placeholder : null),
+            // Ô điền sẵn mà người dùng đã xoá hết: chữ mờ nhắc lại giá trị Mẫu, để ô trống không biến thành một dải không nhìn thấy.
+            segment.Kind, segment.Key, placeholder, "",
+            hint ?? (placeholder.Length > 0 ? placeholder : Year(segment.Default, context)),
             IsPlaceholder: true, false, null);
     }
 

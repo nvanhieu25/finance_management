@@ -308,4 +308,68 @@ public class FormSheetResolverTests
         sheet.RowCount.ShouldBe(33);
         sheet.ColumnCount.ShouldBe(8);
     }
+
+    // ===== cỡ ô người dùng đã kéo =====
+
+    [Fact]
+    public void Without_layout_keys_the_sheet_has_exactly_the_Mau_sizes()
+    {
+        var sheet = ResolveThongTri();
+
+        sheet.ColumnWidths.ShouldBe(ThongTriTemplate.Create().ColumnWidths);
+        sheet.RowHeights[3].ShouldBe(ThongTriTemplate.Create().RowHeights[4]);   // hàng 4
+    }
+
+    [Fact]
+    public void A_custom_column_width_overrides_the_Mau_and_garbage_or_extremes_are_handled()
+    {
+        var inputs = new FormInputSet();
+        inputs.Set(FormLayoutKeys.Width(7), FormLayoutKeys.ToStored(48.5));
+        inputs.Set(FormLayoutKeys.Width(1), "abc");                              // rác: giữ cỡ Mẫu
+        inputs.Set(FormLayoutKeys.Width(2), "99999");                            // quá lớn: kẹp ở mức tối đa
+        inputs.Set(FormLayoutKeys.Width(3), "-4");                               // âm: kẹp ở mức tối thiểu
+
+        var sheet = ResolveThongTri(inputs);
+
+        sheet.ColumnWidths[6].ShouldBe(48.5);
+        sheet.ColumnWidths[0].ShouldBe(ThongTriTemplate.Create().ColumnWidths[0]);
+        sheet.ColumnWidths[1].ShouldBe(FormLayoutKeys.MaxWidth);
+        sheet.ColumnWidths[2].ShouldBe(FormLayoutKeys.MinWidth);
+    }
+
+    [Fact]
+    public void A_custom_row_height_follows_its_template_row_when_the_region_grows()
+    {
+        var inputs = new FormInputSet();
+        inputs.Set(FormLayoutKeys.Height("r24"), FormLayoutKeys.ToStored(40));   // hàng "Cộng" của Mẫu
+
+        var few = ResolveThongTri(inputs);
+        var many = ResolveThongTri(inputs, Lines(30));
+
+        few.RowHeights[23].ShouldBe(40);                  // hàng 24
+        many.RowHeights[44].ShouldBe(40);                 // "Cộng" nằm ở hàng 45 khi có 30 dòng
+        many.RowKeys[44].ShouldBe("r24");
+        many.RowHeights[43].ShouldNotBe(40);              // hàng ngay trên đó (dòng nội dung) không bị ảnh hưởng
+    }
+
+    [Fact]
+    public void A_custom_height_for_a_region_kind_applies_to_every_row_of_that_kind()
+    {
+        var inputs = new FormInputSet();
+        inputs.Set(FormLayoutKeys.Height("dot"), FormLayoutKeys.ToStored(70));
+
+        var sheet = ResolveThongTri(inputs, Lines(7));    // dự án, vị trí, đợt, vị trí, đợt, vị trí, đợt
+
+        var dotRows = sheet.RowKeys.Select((key, index) => (key, index)).Where(t => t.key == "dot").Select(t => t.index).ToList();
+        dotRows.Count.ShouldBeGreaterThan(1);
+        dotRows.ShouldAllBe(index => sheet.RowHeights[index] == 70);
+    }
+
+    [Fact]
+    public void Layout_keys_are_recognised_and_do_not_collide_with_cell_keys()
+    {
+        FormLayoutKeys.IsLayoutKey("_w.3").ShouldBeTrue();
+        FormLayoutKeys.IsLayoutKey("_h.dot").ShouldBeTrue();
+        FormLayoutKeys.IsLayoutKey("SoThongTri").ShouldBeFalse();
+    }
 }

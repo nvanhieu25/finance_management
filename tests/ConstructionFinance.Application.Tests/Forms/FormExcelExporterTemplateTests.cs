@@ -173,4 +173,19 @@ public class FormExcelExporterTemplateTests
         ws.PageSetup.PagesWide.ShouldBe(1);      // hồ sơ căn trang vẫn áp
         ws.PageSetup.Footer.Left.GetText(XLHFOccurrence.OddPages).ShouldContain("Dự án A");
     }
+
+    [Fact]
+    public async Task Export_follows_the_column_widths_and_row_heights_the_user_dragged()
+    {
+        var inputs = new FormInputSet();
+        inputs.Set(FormLayoutKeys.Width(7), FormLayoutKeys.ToStored(44));
+        inputs.Set(FormLayoutKeys.Height("r24"), FormLayoutKeys.ToStored(33));
+        var sheet = FormDefinitions.ThongTri.Build(Context(inputs)).Sheet;
+
+        using var wb = await Export(sheet);
+        var ws = wb.Worksheet("Thông tri");
+
+        ws.Column(7).Width.ShouldBe(44, 0.01);
+        ws.Row(24).Height.ShouldBe(33, 0.01);
+    }
 }

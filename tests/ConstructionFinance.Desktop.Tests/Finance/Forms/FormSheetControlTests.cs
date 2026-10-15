@@ -333,4 +333,99 @@ public class FormSheetControlTests
             host.Window.Close();
         });
     }
+
+    // ===== kéo biên cột/hàng =====
+
+    private static void Drag(Avalonia.Controls.Primitives.Thumb thumb, double dx, double dy)
+    {
+        thumb.RaiseEvent(new Avalonia.Input.VectorEventArgs { RoutedEvent = Avalonia.Controls.Primitives.Thumb.DragStartedEvent, Vector = default });
+        thumb.RaiseEvent(new Avalonia.Input.VectorEventArgs { RoutedEvent = Avalonia.Controls.Primitives.Thumb.DragDeltaEvent, Vector = new Vector(dx, dy) });
+        thumb.RaiseEvent(new Avalonia.Input.VectorEventArgs { RoutedEvent = Avalonia.Controls.Primitives.Thumb.DragCompletedEvent, Vector = new Vector(dx, dy) });
+        Dispatcher.UIThread.RunJobs();
+    }
+
+    private static List<Avalonia.Controls.Primitives.Thumb> Handles(Host host) =>
+        host.Sheet.GetVisualDescendants().OfType<Avalonia.Controls.Primitives.Thumb>().ToList();
+
+    [Fact]
+    public void Every_column_and_row_edge_has_a_resize_handle()
+    {
+        Run(() =>
+        {
+            var host = Show(FormDefinitions.ThongTri);
+
+            Handles(host).Count.ShouldBe(host.Vm.Sheet.ColumnCount + host.Vm.Sheet.RowCount);
+            host.Window.Close();
+        });
+    }
+
+    [Fact]
+    public void Dragging_a_column_edge_widens_that_column_and_marks_the_tab_dirty()
+    {
+        Run(() =>
+        {
+            var host = Show(FormDefinitions.ThongTri);
+            var canvas = (Canvas)host.Sheet.Child!;
+            var widthBefore = canvas.Width;
+            var raised = 0;
+            host.Vm.InputsChanged += (_, _) => raised++;
+            var edge = Handles(host).Where(t => t.Width < 10 && t.Height > 100).OrderBy(t => Canvas.GetLeft(t)).First();   // biên phải cột 1
+
+            Drag(edge, 70, 0);
+
+            canvas = (Canvas)host.Sheet.Child!;
+            canvas.Width.ShouldBe(widthBefore + 70, 1.0);
+            host.Vm.Sheet.ColumnWidths[0].ShouldBe(6.0 + 70 / 7.0, 0.05);
+            host.Vm.HasCustomLayout.ShouldBeTrue();
+            raised.ShouldBe(1);
+            host.Vm.ToFormInputs().ShouldContain(i => i.Key == "_w.1");
+            host.Window.Close();
+        });
+    }
+
+    [Fact]
+    public void Dragging_a_row_edge_changes_the_height_of_every_row_of_that_kind()
+    {
+        Run(() =>
+        {
+            var host = Show(FormDefinitions.ThongTri);
+            var row = host.Vm.Sheet.RowKeys.ToList().IndexOf("dot") + 1;
+            var before = host.Vm.Sheet.RowHeights[row - 1];
+            var handle = Handles(host).Where(t => t.Height < 10 && t.Width > 100)
+                .OrderBy(t => Math.Abs(Canvas.GetTop(t) + 2.5 - Rows(host)[row])).First();
+
+            Drag(handle, 0, 20);
+
+            host.Vm.Sheet.RowHeights[row - 1].ShouldBe(before + 20 * 72.0 / 96.0, 0.1);
+            host.Vm.Sheet.RowKeys.Count(k => k == "dot").ShouldBeGreaterThan(0);
+            host.Window.Close();
+        });
+    }
+
+    private static double[] Rows(Host host)
+    {
+        var y = new double[host.Vm.Sheet.RowCount + 1];
+        for (var i = 0; i < host.Vm.Sheet.RowCount; i++) y[i + 1] = y[i] + host.Vm.Sheet.RowHeights[i] * 96.0 / 72.0;
+        return y;
+    }
+
+    [Fact]
+    public void Reset_button_returns_to_the_Mau_sizes()
+    {
+        Run(() =>
+        {
+            var host = Show(FormDefinitions.ThongTri);
+            var original = host.Vm.Sheet.ColumnWidths.ToList();
+            Drag(Handles(host).Where(t => t.Width < 10 && t.Height > 100).OrderBy(t => Canvas.GetLeft(t)).First(), 50, 0);
+            host.Vm.ResetLayoutCommand.CanExecute(null).ShouldBeTrue();
+
+            host.Vm.ResetLayoutCommand.Execute(null);
+            Dispatcher.UIThread.RunJobs();
+
+            host.Vm.Sheet.ColumnWidths.ShouldBe(original);
+            host.Vm.HasCustomLayout.ShouldBeFalse();
+            host.Vm.ResetLayoutCommand.CanExecute(null).ShouldBeFalse();
+            host.Window.Close();
+        });
+    }
 }

@@ -13,6 +13,10 @@ public interface IFormSheetEditor
 {
     void SetInput(string key, string? text);
     void ResetOverride(string key);
+
+    /// Kéo biên cột/hàng: đặt bề rộng cột (ký tự Excel) hoặc chiều cao hàng (pt, theo khoá hàng của ResolvedSheet.RowKeys).
+    void SetColumnWidth(int column, double chars);
+    void SetRowHeight(string rowKey, double points);
 }
 
 public sealed record OrgEditedEventArgs(string Key, string? Value);
@@ -120,6 +124,35 @@ public sealed partial class FormPageViewModel : ViewModelBase, IFormSheetEditor
         if (kind != SegmentKind.SettingInput) InputsChanged?.Invoke(this, EventArgs.Empty);
     }
 
+    // ===== cỡ ô =====
+
+    /// Có ô nào đã bị kéo khỏi cỡ của Mẫu không (để nút "Đặt lại cỡ ô" sáng).
+    public bool HasCustomLayout => _inputs.Values.Keys.Any(FormLayoutKeys.IsLayoutKey);
+
+    public void SetColumnWidth(int column, double chars) =>
+        SetLayout(FormLayoutKeys.Width(column), FormLayoutKeys.ToStored(Math.Clamp(chars, FormLayoutKeys.MinWidth, FormLayoutKeys.MaxWidth)));
+
+    public void SetRowHeight(string rowKey, double points) =>
+        SetLayout(FormLayoutKeys.Height(rowKey), FormLayoutKeys.ToStored(Math.Clamp(points, FormLayoutKeys.MinHeight, FormLayoutKeys.MaxHeight)));
+
+    private void SetLayout(string key, string stored)
+    {
+        if (_inputs.Get(key) == stored) return;
+        _inputs.Set(key, stored);
+        Rebuild();
+        InputsChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    [RelayCommand(CanExecute = nameof(HasCustomLayout))]
+    private void ResetLayout()
+    {
+        var keys = _inputs.Values.Keys.Where(FormLayoutKeys.IsLayoutKey).ToList();
+        if (keys.Count == 0) return;
+        foreach (var key in keys) _inputs.Remove(key);
+        Rebuild();
+        InputsChanged?.Invoke(this, EventArgs.Empty);
+    }
+
     public void ResetOverride(string key)
     {
         if (!_inputs.Remove(key)) return;
@@ -201,10 +234,11 @@ public sealed partial class FormPageViewModel : ViewModelBase, IFormSheetEditor
         foreach (var name in new[]
                  {
                      nameof(Sheet), nameof(ErrorMessage), nameof(PrintBlockReason), nameof(CanExport),
-                     nameof(HasError), nameof(StatusText), nameof(ChooseDotsText)
+                     nameof(HasError), nameof(StatusText), nameof(ChooseDotsText), nameof(HasCustomLayout)
                  })
             OnPropertyChanged(name);
         ExportCommand.NotifyCanExecuteChanged();
+        ResetLayoutCommand.NotifyCanExecuteChanged();
     }
 
     // ===== lệnh =====

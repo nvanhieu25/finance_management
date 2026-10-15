@@ -326,4 +326,46 @@ public class FormPageViewModelTests
         Segment(fresh, "Khoan").Value.ShouldBe("");
         fresh.ToFormInputs().Count().ShouldBe(2);        // dòng của biểu mẫu khác bị bỏ qua
     }
+
+    // ===== cỡ ô =====
+
+    [Fact]
+    public void Resizing_stores_layout_keys_marks_changed_and_reset_removes_only_them()
+    {
+        var (vm, _, _) = Create(FormDefinitions.ThongTri);
+        vm.SetInput("SoThongTri", "07/TT");
+        var raised = 0;
+        vm.InputsChanged += (_, _) => raised++;
+
+        vm.SetColumnWidth(7, 40);
+        vm.SetColumnWidth(7, 40);                   // cùng cỡ: không báo thừa
+        vm.SetRowHeight("dot", 55);
+
+        raised.ShouldBe(2);
+        vm.HasCustomLayout.ShouldBeTrue();
+        vm.Sheet.ColumnWidths[6].ShouldBe(40);
+        vm.ToFormInputs().Select(i => i.Key).ShouldBe(new[] { "SoThongTri", "_w.7", "_h.dot" }, ignoreOrder: true);
+
+        vm.ResetLayoutCommand.Execute(null);
+
+        vm.HasCustomLayout.ShouldBeFalse();
+        vm.ToFormInputs().Select(i => i.Key).ShouldBe(new[] { "SoThongTri" });   // chữ đã gõ còn nguyên
+        raised.ShouldBe(3);
+    }
+
+    [Fact]
+    public void Layout_is_clamped_and_survives_save_and_load()
+    {
+        var (vm, _, _) = Create(FormDefinitions.KsChi);
+        vm.SetColumnWidth(2, 5000);
+        vm.SetRowHeight("r7", 0.1);
+        var saved = vm.ToFormInputs().ToList();
+
+        var (fresh, _, _) = Create(FormDefinitions.KsChi);
+        fresh.LoadInputs(saved);
+
+        fresh.Sheet.ColumnWidths[1].ShouldBe(FormLayoutKeys.MaxWidth);
+        fresh.Sheet.RowHeights[6].ShouldBe(FormLayoutKeys.MinHeight);
+        fresh.HasCustomLayout.ShouldBeTrue();
+    }
 }

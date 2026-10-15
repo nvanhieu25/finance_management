@@ -83,3 +83,33 @@ public static class FormOrgKeys
         _ => throw new ArgumentException($"Khoá Cài đặt không biết: \"{key}\".", nameof(key))
     };
 }
+
+/// Cỡ ô người dùng đã kéo, lưu chung với chữ đã gõ (cùng bảng, cùng Ctrl+S) dưới các khoá bắt đầu bằng "_": `_w.<cột>` là
+/// bề rộng cột theo ký tự Excel, `_h.<khoá hàng>` là chiều cao hàng theo pt. Chưa kéo thì không có khoá nào và tờ đúng Mẫu.
+public static class FormLayoutKeys
+{
+    public const double MinWidth = 1.0, MaxWidth = 120.0, MinHeight = 8.0, MaxHeight = 400.0;
+
+    public static string Width(int column) => $"_w.{column}";
+
+    public static string Height(string rowKey) => $"_h.{rowKey}";
+
+    public static bool IsLayoutKey(string key) => key.StartsWith("_w.", StringComparison.Ordinal) || key.StartsWith("_h.", StringComparison.Ordinal);
+
+    public static bool TryGetWidth(FormInputSet inputs, int column, out double width) =>
+        TryGet(inputs, Width(column), MinWidth, MaxWidth, out width);
+
+    public static bool TryGetHeight(FormInputSet inputs, string rowKey, out double height) =>
+        TryGet(inputs, Height(rowKey), MinHeight, MaxHeight, out height);
+
+    private static bool TryGet(FormInputSet inputs, string key, double min, double max, out double value)
+    {
+        value = 0;
+        if (!double.TryParse(inputs.Get(key), NumberStyles.Float, CultureInfo.InvariantCulture, out var parsed)) return false;
+        if (double.IsNaN(parsed) || double.IsInfinity(parsed)) return false;
+        value = Math.Clamp(parsed, min, max);
+        return true;
+    }
+
+    public static string ToStored(double value) => Math.Round(value, 2).ToString(CultureInfo.InvariantCulture);
+}

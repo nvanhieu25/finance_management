@@ -2,6 +2,8 @@ using System.ComponentModel;
 using System.Text;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
+using Avalonia.Input;
 using Avalonia.Layout;
 using Avalonia.Media;
 using ConstructionFinance.Application.Forms;
@@ -142,6 +144,92 @@ public sealed class FormSheetControl : Border
 
         foreach (var cell in sheet.Cells) AddFillAndBorders(cell, leftEdges, topEdges);
         foreach (var cell in sheet.Cells) AddContent(cell);   // thứ tự hàng-rồi-cột: Tab đi theo chiều đọc
+
+        AddResizeHandles(sheet);   // thêm CUỐI cùng để nằm trên cùng
+    }
+
+    // ===== kéo biên cột/hàng như Excel =====
+
+    /// Bề dày vùng bấm quanh mỗi biên. Hẹp để không nuốt vùng gõ của ô sát biên.
+    private const double HandleThickness = 5;
+
+    /// Mỗi biên cột/hàng có một tay nắm trong suốt (con trỏ đổi thành mũi tên hai đầu); kéo xong mới ghi cỡ mới, trong lúc
+    /// kéo chỉ hiện một vạch dẫn — dựng lại cả tờ ở mỗi điểm kéo sẽ giật với sổ nhiều dòng.
+    private void AddResizeHandles(ResolvedSheet sheet)
+    {
+        var guide = new Border
+        {
+            Background = OverrideMarker, IsHitTestVisible = false, IsVisible = false, ZIndex = 100,
+        };
+        _canvas.Children.Add(guide);
+
+        for (var column = 1; column <= sheet.ColumnCount; column++)
+        {
+            var index = column;
+            var x = _columnX[index];
+            var handle = NewHandle(Cursor_SizeWE, width: HandleThickness, height: _canvas.Height);
+            Canvas.SetLeft(handle, x - HandleThickness / 2);
+            Canvas.SetTop(handle, 0);
+            WireHandle(handle, guide, horizontal: true, edge: x,
+                completed: delta =>
+                {
+                    var widthPx = _columnX[index] - _columnX[index - 1] + delta;
+                    _vm?.SetColumnWidth(index, (widthPx - CellPaddingPixels) / PixelsPerChar);
+                });
+            _canvas.Children.Add(handle);
+        }
+
+        for (var row = 1; row <= sheet.RowCount; row++)
+        {
+            var index = row;
+            var y = _rowY[index];
+            var rowKey = sheet.RowKeys[index - 1];
+            var handle = NewHandle(Cursor_SizeNS, width: _canvas.Width, height: HandleThickness);
+            Canvas.SetLeft(handle, 0);
+            Canvas.SetTop(handle, y - HandleThickness / 2);
+            WireHandle(handle, guide, horizontal: false, edge: y,
+                completed: delta =>
+                {
+                    var heightPx = _rowY[index] - _rowY[index - 1] + delta;
+                    _vm?.SetRowHeight(rowKey, heightPx / PixelsPerPoint);
+                });
+            _canvas.Children.Add(handle);
+        }
+    }
+
+    private static readonly Cursor Cursor_SizeWE = new(StandardCursorType.SizeWestEast);
+    private static readonly Cursor Cursor_SizeNS = new(StandardCursorType.SizeNorthSouth);
+
+    private static Thumb NewHandle(Cursor cursor, double width, double height) => new()
+    {
+        Width = width,
+        Height = height,
+        Cursor = cursor,
+        Background = Brushes.Transparent,
+        Focusable = false,
+        ZIndex = 50,
+    };
+
+    private void WireHandle(Thumb handle, Border guide, bool horizontal, double edge, Action<double> completed)
+    {
+        var total = 0.0;
+        handle.DragStarted += (_, _) =>
+        {
+            total = 0;
+            guide.IsVisible = true;
+            if (horizontal) { guide.Width = 2; guide.Height = _canvas.Height; Canvas.SetLeft(guide, edge - 1); Canvas.SetTop(guide, 0); }
+            else { guide.Height = 2; guide.Width = _canvas.Width; Canvas.SetTop(guide, edge - 1); Canvas.SetLeft(guide, 0); }
+        };
+        handle.DragDelta += (_, e) =>
+        {
+            total += horizontal ? e.Vector.X : e.Vector.Y;
+            if (horizontal) Canvas.SetLeft(guide, edge + total - 1); else Canvas.SetTop(guide, edge + total - 1);
+        };
+        handle.DragCompleted += (_, e) =>
+        {
+            guide.IsVisible = false;
+            if (Math.Abs(total) >= 1) completed(total);
+        };
     }
 
     private void AddFillAndBorders(ResolvedCell cell, HashSet<(int, int)> leftEdges, HashSet<(int, int)> topEdges)
