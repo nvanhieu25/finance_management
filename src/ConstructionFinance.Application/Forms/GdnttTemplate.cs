@@ -1,0 +1,101 @@
+// Sinh từ reference/Mẫu.xlsx bởi tools/gen_form_templates.py MỘT LẦN. Từ nay sửa tay tệp này;
+// TemplateMatchesMauTests so nó với Mẫu.xlsx để không trôi khỏi mẫu.
+using ConstructionFinance.Application.Printing;
+
+namespace ConstructionFinance.Application.Forms;
+
+/// Bản gốc của sheet "GĐNTT" trong Mẫu.xlsx.
+public static class GdnttTemplate
+{
+    private static CellStyle S(double size, bool bold = false, bool italic = false, bool underline = false,
+        CellAlign align = CellAlign.General, CellVAlign v = CellVAlign.Bottom, bool wrap = false,
+        string borders = "", string? format = null) =>
+        Tpl.Style(size, bold, italic, underline, align, v, wrap, borders, format);
+
+    public static FormTemplate Create() => new(
+        SheetName: "GĐNTT",
+        Orientation: PrintOrientation.Portrait,
+        ColumnWidths: new double[] { 12.2857, 10.5714, 8.43, 8.43, 8.43, 8.43, 8.43, 0.1429, 17.8571 },
+        RowHeights: new Dictionary<int, double>
+        {
+            [1] = 16.5, [2] = 16.5, [3] = 20.25, [4] = 37.5, [5] = 8.25, [6] = 18.75,
+            [7] = 7.5, [8] = 18, [9] = 18, [10] = 33.75, [11] = 24, [12] = 33,
+            [13] = 18, [14] = 18, [15] = 18, [16] = 18, [17] = 53.25, [18] = 81.75,
+            [19] = 22.5, [20] = 19.5, [21] = 23.25, [22] = 18, [23] = 18, [24] = 18,
+            [25] = 18, [26] = 18, [27] = 18, [28] = 18, [29] = 18, [30] = 18.75,
+            [31] = 18.75, [32] = 18.75, [33] = 18.75, [34] = 18.75, [35] = 14.25, [36] = 21.75,
+        },
+        Cells: new[]
+        {
+            Tpl.Merged(1, 1, 1, 3, S(13, align: CellAlign.Center, v: CellVAlign.Center), Tpl.Setting("don_vi_cap_tren", "Đơn vị cấp trên")),
+            Tpl.Merged(1, 4, 1, 6, S(13, bold: true, align: CellAlign.Center, v: CellVAlign.Center), Tpl.Fixed("CỘNG HOÀ XÃ HỘI CHỦ NGHĨA VIỆT NAM")),
+            Tpl.Merged(2, 1, 1, 3, S(13, bold: true, align: CellAlign.Center, v: CellVAlign.Center), Tpl.Setting("don_vi_co_so", "Đơn vị cấp cơ sở")),
+            Tpl.Merged(2, 4, 1, 6, S(13, bold: true, underline: true, align: CellAlign.Center), Tpl.Fixed("Độc lập - Tự do - Hạnh phúc")),
+            Tpl.Merged(3, 1, 1, 3, S(13, align: CellAlign.Center), Tpl.Fixed("Số: "), Tpl.Input("So", "")),
+            Tpl.Merged(3, 4, 1, 6, S(13, italic: true, align: CellAlign.Center), Tpl.Input("NgayThangNam", "", @default: "Hải phòng, ngày     tháng   năm {năm}")),
+            Tpl.Merged(4, 1, 1, 9, S(14, bold: true, align: CellAlign.Center, v: CellVAlign.Center), Tpl.Fixed("GIẤY ĐỀ NGHỊ THANH TOÁN VỐN ĐẦU TƯ")),
+            Tpl.Merged(6, 1, 1, 9, S(14, align: CellAlign.Center), Tpl.Fixed("Kính gửi: "), Tpl.Input("KinhGui", "", hint: "Tự nhập liệu")),
+            Tpl.Cell(8, 1, S(13, align: CellAlign.Left, v: CellVAlign.Center), Tpl.Fixed(" - Tên dự án công trình:")),
+            Tpl.Cell(8, 3, S(13, bold: true, v: CellVAlign.Center), Tpl.Over("TenDuAnCongTrinh", hint: "( Có thể gõ tự ra nội dung hoặc tự nhập liệu)")),
+            Tpl.Cell(9, 1, S(13, v: CellVAlign.Center), Tpl.Fixed(" - Chủ đầu tư/Ban QLDA:  "), Tpl.Input("ChuDauTu", "", hint: "Nhập liệu")),
+            Tpl.Merged(10, 1, 1, 9, S(13, align: CellAlign.Justify, v: CellVAlign.Center, wrap: true), Tpl.Fixed(" - Căn cứ Quyết định số "), Tpl.Input("CanCuQuyetDinh", "", hint: "(nằm trong nội dung Quyết định);")),
+            Tpl.Merged(11, 1, 1, 9, S(13, align: CellAlign.Justify, v: CellVAlign.Center, wrap: true), Tpl.Fixed(" - Căn cứ Hợp đồng số: "), Tpl.Input("CanCuHopDong", "", hint: "(tự nhập liệu)")),
+            Tpl.Merged(12, 1, 1, 9, S(13, align: CellAlign.Justify, v: CellVAlign.Center, wrap: true), Tpl.Fixed(" - Căn cứ giấy đề nghị thanh toán vốn đầu tư số "), Tpl.Input("CanCuGiayDeNghi", "", hint: "(tự nhập liệu)")),
+            Tpl.Cell(13, 1, S(13, align: CellAlign.Left, v: CellVAlign.Center), Tpl.Fixed(" - Số dư tạm ứng của hạng mục đề nghị thanh toán:")),
+            Tpl.Merged(13, 8, 1, 2, S(12, bold: true, v: CellVAlign.Center, format: "#,##0\\ \"đ\""), Tpl.Over("UnrecoveredAdvanceBefore", hint: "( có thể gõ ra số liệu hoặc Tự nhập liệu)")),
+            Tpl.Cell(14, 1, S(13, align: CellAlign.Left, v: CellVAlign.Center), Tpl.Fixed(" - Số tiền đề nghị:")),
+            Tpl.Cell(14, 3, S(13, align: CellAlign.Center, v: CellVAlign.Center, borders: "lrtb"), Tpl.Fixed(" Tạm ứng")),
+            Tpl.Cell(14, 4, S(13, align: CellAlign.Center, v: CellVAlign.Center, borders: "lrtb"), Tpl.Fixed("TTKLHT")),
+            Tpl.Merged(14, 5, 1, 3, S(13, align: CellAlign.Left, v: CellVAlign.Center, wrap: true, borders: "l"), Tpl.Fixed("đến kỳ này:")),
+            Tpl.Cell(15, 1, S(13, align: CellAlign.Left, v: CellVAlign.Center), Tpl.Fixed(" - Thuộc nguồn vốn: ")),
+            Tpl.Cell(15, 3, S(13, v: CellVAlign.Center), Tpl.Fixed("Quỹ dự trữ ngoại hối")),
+            Tpl.Merged(15, 8, 1, 2, S(12, bold: true, align: CellAlign.Right, v: CellVAlign.Center)),
+            Tpl.Cell(16, 1, S(13, align: CellAlign.Left, v: CellVAlign.Top), Tpl.Fixed(" - Thuộc kế hoạch:")),
+            Tpl.Merged(16, 3, 1, 2, S(13, align: CellAlign.Left, v: CellVAlign.Top), Tpl.Input("ThuocKeHoach", "")),
+            Tpl.Merged(17, 1, 1, 3, S(13, bold: true, align: CellAlign.Center, v: CellVAlign.Center, borders: "lrtb"), Tpl.Fixed("NỘI DUNG")),
+            Tpl.Merged(17, 4, 1, 2, S(10, bold: true, align: CellAlign.Center, v: CellVAlign.Center, wrap: true, borders: "lrtb"), Tpl.Fixed("Dự toán duyệt hoặc giá trị trúng thầu hoặc giá trị HĐ")),
+            Tpl.Merged(17, 6, 1, 2, S(10, bold: true, align: CellAlign.Center, v: CellVAlign.Center, wrap: true, borders: "lrtb"), Tpl.Fixed("Lũy kế số vốn đã T/Toán từ K/công đến cuối kỳ trước (Gồm cả tạm ứng)")),
+            Tpl.Merged(17, 8, 1, 2, S(10, bold: true, align: CellAlign.Center, v: CellVAlign.Center, wrap: true, borders: "lrtb"), Tpl.Fixed("Số đề nghị tạm ứng, thanh toán KLHT kỳ này (Gồm cả tạm ứng)")),
+            Tpl.Merged(18, 1, 1, 3, S(12, align: CellAlign.Center, v: CellVAlign.Center, wrap: true, borders: "lrtb"), Tpl.Computed("PackageName")),
+            Tpl.Merged(18, 4, 1, 2, S(12, bold: true, align: CellAlign.Right, v: CellVAlign.Center, wrap: true, borders: "lrtb", format: "#,##0"), Tpl.Computed("ContractTotal")),
+            Tpl.Merged(18, 6, 1, 2, S(12, bold: true, align: CellAlign.Right, v: CellVAlign.Center, wrap: true, borders: "lrtb", format: "#,##0"), Tpl.Computed("CumulativeBefore")),
+            Tpl.Merged(18, 8, 1, 2, S(12, bold: true, align: CellAlign.Right, v: CellVAlign.Center, wrap: true, borders: "lrtb", format: "#,##0"), Tpl.Computed("Requested")),
+            Tpl.Merged(19, 1, 1, 3, S(13, bold: true, align: CellAlign.Center, v: CellVAlign.Center, borders: "lrtb"), Tpl.Fixed("CỘNG")),
+            Tpl.Merged(19, 4, 1, 2, S(12, bold: true, align: CellAlign.Right, v: CellVAlign.Center, borders: "lrtb", format: "#,##0"), Tpl.Computed("ContractTotal")),
+            Tpl.Merged(19, 6, 1, 2, S(12, bold: true, align: CellAlign.Right, v: CellVAlign.Center, wrap: true, borders: "lrtb", format: "#,##0"), Tpl.Computed("CumulativeBefore")),
+            Tpl.Cell(19, 8, S(12, bold: true, v: CellVAlign.Center, wrap: true, borders: "ltb")),
+            Tpl.Cell(19, 9, S(12, bold: true, v: CellVAlign.Center, wrap: true, borders: "rtb", format: "#,##0"), Tpl.Computed("Requested")),
+            Tpl.Cell(20, 1, S(13, align: CellAlign.Left, v: CellVAlign.Center), Tpl.Fixed(" - Tổng số tiền đề nghị tạm ứng, thanh toán bằng số:")),
+            Tpl.Cell(20, 9, S(12, bold: true, v: CellVAlign.Center, wrap: true, format: "#,##0"), Tpl.Computed("Requested")),
+            Tpl.Cell(21, 1, S(13, align: CellAlign.Left, v: CellVAlign.Center), Tpl.Fixed(" - Bằng chữ:")),
+            Tpl.Cell(21, 2, S(12, italic: true, v: CellVAlign.Center), Tpl.Computed("RequestedInWords")),
+            Tpl.Cell(22, 1, S(13, v: CellVAlign.Center), Tpl.Fixed("Trong đó:")),
+            Tpl.Cell(23, 2, S(13, italic: true, v: CellVAlign.Center), Tpl.Fixed(" - Thanh toán để thu hồi tạm ứng:")),
+            Tpl.Merged(23, 8, 1, 2, S(12, italic: true, align: CellAlign.Right, v: CellVAlign.Center, wrap: true, format: "#,##0\"đ\""), Tpl.Computed("Recovered")),
+            Tpl.Cell(24, 2, S(13, italic: true, v: CellVAlign.Top), Tpl.Fixed(" - Chuyển tiền bảo hành:")),
+            Tpl.Merged(24, 8, 1, 2, S(12, bold: true, italic: true, align: CellAlign.Right, v: CellVAlign.Top, wrap: true, format: "#,##0\"đ\""), Tpl.Number("ChuyenTienBaoHanh")),
+            Tpl.Cell(25, 2, S(13, italic: true, v: CellVAlign.Top), Tpl.Fixed(" - Chuyển tiền tạm giữ chờ quyết toán:")),
+            Tpl.Merged(25, 8, 1, 2, S(12, bold: true, italic: true, align: CellAlign.Right, v: CellVAlign.Top, wrap: true, format: "#,##0\"đ\""), Tpl.Number("ChuyenTienTamGiu")),
+            Tpl.Cell(26, 2, S(13, italic: true, align: CellAlign.Left, v: CellVAlign.Center), Tpl.Fixed(" - Số trả nhà thầu:")),
+            Tpl.Cell(26, 9, S(12, bold: true, italic: true, align: CellAlign.Right, v: CellVAlign.Top, wrap: true, format: "#,##0\"đ\""), Tpl.Computed("PaidToContractor")),
+            Tpl.Cell(27, 1, S(13, align: CellAlign.Left, v: CellVAlign.Center), Tpl.Fixed(" - Tên đơn vị thụ hưởng:")),
+            Tpl.Merged(27, 3, 1, 7, S(12, bold: true, align: CellAlign.Left, v: CellVAlign.Center, wrap: true), Tpl.Computed("ContractorName")),
+            Tpl.Cell(28, 1, S(13, align: CellAlign.Left, v: CellVAlign.Center), Tpl.Fixed(" - Tài khoản:")),
+            Tpl.Cell(28, 4, S(13, bold: true, align: CellAlign.Center, v: CellVAlign.Center), Tpl.Computed("BankAccount")),
+            Tpl.Cell(29, 1, S(13, align: CellAlign.Left, v: CellVAlign.Top), Tpl.Fixed(" - Tại:")),
+            Tpl.Merged(29, 2, 1, 8, S(13, align: CellAlign.Left, v: CellVAlign.Top, wrap: true), Tpl.Input("TaiNganHang", "", hint: "Ngân hàng A ( Tự nhập)")),
+            Tpl.Merged(30, 1, 1, 4, S(14, bold: true, align: CellAlign.Center), Tpl.Fixed("Trưởng phòng Tài chính")),
+            Tpl.Merged(30, 5, 1, 5, S(14, bold: true, align: CellAlign.Center), Tpl.Fixed("Chủ đầu tư")),
+            Tpl.Merged(31, 1, 1, 4, S(14, bold: true, align: CellAlign.Center)),
+            Tpl.Merged(31, 5, 1, 5, S(14, bold: true, align: CellAlign.Center)),
+            Tpl.Merged(32, 1, 1, 4, S(14, bold: true, align: CellAlign.Center)),
+            Tpl.Merged(32, 5, 1, 5, S(14, bold: true, align: CellAlign.Center)),
+            Tpl.Merged(33, 1, 1, 4, S(14, bold: true, align: CellAlign.Center)),
+            Tpl.Merged(33, 5, 1, 5, S(14, bold: true, align: CellAlign.Center)),
+            Tpl.Merged(35, 1, 1, 4, S(14, bold: true, align: CellAlign.Center)),
+            Tpl.Merged(35, 5, 1, 5, S(14, bold: true, align: CellAlign.Center)),
+            Tpl.Merged(36, 1, 1, 4, S(14, bold: true, align: CellAlign.Center)),
+            Tpl.Merged(36, 5, 1, 5, S(14, bold: true, align: CellAlign.Center)),
+        },
+        Repeat: null);
+}
