@@ -52,12 +52,6 @@ public static partial class HostBuilder
                 services.AddTransient<ViewModels.Settings.BackupManagementViewModel>();
                 services.AddTransient<ViewModels.Settings.PreferencesViewModel>();
                 services.AddTransient<ViewModels.Settings.SettingsViewModel>();
-                services.AddTransient<ViewModels.TongHop.TongHopViewModel>();
-                services.AddTransient<ViewModels.TongHop.ImportWizardViewModel>();
-                services.AddTransient<ViewModels.ThongTri.ThongTriViewModel>();
-                services.AddTransient<ViewModels.Finance.FinanceProjectGridViewModel>();
-                services.AddTransient<ViewModels.Finance.FinanceSummaryViewModel>();
-                services.AddTransient<ViewModels.Finance.SummaryPageViewModel>();
                 services.AddTransient<ViewModels.Finance.FinanceWorkbookViewModel>();
                 services.AddTransient<ViewModels.Finance.WorkbookSummaryViewModel>();
                 services.AddSingleton<IServiceProvider>(sp => sp);

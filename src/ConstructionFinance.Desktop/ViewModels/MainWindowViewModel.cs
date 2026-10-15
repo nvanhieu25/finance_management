@@ -6,8 +6,6 @@ using ConstructionFinance.Desktop.Common;
 using ConstructionFinance.Desktop.Services;
 using ConstructionFinance.Desktop.ViewModels.Decisions;
 using ConstructionFinance.Desktop.ViewModels.Printing;
-using ConstructionFinance.Desktop.ViewModels.ThongTri;
-using ConstructionFinance.Desktop.ViewModels.TongHop;
 using Microsoft.Extensions.DependencyInjection;
 using Serilog;
 
@@ -39,12 +37,6 @@ public partial class MainWindowViewModel : ViewModelBase
     {
         switch (tag)
         {
-            case "TongHop":
-                var tvm = _services.GetRequiredService<TongHopViewModel>();
-                _nav.Reset();
-                _nav.NavigateTo(tvm);
-                await tvm.LoadAsync();
-                break;
             case "ThongTri":
                 // Màn Thông tri cũ (từ dữ liệu import) không còn lối vào: mục này mở tab Thông tri của dự án đang
                 // chọn trong sổ. Đang ở sổ rồi thì chỉ chuyển tab, không nạp lại (giữ dự án và chữ chưa lưu).
@@ -87,25 +79,6 @@ public partial class MainWindowViewModel : ViewModelBase
                 _nav.Reset();
                 _nav.NavigateTo(new PlaceholderViewModel { Tag = tag });
                 break;
-        }
-    }
-
-    [RelayCommand]
-    private async Task OpenImportWizardAsync()
-    {
-        var wizard = _services.GetRequiredService<ImportWizardViewModel>();
-        var dialog = _services.GetRequiredService<IDialogService>();
-        var ok = await dialog.ShowDialogAsync(wizard);
-        if (ok != true) return;
-
-        var batchId = await wizard.SaveAndGetBatchIdAsync();
-        if (batchId is null) return;
-
-        await NavigateToAsync("TongHop");
-        if (_nav.CurrentContent is TongHopViewModel tvm)
-        {
-            await tvm.LoadAsync();
-            tvm.SelectedBatch = tvm.Batches.FirstOrDefault(b => b.Id == batchId.Value) ?? tvm.SelectedBatch;
         }
     }
 

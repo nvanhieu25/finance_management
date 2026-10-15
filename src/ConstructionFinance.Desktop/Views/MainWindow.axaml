@@ -63,7 +63,7 @@
                         </StackPanel>
                         <Button.Flyout>
                             <!-- Placement="Top": nút In nằm sát đáy khung trái, menu mở xuống
-                                 chỉ còn ~10px dư trên màn 1080px và che nút Import Excel. Năm
+                                 chỉ còn ~10px dư trên màn 1080px và che nút bên dưới. Năm
                                  mục thì mở xuống là tràn khỏi màn hình. -->
                             <MenuFlyout Placement="Top">
                                 <MenuItem Header="In sheet này" Command="{Binding PrintCurrentSheetCommand}"/>
@@ -73,16 +73,6 @@
                                 <MenuItem Header="Xuất Excel toàn bộ" Command="{Binding ExportAllCommand}"/>
                             </MenuFlyout>
                         </Button.Flyout>
-                    </Button>
-                    <Button Command="{Binding OpenImportWizardCommand}"
-                            Classes="accent"
-                            HorizontalAlignment="Stretch"
-                            HorizontalContentAlignment="Center"
-                            Margin="8,4">
-                        <StackPanel Orientation="Horizontal" Spacing="8">
-                            <ui:SymbolIcon Symbol="{x:Static ui:Symbol.Import}"/>
-                            <TextBlock Text="Import Excel"/>
-                        </StackPanel>
                     </Button>
                 </StackPanel>
             </ui:NavigationView.PaneFooter>

@@ -29,22 +29,4 @@ public class ClipboardGridParserTests
         ClipboardGridParser.Parse("").Length.ShouldBe(0);
         ClipboardGridParser.Parse(null).Length.ShouldBe(0);
     }
-
-    [Fact]
-    public void ApplyPaste_fills_cells_and_extends_rows()
-    {
-        var svc = new Mock<IFinanceProjectService>(MockBehavior.Strict);
-        svc.Setup(s => s.ListAsync(It.IsAny<CancellationToken>())).ReturnsAsync(new List<Project>());
-        var vm = new FinanceProjectGridViewModel(svc.Object, new FakeDialogService());
-
-        // Paste a 2-row block of [Tạm ứng, TT KLHT] starting at row 0, column 2.
-        var block = ClipboardGridParser.Parse("1.000\t0\r\n0\t2.000");
-        vm.ApplyPaste(startRow: 0, startCol: 2, block);
-
-        vm.Lines.Count.ShouldBe(2);
-        vm.Lines[0].Advance.ShouldBe(1_000m);
-        vm.Lines[1].PaymentKLHT.ShouldBe(2_000m);
-        vm.SumAdvance.ShouldBe(1_000m);
-        vm.SumKLHT.ShouldBe(2_000m);
-    }
 }

@@ -20,7 +20,6 @@ public class MainWindowNavigationTests
     {
         var project = new Project { Id = 7, Name = "Dự án A", ViTris = { new ViTri { Name = "Vị trí 1" } } };
         var service = new Mock<IFinanceProjectService>();
-        service.Setup(s => s.GetAllSummariesAsync(It.IsAny<CancellationToken>())).ReturnsAsync(Array.Empty<FinanceProjectSummary>());
         service.Setup(s => s.ListAsync(It.IsAny<CancellationToken>())).ReturnsAsync(new List<Project> { new() { Id = 7, Name = "Dự án A" } });
         service.Setup(s => s.GetTreeAsync(7, It.IsAny<CancellationToken>())).ReturnsAsync(project);
         var companyInfo = new Mock<ICompanyInfoService>();
@@ -30,9 +29,7 @@ public class MainWindowNavigationTests
         var services = new ServiceCollection();
         services.AddTransient(_ => new FinanceWorkbookViewModel(
             service.Object,
-            new SummaryPageViewModel(new FinanceSummaryViewModel(
-                service.Object, Mock.Of<IFinanceImportService>(), Mock.Of<IFinanceExportService>(), Mock.Of<IDialogService>())),
-            Mock.Of<IDialogService>(), new ServiceCollection().BuildServiceProvider(),
+            Mock.Of<IDialogService>(),
             Mock.Of<IFormExcelExporter>(), companyInfo.Object));
         var nav = new FakeNavigationService();
         return (new MainWindowViewModel(services.BuildServiceProvider(), nav), nav);

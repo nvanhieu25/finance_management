@@ -10,44 +10,10 @@
     <DockPanel>
         <StackPanel DockPanel.Dock="Top" Spacing="2" Margin="0,0,0,12">
             <TextBlock Classes="pageTitle" Text="Tài chính dự án"/>
-            <TextBlock Classes="pageSubtitle" Text="Chọn dự án để xem sổ theo Vị trí — TH và trang dự án (cũ) vẫn còn bên dưới"/>
+            <TextBlock Classes="pageSubtitle" Text="Chọn dự án để xem sổ theo Vị trí, tổng hợp, quyết toán năm và ba biểu mẫu"/>
         </StackPanel>
 
-        <!-- Old flow (6A flat grid): TH + one page per project. Collapsed by default
-             now that the Vị trí workbook below is the primary path — kept working,
-             not deleted, per the 7B additive-coexistence plan. -->
-        <Expander DockPanel.Dock="Top" Header="Nhập liệu dự án (cũ) — TH + trang dự án" Margin="0,0,0,12">
-            <DockPanel Height="420">
-                <Border DockPanel.Dock="Top" Classes="toolbarStrip" Margin="0,0,0,8">
-                    <StackPanel Orientation="Horizontal" Spacing="8">
-                        <Button Classes="toolbar" Command="{Binding AddPageCommand}" Content="+ Thêm dự án"/>
-                        <Button Classes="toolbar" Command="{Binding ClosePageCommand}"
-                                CommandParameter="{Binding SelectedPage}" Content="Xóa dự án"/>
-                        <Button Classes="toolbar accent" Command="{Binding SaveAllCommand}" Content="Lưu tất cả (Ctrl+S)"/>
-                        <TextBlock Classes="muted" VerticalAlignment="Center"
-                                   Text="Đổi tên: sửa ô “Tên dự án” trong trang dự án"/>
-                    </StackPanel>
-                </Border>
-
-                <TabControl x:Name="WorkbookTabs"
-                            ItemsSource="{Binding Pages}"
-                            SelectedItem="{Binding SelectedPage}"
-                            TabStripPlacement="Bottom">
-                    <TabControl.ItemTemplate>
-                        <DataTemplate x:DataType="vm:WorkbookPageViewModel">
-                            <TextBlock Text="{Binding Header}"/>
-                        </DataTemplate>
-                    </TabControl.ItemTemplate>
-                    <TabControl.ContentTemplate>
-                        <DataTemplate x:DataType="vm:WorkbookPageViewModel">
-                            <ContentControl Content="{Binding Content}"/>
-                        </DataTemplate>
-                    </TabControl.ContentTemplate>
-                </TabControl>
-            </DockPanel>
-        </Expander>
-
-        <!-- New flow (7B): Dự án picker + a Vị trí tab strip per project -->
+        <!-- Dự án picker + a Vị trí tab strip per project -->
         <Border DockPanel.Dock="Top" Classes="toolbarStrip" Margin="0,0,0,8">
             <StackPanel Spacing="8">
                 <!-- Row 1: pick / create / delete the Dự án, then the Vị trí actions + Save-All -->

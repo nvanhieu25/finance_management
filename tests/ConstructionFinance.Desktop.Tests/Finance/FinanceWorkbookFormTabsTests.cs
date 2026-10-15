@@ -41,16 +41,10 @@ public class FinanceWorkbookFormTabsTests
         var project = tree ?? new Project { Id = 7, Name = "Dự án A", ViTris = { ViTriWithDots() } };
 
         var service = new Mock<IFinanceProjectService>();
-        service.Setup(s => s.GetAllSummariesAsync(It.IsAny<CancellationToken>()))
-               .ReturnsAsync(Array.Empty<FinanceProjectSummary>());
         service.Setup(s => s.ListAsync(It.IsAny<CancellationToken>()))
                .ReturnsAsync(new List<Project> { new() { Id = project.Id, Name = project.Name } });
         service.Setup(s => s.GetTreeAsync(project.Id, It.IsAny<CancellationToken>()))
                .ReturnsAsync(project);
-
-        var summaryVm = new FinanceSummaryViewModel(
-            service.Object, Mock.Of<IFinanceImportService>(),
-            Mock.Of<IFinanceExportService>(), Mock.Of<IDialogService>());
 
         companyInfo = new Mock<ICompanyInfoService>();
         companyInfo.Setup(c => c.GetAsync(It.IsAny<CancellationToken>()))
@@ -58,8 +52,7 @@ public class FinanceWorkbookFormTabsTests
                        DonViCapTren: "Sở Tài chính", DonViCoSo: "Ban QLDA số 1"));
 
         var vm = new FinanceWorkbookViewModel(
-            service.Object, new SummaryPageViewModel(summaryVm), Mock.Of<IDialogService>(),
-            new ServiceCollection().BuildServiceProvider(),
+            service.Object, Mock.Of<IDialogService>(),
             Mock.Of<IFormExcelExporter>(), companyInfo.Object);
 
         return (vm, service);

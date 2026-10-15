@@ -18,24 +18,17 @@ public class FinanceWorkbookTongHopTabsTests
     private static FinanceWorkbookViewModel CreateSut(int projectId, string name, params ViTri[] viTris)
     {
         var service = new Mock<IFinanceProjectService>();
-        service.Setup(s => s.GetAllSummariesAsync(It.IsAny<CancellationToken>()))
-               .ReturnsAsync(Array.Empty<FinanceProjectSummary>());
         service.Setup(s => s.ListAsync(It.IsAny<CancellationToken>()))
                .ReturnsAsync(new List<Project> { new() { Id = projectId, Name = name } });
         service.Setup(s => s.GetTreeAsync(projectId, It.IsAny<CancellationToken>()))
                .ReturnsAsync(new Project { Id = projectId, Name = name, ViTris = viTris.ToList() });
-
-        var summaryVm = new FinanceSummaryViewModel(
-            service.Object, Mock.Of<IFinanceImportService>(),
-            Mock.Of<IFinanceExportService>(), Mock.Of<IDialogService>());
 
         var companyInfo = new Mock<ICompanyInfoService>();
         companyInfo.Setup(c => c.GetAsync(It.IsAny<CancellationToken>()))
                    .ReturnsAsync(new CompanyInfoDto(null, null, null, null, null, null, null, null));
 
         return new FinanceWorkbookViewModel(
-            service.Object, new SummaryPageViewModel(summaryVm),
-            Mock.Of<IDialogService>(), new ServiceCollection().BuildServiceProvider(),
+            service.Object, Mock.Of<IDialogService>(),
             Mock.Of<IFormExcelExporter>(), companyInfo.Object);
     }
 

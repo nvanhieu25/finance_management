@@ -16,12 +16,11 @@ using Serilog;
 
 namespace ConstructionFinance.Desktop.ViewModels.Finance;
 
-/// Excel-like workbook: a pinned TH page plus one page per project.
+/// Sổ Excel-like của dự án: chọn Dự án ở trên, dải tab Vị trí / Tổng hợp / Quyết toán năm / ba biểu mẫu ở dưới.
 public partial class FinanceWorkbookViewModel : ViewModelBase, IPrintablePage, IPrintableWorkbook
 {
     private readonly IFinanceProjectService _service;
     private readonly IDialogService _dialog;
-    private readonly IServiceProvider _services;
 
     // The full tree as loaded for the selected project (Code/Notes are preserved
     // on Save-All since the Vị trí picker never edits them). Null until a project
@@ -44,32 +43,20 @@ public partial class FinanceWorkbookViewModel : ViewModelBase, IPrintablePage, I
 
     public FinanceWorkbookViewModel(
         IFinanceProjectService service,
-        SummaryPageViewModel summaryPage,
         IDialogService dialog,
-        IServiceProvider services,
         IFormExcelExporter formExporter,
         ICompanyInfoService companyInfo)
     {
         _service = service;
         _dialog = dialog;
-        _services = services;
         _formExporter = formExporter;
         _companyInfo = companyInfo;
-        SummaryPage = summaryPage;
-
-        SummaryPage.Summary.ProjectActivationRequested += async (_, projectId) =>
-            await GoToProjectAsync(projectId);
     }
 
-    public ObservableCollection<WorkbookPageViewModel> Pages { get; } = new();
-
-    public SummaryPageViewModel SummaryPage { get; }
-
-    [ObservableProperty] private WorkbookPageViewModel? _selectedPage;
     [ObservableProperty] private bool _isBusy;
     [ObservableProperty] private string? _errorMessage;
 
-    /// Dự án picker (new Vị trí workbook path — coexists with the old flat-grid Pages).
+    /// Dự án picker.
     public ObservableCollection<Project> Projects { get; } = new();
 
     [ObservableProperty] private Project? _selectedProject;
@@ -144,10 +131,9 @@ public partial class FinanceWorkbookViewModel : ViewModelBase, IPrintablePage, I
     // Ô nhập tay của biểu mẫu bẩn riêng: không ledger nào đánh dấu hộ được.
     private bool _formDeclarationDirty;
 
-    /// True when any project page (old flow) OR any Vị trí tab (new flow) has
-    /// unsaved edits — drives the toolbar + close guard.
+    /// True when any Vị trí tab, the tab structure, or a form field has unsaved
+    /// edits — drives the toolbar + close guard.
     public bool IsDirty =>
-        Pages.OfType<ProjectPageViewModel>().Any(p => p.IsDirty) ||
         ViTriPages.OfType<ViTriPageViewModel>().Any(p => p.IsDirty) ||
         _viTriStructureDirty ||
         _formDeclarationDirty;
@@ -158,8 +144,6 @@ public partial class FinanceWorkbookViewModel : ViewModelBase, IPrintablePage, I
         ErrorMessage = null;
         try
         {
-            Pages.Clear();
-            Pages.Add(SummaryPage);
             Projects.Clear();
             ViTriPages.Clear();
             SelectedViTriPage = null;
@@ -177,25 +161,12 @@ public partial class FinanceWorkbookViewModel : ViewModelBase, IPrintablePage, I
             _orgInfo = new FormOrgInfo(info.DonViCapTren, info.DonViCoSo);
 
             var projects = await _service.ListAsync();
-            foreach (var project in projects)
-            {
-                Projects.Add(project);
-                try
-                {
-                    Pages.Add(await CreateProjectPageAsync(project.Id));
-                }
-                catch (Exception ex)
-                {
-                    Log.Warning(ex, "Skipped project {ProjectId} while building the workbook", project.Id);
-                }
-            }
+            foreach (var project in projects) Projects.Add(project);
 
-            SelectedPage = SummaryPage;
             // Auto-select the first Dự án so the Vị trí ledger renders immediately
             // on launch instead of showing an empty picker. Safe with zero projects
             // (FirstOrDefault is null; OnSelectedProjectChanged no-ops on null).
             SelectedProject = Projects.FirstOrDefault();
-            await SummaryPage.Summary.LoadAsync();
         }
         catch (Exception ex)
         {
@@ -207,8 +178,7 @@ public partial class FinanceWorkbookViewModel : ViewModelBase, IPrintablePage, I
 
     /// Loads the selected project's Vị trí tree and rebuilds one tab per Vị trí.
     /// Fire-and-forget from the property-changed hook (ObservableProperty setters
-    /// can't be async) — mirrors the fire-and-forget pattern already used for
-    /// SummaryPage's ProjectActivationRequested handler above. AddProject sets
+    /// can't be async); the Task is kept in _treeLoad. AddProject sets
     /// _skipNextSelectionReload first since it already built the tabs itself in-memory.
     partial void OnSelectedProjectChanged(Project? value)
     {
@@ -510,10 +480,8 @@ public partial class FinanceWorkbookViewModel : ViewModelBase, IPrintablePage, I
     }
 
     /// Delete the selected project (after confirming). A saved project (Id>0) is
-    /// deleted from the DB immediately, same as the old flow's ClosePageAsync — nothing
-    /// deferred to Save-All. An unsaved (Id 0) project is simply dropped from the list.
-    /// Also drops the matching old-flow Pages tab, if any, so it doesn't linger pointing
-    /// at a project that no longer exists.
+    /// deleted from the DB immediately — nothing deferred to Save-All. An unsaved
+    /// (Id 0) project is simply dropped from the list.
     [RelayCommand]
     private async Task DeleteProjectAsync()
     {
@@ -536,15 +504,10 @@ public partial class FinanceWorkbookViewModel : ViewModelBase, IPrintablePage, I
                 await _dialog.ShowMessageAsync("Lỗi", ex.Message);
                 return;
             }
-
-            var stalePage = Pages.OfType<ProjectPageViewModel>().FirstOrDefault(p => p.ProjectId == project.Id);
-            if (stalePage is not null) Pages.Remove(stalePage);
         }
 
         Projects.Remove(project);
         SelectedProject = Projects.FirstOrDefault();
-
-        await SummaryPage.Summary.LoadAsync();
     }
 
     /// Project is a plain domain entity (not observable), so mutating its Name directly
@@ -560,15 +523,6 @@ public partial class FinanceWorkbookViewModel : ViewModelBase, IPrintablePage, I
         if (index >= 0) Projects[index] = project;
     }
 
-    /// Jump to a project's tab — used by the TH page's double-click.
-    public Task GoToProjectAsync(int projectId)
-    {
-        var page = Pages.OfType<ProjectPageViewModel>()
-                        .FirstOrDefault(p => p.ProjectId == projectId);
-        if (page is not null) SelectedPage = page;
-        return Task.CompletedTask;
-    }
-
     /// Select a project in the Dự án picker by id (used when jumping in from the
     /// all-projects Tổng hợp screen). No-op if the id isn't loaded.
     public void SelectProjectById(int projectId)
@@ -577,52 +531,25 @@ public partial class FinanceWorkbookViewModel : ViewModelBase, IPrintablePage, I
         if (match is not null) SelectedProject = match;
     }
 
-    /// New blank project page. It is unsaved until Save-All writes it.
-    [RelayCommand]
-    private void AddPage()
-    {
-        var grid = _services.GetRequiredService<FinanceProjectGridViewModel>();
-        grid.InitializeNew();
-        var page = new ProjectPageViewModel(grid);
-        page.PropertyChanged += (_, e) =>
-        {
-            if (e.PropertyName == nameof(WorkbookPageViewModel.IsDirty))
-                OnPropertyChanged(nameof(IsDirty));
-        };
-        Pages.Add(page);
-        SelectedPage = page;
-    }
-
-    /// Excel-style Save-All: write every dirty page, persist the selected project's
-    /// Vị trí tree if it changed, then refresh TH. A page that fails stays dirty so
-    /// its edits are never silently dropped.
+    /// Excel-style Save-All: persist the selected project's Vị trí tree (ledgers, tab
+    /// structure, form inputs, org names) if anything changed. A failed save leaves
+    /// everything dirty so edits are never silently dropped.
     [RelayCommand]
     private async Task SaveAllAsync()
     {
-        var dirtyPages = Pages.OfType<ProjectPageViewModel>().Where(p => p.IsDirty).ToList();
         var saveViTriTree = SelectedProject is not null && _selectedProjectTree is not null &&
                              (ViTriPages.OfType<ViTriPageViewModel>().Any(p => p.IsDirty) ||
                               _viTriStructureDirty || _formDeclarationDirty);
 
-        if (dirtyPages.Count == 0 && !saveViTriTree) return;
+        if (!saveViTriTree) return;
 
         IsBusy = true;
         var failed = new List<string>();
         try
         {
-            foreach (var page in dirtyPages)
-            {
-                var ok = await page.Grid.SaveAsync();
-                if (!ok) failed.Add(page.Title);
-            }
+            var ok = await SaveViTriTreeAsync();
+            if (!ok) failed.Add(_selectedProjectTree!.Name);
 
-            if (saveViTriTree)
-            {
-                var ok = await SaveViTriTreeAsync();
-                if (!ok) failed.Add(_selectedProjectTree!.Name);
-            }
-
-            await SummaryPage.Summary.LoadAsync();
             OnPropertyChanged(nameof(IsDirty));
         }
         finally { IsBusy = false; }
@@ -683,74 +610,6 @@ public partial class FinanceWorkbookViewModel : ViewModelBase, IPrintablePage, I
             ErrorMessage = ex.Message;
             return false;
         }
-    }
-
-    /// Close a project page. TH is pinned (never a ProjectPageViewModel).
-    /// An unsaved (id 0) page just gets a light "discard" confirm — there's
-    /// nothing in the DB to delete. A saved page gets the delete-warning
-    /// confirm and is removed from the database.
-    [RelayCommand]
-    private async Task ClosePageAsync(WorkbookPageViewModel? page)
-    {
-        if (page is not ProjectPageViewModel project) return;
-
-        if (project.ProjectId == 0)
-        {
-            var discard = await _dialog.ConfirmAsync("Đóng dự án",
-                "Đóng dự án chưa lưu? Dữ liệu chưa lưu sẽ mất.");
-            if (!discard) return;
-
-            Pages.Remove(project);
-            SelectedPage = SummaryPage;
-            return;
-        }
-
-        var ok = await _dialog.ConfirmAsync("Xóa dự án",
-            $"Bạn có chắc muốn xóa dự án \"{project.Title}\" và toàn bộ đợt của nó?");
-        if (!ok) return;
-
-        try
-        {
-            await _service.DeleteAsync(project.ProjectId);
-            Pages.Remove(project);
-            SelectedPage = SummaryPage;
-            await SummaryPage.Summary.LoadAsync();
-        }
-        catch (Exception ex)
-        {
-            ErrorMessage = ex.Message;
-            await _dialog.ShowMessageAsync("Lỗi", ex.Message);
-        }
-    }
-
-    /// Rename = focus the project-name box on that page; the grid owns the field.
-    [RelayCommand]
-    private void RenamePage(WorkbookPageViewModel? page)
-    {
-        if (page is not ProjectPageViewModel project) return;
-        SelectedPage = project;
-    }
-
-    private async Task<ProjectPageViewModel> CreateProjectPageAsync(int projectId)
-    {
-        var grid = _services.GetRequiredService<FinanceProjectGridViewModel>();
-        await grid.LoadProjectAsync(projectId);
-
-        // The grid swallows its own load failures (missing project / DB error),
-        // leaving CurrentProjectId unset. Surface that as a throw so the caller's
-        // per-project catch skips this ONE project instead of adding a phantom
-        // "(dự án mới)" tab that was never really loaded.
-        if (grid.CurrentProjectId != projectId)
-            throw new InvalidOperationException(
-                grid.ErrorMessage ?? $"Project {projectId} could not be loaded.");
-
-        var page = new ProjectPageViewModel(grid);
-        page.PropertyChanged += (_, e) =>
-        {
-            if (e.PropertyName == nameof(WorkbookPageViewModel.IsDirty))
-                OnPropertyChanged(nameof(IsDirty));
-        };
-        return page;
     }
 
     // ===== In =====

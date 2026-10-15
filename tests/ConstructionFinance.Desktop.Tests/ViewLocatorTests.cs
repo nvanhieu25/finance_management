@@ -1,10 +1,8 @@
 using Avalonia.Controls;
-using ConstructionFinance.Application.Services.Interfaces;
 using ConstructionFinance.Desktop;
-using ConstructionFinance.Desktop.Services;
 using ConstructionFinance.Desktop.Tests.Finance;
-using ConstructionFinance.Desktop.ViewModels.TongHop;
-using Moq;
+using ConstructionFinance.Desktop.ViewModels.Finance;
+using ConstructionFinance.Domain.Finance;
 using Shouldly;
 using Xunit;
 
@@ -13,7 +11,7 @@ namespace ConstructionFinance.Desktop.Tests;
 public class ViewLocatorTests
 {
     [Fact]
-    public void ViewLocator_resolves_ImportWizardViewModel_to_ImportWizardView()
+    public void ViewLocator_resolves_VitriLedgerViewModel_to_VitriLedgerView()
     {
         // Routed through the shared headless session (see Finance/HeadlessTestSupport.cs):
         // this test builds a REAL Avalonia View (Activator.CreateInstance inside
@@ -27,17 +25,14 @@ public class ViewLocatorTests
         HeadlessTestSession.Run(() =>
         {
             var locator = new ViewLocator();
-            var vm = new ImportWizardViewModel(
-                new Mock<IExcelImportService>().Object,
-                new Mock<IProjectSummaryService>().Object,
-                new Mock<IDialogService>().Object);
+            var vm = new VitriLedgerViewModel(new ViTri { Name = "Vị trí test" });
 
             var view = locator.Build(vm);
 
             view.ShouldNotBeNull();
             view.ShouldNotBeOfType<TextBlock>(
-                "ViewLocator returned 'View not found' TextBlock — check ImportWizardView.axaml exists and x:Class matches");
-            view.GetType().Name.ShouldBe("ImportWizardView");
+                "ViewLocator returned 'View not found' TextBlock — check VitriLedgerView.axaml exists and x:Class matches");
+            view.GetType().Name.ShouldBe("VitriLedgerView");
         });
     }
 }

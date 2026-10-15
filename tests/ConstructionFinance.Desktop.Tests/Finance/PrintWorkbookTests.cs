@@ -58,8 +58,6 @@ public class PrintWorkbookTests
     private static FinanceWorkbookViewModel CreateWorkbook(Project? tree)
     {
         var service = new Mock<IFinanceProjectService>();
-        service.Setup(s => s.GetAllSummariesAsync(It.IsAny<CancellationToken>()))
-               .ReturnsAsync(Array.Empty<FinanceProjectSummary>());
         service.Setup(s => s.ListAsync(It.IsAny<CancellationToken>()))
                .ReturnsAsync(tree is null
                    ? new List<Project>()
@@ -67,18 +65,13 @@ public class PrintWorkbookTests
         if (tree is not null)
             service.Setup(s => s.GetTreeAsync(tree.Id, It.IsAny<CancellationToken>())).ReturnsAsync(tree);
 
-        var summaryVm = new FinanceSummaryViewModel(
-            service.Object, Mock.Of<IFinanceImportService>(),
-            Mock.Of<IFinanceExportService>(), Mock.Of<IDialogService>());
-
         var companyInfo = new Mock<ICompanyInfoService>();
         companyInfo.Setup(c => c.GetAsync(It.IsAny<CancellationToken>()))
                    .ReturnsAsync(new CompanyInfoDto(null, null, null, null, null, null, null, null,
                        DonViCapTren: "Sở Tài chính", DonViCoSo: "Ban QLDA số 1"));
 
         return new FinanceWorkbookViewModel(
-            service.Object, new SummaryPageViewModel(summaryVm), Mock.Of<IDialogService>(),
-            new ServiceCollection().BuildServiceProvider(),
+            service.Object, Mock.Of<IDialogService>(),
             Mock.Of<IFormExcelExporter>(), companyInfo.Object);
     }
 
