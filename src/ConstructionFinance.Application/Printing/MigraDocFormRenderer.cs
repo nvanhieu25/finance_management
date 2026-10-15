@@ -21,11 +21,23 @@ internal static class MigraDocFormRenderer
         var scale = ExcelFitScale.ScaleFor(sheet.ColumnWidths, page.Orientation);
         if (page.FitToPagesTall == 1)
         {
-            var contentMm = sheet.RowHeights.Sum() / PointsPerMillimeter;
+            var contentMm = sheet.RowHeights.Take(UsedRowCount(sheet)).Sum() / PointsPerMillimeter;
             if (contentMm > 0)
                 scale = Math.Min(scale, ExcelFitScale.UsableHeightMm(page.Orientation) * VerticalSafety / contentMm);
         }
         return scale;
+    }
+
+    /// Số hàng cần in: tới hàng cuối cùng có chữ, ô nhập hoặc đường kẻ. Mẫu để trống nhiều hàng cuối (chỗ ký, ghi chú…) —
+    /// Excel không in phần trống ở đáy, nhưng MigraDoc dựng đủ mọi hàng và hàng trống đẩy tờ sang một trang TRẮNG
+    /// (đo được: Thông tri ra 2 trang, trang 2 trắng).
+    internal static int UsedRowCount(ResolvedSheet sheet)
+    {
+        var last = 0;
+        foreach (var cell in sheet.Cells)
+            if (cell.DisplayText.Length > 0 || cell.IsEditable || cell.Style.Borders.Any)
+                last = Math.Max(last, cell.Row + cell.RowSpan - 1);
+        return Math.Min(Math.Max(last, 1), sheet.RowHeights.Count);
     }
 
     /// Chừa một chút: MigraDoc cộng thêm viền và làm tròn từng hàng, nên vừa khít là tràn sang trang hai.
@@ -45,7 +57,7 @@ internal static class MigraDocFormRenderer
         foreach (var width in sheet.ColumnWidths)
             table.AddColumn(Unit.FromMillimeter(ExcelFitScale.ContentWidthMm(new[] { width }) * scale));
 
-        foreach (var height in sheet.RowHeights)
+        foreach (var height in sheet.RowHeights.Take(UsedRowCount(sheet)))
         {
             var row = table.AddRow();
             // AtLeast: Excel cắt chữ ở đáy ô, tờ in thì để hàng nở ra — mất chữ trên giấy ký là lỗi nặng hơn tờ dài thêm vài mm.
@@ -63,11 +75,13 @@ internal static class MigraDocFormRenderer
                 if ((row, col) != (cell.Row, cell.Col)) covered.Add((row, col));
         }
 
+        var usedRows = UsedRowCount(sheet);
         foreach (var cell in sheet.Cells)
         {
+            if (cell.Row > usedRows) continue;      // hàng trống cuối tờ không dựng
             // Ô nằm dưới vùng gộp/tràn của ô khác: MigraDoc bỏ qua nó khi dàn trang, đừng đụng vào.
             if (covered.Contains((cell.Row, cell.Col))) continue;
-            WriteCell(table, cell, byAnchor, scale);
+            WriteCell(table, sheet, cell, byAnchor, scale);
         }
 
         return table;
@@ -82,18 +96,23 @@ internal static class MigraDocFormRenderer
             : cell.ColSpan;
 
     private static void WriteCell(
-        Table table, ResolvedCell cell, Dictionary<(int Row, int Col), ResolvedCell> byAnchor, double scale)
+        Table table, ResolvedSheet sheet, ResolvedCell cell, Dictionary<(int Row, int Col), ResolvedCell> byAnchor, double scale)
     {
         var target = table.Rows[cell.Row - 1]!.Cells[cell.Col - 1]!;
         var span = SpanOf(cell);
         if (span > 1) target.MergeRight = span - 1;
-        if (cell.RowSpan > 1) target.MergeDown = cell.RowSpan - 1;
+        var rowSpan = Math.Min(cell.RowSpan, UsedRowCount(sheet) - cell.Row + 1);   // không gộp xuống hàng đã bỏ
+        if (rowSpan > 1) target.MergeDown = rowSpan - 1;
 
         // Cạnh phải của dải tràn là cạnh phải của ô cuối dải, không phải của ô đầu.
         var right = cell.Style.Borders.Right;
         if (span > cell.ColSpan && byAnchor.TryGetValue((cell.Row, cell.Col + span - 1), out var last))
             right = last.Style.Borders.Right;
         ApplyBorders(target, cell.Style.Borders with { Right = right });
+        // MigraDoc vẽ cạnh phải của ô gộp theo ô CUỐI của dải, không theo ô đầu: đặt cả ở ô cuối.
+        if (span > 1 && right != BorderLine.None)
+            ApplyBorders(table.Rows[cell.Row - 1]!.Cells[cell.Col + span - 2]!,
+                new CellBorders(BorderLine.None, right, BorderLine.None, BorderLine.None));
 
         var style = cell.Style;
         target.Format.Font.Size = Unit.FromPoint(style.FontSize * scale);
@@ -107,7 +126,7 @@ internal static class MigraDocFormRenderer
             _ => VerticalAlignment.Bottom,
         };
 
-        var text = cell.DisplayText;
+        var text = PreserveSpaces(cell.DisplayText);
         if (text.Length == 0) return;
 
         var paragraph = target.AddParagraph(text);
@@ -120,6 +139,25 @@ internal static class MigraDocFormRenderer
             CellAlign.Left => ParagraphAlignment.Left,
             _ => numeric ? ParagraphAlignment.Right : ParagraphAlignment.Left,   // Excel canh phải ô số theo mặc định
         };
+    }
+
+    /// MigraDoc gộp mọi dãy dấu cách thành MỘT và bỏ dấu cách đầu dòng — nhưng Mẫu dùng chính dãy dấu cách để chừa chỗ viết tay
+    /// ("Ngày        tháng    năm 2026") và để thụt đầu dòng (" + Mục…", "  Các năm trước"). Đổi dãy từ hai dấu cách trở lên và
+    /// dấu cách đầu chuỗi sang dấu cách không ngắt (U+00A0) để bản in giữ nguyên chỗ trống.
+    internal static string PreserveSpaces(string text)
+    {
+        if (text.Length == 0) return text;
+        var builder = new System.Text.StringBuilder(text.Length);
+        for (var i = 0; i < text.Length; i++)
+        {
+            if (text[i] != ' ') { builder.Append(text[i]); continue; }
+            var end = i;
+            while (end < text.Length && text[end] == ' ') end++;
+            var run = end - i;
+            builder.Append(run >= 2 || i == 0 ? new string('\u00A0', run) : " ");
+            i = end - 1;
+        }
+        return builder.ToString();
     }
 
     private static void ApplyBorders(Cell target, CellBorders borders)

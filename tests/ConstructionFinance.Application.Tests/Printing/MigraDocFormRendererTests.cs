@@ -85,6 +85,28 @@ public class MigraDocFormRendererTests
         probe.Pages[0].IsLandscape.ShouldBeFalse();
     }
 
+    /// Mẫu để trống 8 hàng cuối Thông tri (chỗ ký…): dựng hết các hàng trống đó đẩy tờ sang một trang TRẮNG. Đo được bằng
+    /// PDF thật: 3 biểu mẫu ra 4 trang, trang 2 trắng.
+    [Theory]
+    [InlineData(1)]
+    [InlineData(4)]
+    [InlineData(8)]
+    public void Thong_tri_khong_de_lai_trang_trang_o_cuoi(int dots)
+    {
+        var sheet = FormDefinitions.ThongTri.Build(Context(dots)).Sheet;
+
+        PdfProbe.Render(Build(sheet, Thong)).PageCount.ShouldBe(1);
+    }
+
+    [Fact]
+    public void Trailing_empty_rows_are_not_rendered_but_content_rows_are()
+    {
+        var sheet = FormDefinitions.ThongTri.Build(Context()).Sheet;
+
+        MigraDocFormRenderer.UsedRowCount(sheet).ShouldBe(25);                 // tới dòng "Bằng chữ", bỏ hàng 26–33
+        TableOf(Build(sheet, Thong)).Rows.Count.ShouldBe(25);
+    }
+
     [Fact]
     public void Thong_tri_nhieu_dot_chay_sang_trang_khong_ne()
     {
@@ -105,8 +127,8 @@ public class MigraDocFormRendererTests
         MigraDocFormRenderer.ScaleOf(FormDefinitions.KsChi.Build(Context()).Sheet, OnePage).ShouldBeInRange(0.9, 1.0);   // chỉ co nhẹ theo biên an toàn chiều dọc
         var gdntt = FormDefinitions.Gdntt.Build(Context()).Sheet;
         MigraDocFormRenderer.ScaleOf(gdntt, Thong).ShouldBe(1.0, 0.0001);
-        // GĐNTT cao 798pt > 276,7mm khả dụng: ép một trang thì co nhẹ (đã đo: ~0,9 là đủ để vừa kể cả chữ dài).
-        MigraDocFormRenderer.ScaleOf(gdntt, OnePage).ShouldBeInRange(0.85, 0.99);
+        // Bỏ hàng trống cuối (chỗ ký) thì GĐNTT gần như vừa nguyên cỡ; ép một trang chỉ co khi chữ dài làm tờ cao hơn.
+        MigraDocFormRenderer.ScaleOf(gdntt, OnePage).ShouldBeInRange(0.85, 1.0);
     }
 
     [Fact]
@@ -191,5 +213,30 @@ public class MigraDocFormRendererTests
 
         table.Rows[16]!.Height.Point.ShouldBe(47.25, 0.01);                // hàng 17: đợt
         table.Rows[16]!.HeightRule.ShouldBe(RowHeightRule.AtLeast);
+    }
+
+    [Theory]
+    [InlineData("Ngày        tháng    năm 2026", "Ngày\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0tháng\u00A0\u00A0\u00A0\u00A0năm 2026")]
+    [InlineData(" + Mục ........", "\u00A0+ Mục ........")]
+    [InlineData("  Các năm trước", "\u00A0\u00A0Các năm trước")]
+    [InlineData("Một dấu cách giữa các từ", "Một dấu cách giữa các từ")]
+    [InlineData("", "")]
+    public void PreserveSpaces_keeps_the_blanks_the_Mau_leaves_for_handwriting_and_indents(string input, string expected)
+    {
+        MigraDocFormRenderer.PreserveSpaces(input).ShouldBe(expected);
+    }
+
+    [Fact]
+    public void Printed_text_keeps_the_gaps_left_for_handwriting()
+    {
+        var sheet = FormDefinitions.KsChi.Build(Context()).Sheet;
+        var table = TableOf(Build(sheet, OnePage));
+
+        var text = SheetTextMap.FromMigraDoc(table);   // đã gộp khoảng trắng để so sánh; đọc thẳng ô gốc ở dưới
+        var cell = table.Rows[2]!.Cells[3]!;           // D3: "Ngày        tháng    năm 2026"
+        var raw = string.Concat(cell.Elements.OfType<Paragraph>().First().Elements.OfType<Text>().Select(t => t.Content));
+
+        raw.ShouldContain("\u00A0\u00A0\u00A0");
+        text.ShouldNotBeEmpty();
     }
 }

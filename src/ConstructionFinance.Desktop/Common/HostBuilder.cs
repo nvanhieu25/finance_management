@@ -38,6 +38,7 @@ public static partial class HostBuilder
                 services.AddSingleton<Services.INavigationService, Services.NavigationService>();
                 services.AddSingleton<Services.IFileLauncher, Services.FileLauncher>();
                 services.AddSingleton<IPrintWorkbookWriter, PrintWorkbookWriter>();
+                services.AddSingleton<IPdfExporter, PdfExporter>();
                 services.AddSingleton<IMigraDocBuilder, MigraDocBuilder>();
                 // Adapter máy in. Bản cài đặt nằm ở HostBuilder.Printing.Windows.cs và CHỈ
                 // được biên dịch ở đích net8.0-windows; ở đích net8.0 (bộ test) hàm partial

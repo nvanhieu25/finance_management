@@ -71,6 +71,9 @@
                                 <Separator/>
                                 <MenuItem Header="Xuất Excel sheet này" Command="{Binding ExportCurrentSheetCommand}"/>
                                 <MenuItem Header="Xuất Excel toàn bộ" Command="{Binding ExportAllCommand}"/>
+                                <Separator/>
+                                <MenuItem Header="Xuất PDF để in — sheet này" Command="{Binding ExportPdfCurrentSheetCommand}"/>
+                                <MenuItem Header="Xuất PDF để in — toàn bộ" Command="{Binding ExportPdfAllCommand}"/>
                             </MenuFlyout>
                         </Button.Flyout>
                     </Button>

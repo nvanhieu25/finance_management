@@ -916,7 +916,7 @@ public class MainWindowPrintCommandTests
     }
 
     [Fact]
-    public void Bon_muc_menu_gan_dung_bon_lenh_va_mo_theo_tung_lenh()
+    public void Sau_muc_menu_gan_dung_sau_lenh_va_mo_theo_tung_lenh()
     {
         RunWithMainWindow(BuildServices(null, null, null, savePath: null), (vm, window, button) =>
         {
@@ -929,7 +929,9 @@ public class MainWindowPrintCommandTests
             var items = flyout.Items.OfType<MenuItem>().ToList();
             // Placement=Top không phải trang trí: menu mở xuống chỉ còn ~10px trên màn 1080px và che nút Import Excel.
             flyout.Placement.ShouldBe(PlacementMode.Top);
-            items.Count.ShouldBe(4);
+            items.Count.ShouldBe(6);
+            items.Single(i => (string?)i.Header == "Xuất PDF để in — sheet này").Command.ShouldBeSameAs(vm.ExportPdfCurrentSheetCommand);
+            items.Single(i => (string?)i.Header == "Xuất PDF để in — toàn bộ").Command.ShouldBeSameAs(vm.ExportPdfAllCommand);
             var currentItem = items.Single(i => (string?)i.Header == "Xuất Excel sheet này");
             var allItem = items.Single(i => (string?)i.Header == "Xuất Excel toàn bộ");
             items.Single(i => (string?)i.Header == "In sheet này").Command.ShouldBeSameAs(vm.PrintCurrentSheetCommand);
@@ -970,6 +972,112 @@ public class MainWindowPrintCommandTests
         });
     }
 
+    // ===== Xuất PDF để in (chạy trên mọi hệ điều hành; in thẳng ra máy in thì chỉ có ở Windows) =====
+
+    private sealed class FakePdfExporter : IPdfExporter
+    {
+        public string? WrittenPath { get; private set; }
+        public int Calls { get; private set; }
+        public int Sections { get; private set; }
+        public Exception? FailWith { get; init; }
+
+        public Task WriteAsync(MigraDoc.DocumentObjectModel.Document document, string targetPath, CancellationToken ct = default)
+        {
+            Calls++;
+            if (FailWith is not null) return Task.FromException(FailWith);
+            WrittenPath = targetPath;
+            Sections = document.Sections.Count;
+            return Task.CompletedTask;
+        }
+    }
+
+    // Tĩnh: BuildServices dựng provider theo từng test nhưng cần đưa bản giả này ra cho test đọc.
+    private static FakePdfExporter Pdf { get; set; } = new();
+
+    [Fact]
+    public async Task Xuat_PDF_sheet_nay_ghi_pdf_va_mo_bang_trinh_xem_mac_dinh()
+    {
+        Pdf = new FakePdfExporter();
+        var launcher = new FakeLauncher();
+        var dialog = new FakeDialogService();
+        var vm = CreateMainWindowViewModel(null, launcher, dialog, savePath: "/tmp/x.pdf");
+        vm.CurrentContent = new FakePrintablePage("Vị trí 1");
+
+        await vm.ExportPdfCurrentSheetCommand.ExecuteAsync(null);
+
+        Pdf.Calls.ShouldBe(1);
+        Pdf.Sections.ShouldBe(1);
+        Pdf.WrittenPath.ShouldBe("/tmp/x.pdf");
+        launcher.Opened.ShouldBe("/tmp/x.pdf");
+        dialog.SaveFileRequests.Single().Extensions.ShouldBe(new[] { ".pdf" });
+        dialog.SaveFileRequests.Single().DefaultFileName.ShouldEndWith(".pdf");
+        dialog.ShownMessages.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task Xuat_PDF_huy_hop_thoai_thi_khong_ghi_gi()
+    {
+        Pdf = new FakePdfExporter();
+        var launcher = new FakeLauncher();
+        var vm = CreateMainWindowViewModel(null, launcher, null, savePath: null);
+        vm.CurrentContent = new FakePrintablePage("Vị trí 1");
+
+        await vm.ExportPdfCurrentSheetCommand.ExecuteAsync(null);
+
+        Pdf.Calls.ShouldBe(0);
+        launcher.Opened.ShouldBeNull();
+    }
+
+    [Fact]
+    public async Task Xuat_PDF_toan_bo_gom_moi_sheet_vao_mot_tai_lieu()
+    {
+        Pdf = new FakePdfExporter();
+        var launcher = new FakeLauncher();
+        var vm = CreateMainWindowViewModel(null, launcher, null, savePath: "/tmp/all.pdf");
+        var workbook = new FakePrintableWorkbook("Vị trí 1", canPrintAll: true);
+        workbook.AllSheets.Add(Sheet("Tổng hợp"));
+        workbook.AllSheets.Add(Sheet("Vị trí 1"));
+        vm.CurrentContent = workbook;
+
+        await vm.ExportPdfAllCommand.ExecuteAsync(null);
+
+        Pdf.Calls.ShouldBe(1);
+        Pdf.Sections.ShouldBe(2);                  // mỗi sheet một Section (mỗi sheet giữ khổ giấy riêng)
+        launcher.Opened.ShouldBe("/tmp/all.pdf");
+    }
+
+    [Fact]
+    public void Hai_muc_PDF_bat_mo_cung_dieu_kien_voi_hai_muc_Excel()
+    {
+        var vm = CreateMainWindowViewModel();
+
+        vm.ExportPdfCurrentSheetCommand.CanExecute(null).ShouldBeFalse();
+        vm.ExportPdfAllCommand.CanExecute(null).ShouldBeFalse();
+
+        var workbook = new FakePrintableWorkbook("Vị trí 1", canPrintAll: false);
+        vm.CurrentContent = workbook;
+        vm.ExportPdfCurrentSheetCommand.CanExecute(null).ShouldBeTrue();
+        vm.ExportPdfAllCommand.CanExecute(null).ShouldBeFalse();
+
+        workbook.SetCanPrintAll(true);
+        vm.ExportPdfAllCommand.CanExecute(null).ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task Xuat_PDF_khong_ghi_duoc_thi_bao_loi_dung_tieu_de_chu_khong_sap_app()
+    {
+        Pdf = new FakePdfExporter { FailWith = new DirectoryNotFoundException() };
+        var launcher = new FakeLauncher();
+        var dialog = new FakeDialogService();
+        var vm = CreateMainWindowViewModel(null, launcher, dialog, savePath: "/khong/co/x.pdf");
+        vm.CurrentContent = new FakePrintablePage("Vị trí 1");
+
+        await vm.ExportPdfCurrentSheetCommand.ExecuteAsync(null);
+
+        dialog.ShownMessages.Single().ShouldStartWith("MSG: Xuất PDF để in — Không ghi được tệp vì nơi lưu không hợp lệ");
+        launcher.Opened.ShouldBeNull();
+    }
+
     // ===== Dụng cụ =====
 
     /// `savePath` là thứ hộp thoại chọn nơi lưu trả về; null nghĩa là người dùng bấm Hủy.
@@ -990,6 +1098,8 @@ public class MainWindowPrintCommandTests
         services.AddSingleton<IDialogService>(dialog);
         services.AddSingleton<IPrintWorkbookWriter>(writer ?? new FakeWriter());
         services.AddSingleton<IFileLauncher>(launcher ?? new FakeLauncher());
+        services.AddSingleton<IMigraDocBuilder, MigraDocBuilder>();
+        services.AddSingleton<IPdfExporter>(Pdf);
         return services.BuildServiceProvider();
     }
 

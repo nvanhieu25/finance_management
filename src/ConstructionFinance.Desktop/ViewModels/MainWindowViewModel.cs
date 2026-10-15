@@ -86,6 +86,7 @@ public partial class MainWindowViewModel : ViewModelBase
 
     private const string PrintTitle = "In";
     private const string PrintFileTitle = "In ra Excel";
+    private const string PrintPdfTitle = "Xuất PDF để in";
     private const string PrintToolTipEnabled = "In màn hình đang mở hoặc toàn bộ sổ";
     private const string PrintToolTipDisabled = "Màn hình này không có nội dung để in";
     private const string PrintSaveLocationUnavailableMessage =
@@ -97,6 +98,7 @@ public partial class MainWindowViewModel : ViewModelBase
     /// (vẫn nằm đúng chỗ). Chỉ ĐỌC trạng thái của màn đang mở và của danh sách máy in.
     public bool CanPrint =>
         CanExportCurrentSheet() || CanExportAll() || CanPrintCurrentSheet() || CanPrintAll();
+    // (PDF dùng cùng điều kiện với Excel: màn có gì để in thì xuất được.)
 
     /// Nút In sáng thì tooltip nói nó làm gì; nút mờ thì tooltip nói vì sao.
     public string PrintToolTip => CanPrint ? PrintToolTipEnabled : PrintToolTipDisabled;
@@ -138,6 +140,34 @@ public partial class MainWindowViewModel : ViewModelBase
         CurrentContent is IPrintableWorkbook wb && wb.CanPrintAll;
         // KHÔNG gọi BuildAllSheets() ở đây: nó làm mới tab tổng hợp, nên đặt trong
         // CanExecute là nhét tác dụng phụ vào một phép hỏi bị gọi rất thường xuyên.
+
+    /// "Xuất PDF": ghi bản in ra .pdf rồi mở bằng trình xem PDF mặc định — người dùng bấm Ctrl+P ở đó để in ra bất kỳ máy
+    /// in nào, hoặc "Lưu thành PDF". Chạy trên mọi hệ điều hành, khác với "In sheet này" (in thẳng, chỉ có ở bản Windows).
+    [RelayCommand(CanExecute = nameof(CanExportCurrentSheet))]
+    private Task ExportPdfCurrentSheetAsync() => GuardPrintAsync(PrintPdfTitle, async () =>
+    {
+        var page = (IPrintablePage)CurrentContent!;
+        var sheet = page.BuildPrintSheet();
+        if (sheet is null)
+        {
+            await ShowNothingToPrintAsync();
+            return;
+        }
+        await PrintAsync(new[] { sheet }, page.PrintSheetName!, footerViTriName: page.PrintSheetName, asPdf: true);
+    });
+
+    [RelayCommand(CanExecute = nameof(CanExportAll))]
+    private Task ExportPdfAllAsync() => GuardPrintAsync(PrintPdfTitle, async () =>
+    {
+        var workbook = (IPrintableWorkbook)CurrentContent!;
+        var all = workbook.BuildAllSheets();
+        if (all.Sheets.Count == 0)
+        {
+            await ShowNothingToPrintAsync();
+            return;
+        }
+        await PrintAsync(all.Sheets, "Toan bo", footerViTriName: null, warningAfterWrite: DescribeSkipped(all.Skipped), asPdf: true);
+    });
 
     private const string PrintPaperTitle = "In ra máy in";
     private const string NoPrinterSelectedMessage =
@@ -259,8 +289,13 @@ public partial class MainWindowViewModel : ViewModelBase
     /// sheet, còn In toàn bộ thì null (nhãn "Toan bo" của tên tệp không phải tên một Vị trí). `warningAfterWrite` (chỉ In toàn bộ
     /// có) là lời cảnh báo hiện sau khi ghi xong, nói bộ tệp thiếu gì.
     private async Task PrintAsync(
-        IReadOnlyList<PrintSheet> sheets, string fileLabel, string? footerViTriName, string? warningAfterWrite = null)
+        IReadOnlyList<PrintSheet> sheets, string fileLabel, string? footerViTriName, string? warningAfterWrite = null,
+        bool asPdf = false)
     {
+        // Cùng một đường (chọn nơi lưu → ghi → báo lỗi ghi → mở bằng ứng dụng mặc định) cho cả .xlsx và .pdf; chỉ khác tiêu
+        // đề hộp thoại, đuôi tệp và hàm ghi.
+        var fileTitle = asPdf ? PrintPdfTitle : PrintFileTitle;
+        var extension = asPdf ? ".pdf" : ".xlsx";
         var dialog = _services.GetRequiredService<IDialogService>();
         var writer = _services.GetRequiredService<IPrintWorkbookWriter>();
         var launcher = _services.GetRequiredService<IFileLauncher>();
@@ -270,15 +305,23 @@ public partial class MainWindowViewModel : ViewModelBase
         var workbook = CurrentContent as IPrintableWorkbook;
         var prefix = workbook?.PrintWorkbookName ?? "";
         var footerProjectName = workbook?.PrintFooterProjectName ?? "";
-        var suggested = PrintFileName.Suggest(prefix, fileLabel, DateTime.Now);
+        var suggested = PrintFileName.Suggest(prefix, fileLabel, DateTime.Now, extension);
 
-        var path = await dialog.PickSaveFileAsync(PrintFileTitle, suggested, new[] { ".xlsx" });
+        var path = await dialog.PickSaveFileAsync(fileTitle, suggested, new[] { extension });
         if (path is null) return;          // người dùng bấm Hủy — im lặng, không báo lỗi
 
         var footer = new PrintFooterInfo(footerProjectName, footerViTriName);
         try
         {
-            await writer.WriteAsync(sheets, path, footer);
+            if (asPdf)
+            {
+                var document = _services.GetRequiredService<IMigraDocBuilder>().Build(sheets, footer);
+                await _services.GetRequiredService<IPdfExporter>().WriteAsync(document, path);
+            }
+            else
+            {
+                await writer.WriteAsync(sheets, path, footer);
+            }
         }
         // Thứ tự các nhánh catch quyết định câu người dùng đọc, và câu thông báo không được nói sai: DirectoryNotFoundException,
         // PathTooLongException và DriveNotFoundException đều là CON của IOException, nên phải đứng TRƯỚC nhánh IOException
@@ -289,19 +332,19 @@ public partial class MainWindowViewModel : ViewModelBase
         catch (DirectoryNotFoundException ex)
         {
             LogPrintIoFailure(ex, path, "thư mục không tồn tại");
-            await dialog.ShowMessageAsync(PrintFileTitle, PrintSaveLocationUnavailableMessage);
+            await dialog.ShowMessageAsync(fileTitle, PrintSaveLocationUnavailableMessage);
             return;
         }
         catch (PathTooLongException ex)
         {
             LogPrintIoFailure(ex, path, "đường dẫn quá dài");
-            await dialog.ShowMessageAsync(PrintFileTitle, PrintSaveLocationUnavailableMessage);
+            await dialog.ShowMessageAsync(fileTitle, PrintSaveLocationUnavailableMessage);
             return;
         }
         catch (DriveNotFoundException ex)
         {
             LogPrintIoFailure(ex, path, "ổ đĩa không tồn tại hoặc đã ngắt kết nối");
-            await dialog.ShowMessageAsync(PrintFileTitle, PrintSaveLocationUnavailableMessage);
+            await dialog.ShowMessageAsync(fileTitle, PrintSaveLocationUnavailableMessage);
             return;
         }
         catch (IOException ex)
@@ -310,7 +353,7 @@ public partial class MainWindowViewModel : ViewModelBase
             // hành (xung đột chia sẻ, ổ đầy, ổ mạng ngắt; ổ mạng offline trên Windows rất có thể ra IOException trơn, chưa
             // kiểm). Câu thông báo nói thật cả ba, mỗi nguyên nhân kèm việc nên làm; chỗ phân biệt chính xác nằm ở nhật ký.
             LogPrintIoFailure(ex, path, "lỗi vào/ra: tệp đang mở, ổ đầy hoặc ổ mạng ngắt kết nối");
-            await dialog.ShowMessageAsync(PrintFileTitle,
+            await dialog.ShowMessageAsync(fileTitle,
                 "Không ghi được tệp. Có thể tệp đang được mở trong chương trình khác, ổ đĩa đã đầy, hoặc ổ mạng bị ngắt kết nối. " +
                 "Hãy đóng tệp nếu đang mở, giải phóng dung lượng ổ đĩa, hoặc kiểm tra kết nối ổ mạng, rồi thử lại.");
             return;
@@ -321,7 +364,7 @@ public partial class MainWindowViewModel : ViewModelBase
             // ghi .xlsx ném ArgumentException...): nút In không bao giờ được làm app sập hay im lặng. Người dùng nhận
             // một câu chung, chi tiết nằm trong nhật ký.
             Log.Error(ex, "Không ghi được tệp in {Path}", path);
-            await dialog.ShowMessageAsync(PrintFileTitle,
+            await dialog.ShowMessageAsync(fileTitle,
                 "Không ghi được tệp in. Thử lại hoặc chọn nơi lưu khác. Chi tiết lỗi đã được ghi vào nhật ký ứng dụng.");
             return;
         }
@@ -330,10 +373,10 @@ public partial class MainWindowViewModel : ViewModelBase
         // hộp thoại của app, mà một cảnh báo không ai nhìn thấy cũng như không có cảnh báo (người dùng gom bộ hồ sơ rồi gửi đi,
         // và người nhận mới là người phát hiện thiếu sheet). Ghi không thành thì đã return ở trên: chỉ báo lỗi ghi.
         if (warningAfterWrite is not null)
-            await dialog.ShowMessageAsync(PrintFileTitle, warningAfterWrite);
+            await dialog.ShowMessageAsync(fileTitle, warningAfterWrite);
 
         if (!launcher.TryOpen(path))
-            await dialog.ShowMessageAsync(PrintFileTitle, $"Đã lưu tệp tại:\n{path}");
+            await dialog.ShowMessageAsync(fileTitle, $"Đã lưu tệp tại:\n{path}");
     }
 
     /// Lời cảnh báo cho các trang "In toàn bộ" đã bỏ qua; null khi không bỏ qua trang nào. Một trang: đúng chữ của spec §8
@@ -384,11 +427,13 @@ public partial class MainWindowViewModel : ViewModelBase
     }
 
     /// CanExecuteChanged là thứ Avalonia nghe để bật/mờ lại từng mục menu; CanPrint/PrintToolTip là thứ nút In nghe.
-    /// Bốn lệnh, bốn lần báo: thiếu một là một mục menu đứng im với trạng thái của màn trước.
+    /// Sáu lệnh, sáu lần báo: thiếu một là một mục menu đứng im với trạng thái của màn trước.
     private void RaisePrintStateChanged()
     {
         ExportCurrentSheetCommand.NotifyCanExecuteChanged();
         ExportAllCommand.NotifyCanExecuteChanged();
+        ExportPdfCurrentSheetCommand.NotifyCanExecuteChanged();
+        ExportPdfAllCommand.NotifyCanExecuteChanged();
         PrintCurrentSheetCommand.NotifyCanExecuteChanged();
         PrintAllCommand.NotifyCanExecuteChanged();
         OnPropertyChanged(nameof(CanPrint));

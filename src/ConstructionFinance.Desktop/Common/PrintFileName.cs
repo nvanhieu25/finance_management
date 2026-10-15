@@ -17,15 +17,15 @@ public static class PrintFileName
     /// Có cắt thì tối đa 60 + 1 + 60 + 1 + 13 (mốc giờ) + 5 (.xlsx) = 140.
     private const int MaxPartLength = 60;
 
-    /// `<prefix>-<sheetName>-<yyyyMMdd-HHmm>.xlsx`. Phần nào rỗng sau khi làm sạch thì bỏ luôn
+    /// `<prefix>-<sheetName>-<yyyyMMdd-HHmm><extension>` (mặc định .xlsx). Phần nào rỗng sau khi làm sạch thì bỏ luôn
     /// cả dấu gạch nối nó. Mỗi phần tên bị cắt còn MaxPartLength ký tự; mốc giờ thì không bao giờ. Hàm thuần: với bất kỳ chuỗi
     /// nào cũng trả về một tên, không ném.
-    public static string Suggest(string? prefix, string sheetName, DateTime now)
+    public static string Suggest(string? prefix, string sheetName, DateTime now, string extension = ".xlsx")
     {
         // Invariant: yyyy theo lịch Gregorian dù máy đặt vùng nào (th-TH sẽ ra năm Phật lịch).
         var stamp = now.ToString("yyyyMMdd-HHmm", CultureInfo.InvariantCulture);
         var parts = new[] { Cap(Clean(prefix)), Cap(Clean(sheetName)), stamp }.Where(part => part.Length > 0);
-        return string.Join("-", parts) + ".xlsx";
+        return string.Join("-", parts) + extension;
     }
 
     /// Cắt còn tối đa MaxPartLength đơn vị UTF-16 mà không xé đôi cặp surrogate (một surrogate cao lẻ ở cuối là chuỗi hỏng),
