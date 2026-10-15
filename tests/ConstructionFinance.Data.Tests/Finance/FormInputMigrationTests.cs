@@ -49,10 +49,14 @@ public class FormInputMigrationTests : IDisposable
         return rows;
     }
 
-    private async Task<int> InsertProject(AppDbContext ctx, string name)
+    /// `legacyColumns`: ở các migration trước RemoveFlatModel bảng còn ContractValue/ContractAnnexValue (NOT NULL).
+    private async Task<int> InsertProject(AppDbContext ctx, string name, bool legacyColumns = true)
     {
-        await Exec(ctx, "INSERT INTO finance_projects (Name, ContractValue, ContractAnnexValue, CreatedAt, UpdatedAt) " +
-                        $"VALUES ('{name}', '0', '0', '2026-01-01', '2026-01-01')");
+        await Exec(ctx, legacyColumns
+            ? "INSERT INTO finance_projects (Name, ContractValue, ContractAnnexValue, CreatedAt, UpdatedAt) " +
+              $"VALUES ('{name}', '0', '0', '2026-01-01', '2026-01-01')"
+            : "INSERT INTO finance_projects (Name, CreatedAt, UpdatedAt) " +
+              $"VALUES ('{name}', '2026-01-01', '2026-01-01')");
         using var command = ctx.Database.GetDbConnection().CreateCommand();
         command.CommandText = "SELECT last_insert_rowid()";
         return Convert.ToInt32(await command.ExecuteScalarAsync());
@@ -122,7 +126,7 @@ public class FormInputMigrationTests : IDisposable
         await MigrateTo(null);
         using var ctx = NewContext();
         await ctx.Database.OpenConnectionAsync();
-        var project = await InsertProject(ctx, "DA1");
+        var project = await InsertProject(ctx, "DA1", legacyColumns: false);
         await Exec(ctx, "INSERT INTO finance_form_inputs (ProjectId, Form, Key, Value, CreatedAt, UpdatedAt) " +
                         $"VALUES ({project}, 'thongtri', 'A', '1', '2026-01-01', '2026-01-01')");
 

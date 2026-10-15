@@ -1,8 +1,6 @@
 using ConstructionFinance.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using FinanceProject = ConstructionFinance.Domain.Finance.Project;
-using FinanceProjectLineItem = ConstructionFinance.Domain.Finance.ProjectLineItem;
-using FinanceProjectDecision = ConstructionFinance.Domain.Finance.ProjectDecision;
 using FinanceViTri = ConstructionFinance.Domain.Finance.ViTri;
 using FinanceCostGroup = ConstructionFinance.Domain.Finance.CostGroup;
 using FinancePackage = ConstructionFinance.Domain.Finance.Package;
@@ -28,13 +26,8 @@ public class AppDbContext : DbContext
     public DbSet<CostTemplate> CostTemplates => Set<CostTemplate>();
     public DbSet<CostTemplateItem> CostTemplateItems => Set<CostTemplateItem>();
     public DbSet<AppSetting> AppSettings => Set<AppSetting>();
-    public DbSet<ImportBatch> ImportBatches => Set<ImportBatch>();
-    public DbSet<ProjectSummary> ProjectSummaries => Set<ProjectSummary>();
-    public DbSet<SettlementByYear> SettlementByYears => Set<SettlementByYear>();
 
     public DbSet<FinanceProject> FinanceProjects => Set<FinanceProject>();
-    public DbSet<FinanceProjectLineItem> FinanceProjectLines => Set<FinanceProjectLineItem>();
-    public DbSet<FinanceProjectDecision> FinanceProjectDecisions => Set<FinanceProjectDecision>();
     public DbSet<FinanceViTri> ViTris => Set<FinanceViTri>();
     public DbSet<FinanceCostGroup> CostGroups => Set<FinanceCostGroup>();
     public DbSet<FinancePackage> Packages => Set<FinancePackage>();
