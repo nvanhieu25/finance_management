@@ -60,17 +60,8 @@ public sealed class MigraDocBuilder : IMigraDocBuilder
                 case PrintTableSheet table:
                     WriteTable(section, table);
                     break;
-                case ThongTriPrintSheet thongTri:
-                    MigraDocFormSheets.WriteThongTri(section, thongTri.Form);
-                    break;
                 case FormTemplatePrintSheet template:
                     MigraDocFormRenderer.Write(section, template.Sheet, template.Page);
-                    break;
-                case KsChiPrintSheet ksChi:
-                    MigraDocFormSheets.WriteKsChi(section, ksChi.Form);
-                    break;
-                case GdnttPrintSheet gdntt:
-                    MigraDocFormSheets.WriteGdntt(section, gdntt.Form);
                     break;
                 default:
                     throw new NotSupportedException(
@@ -149,8 +140,8 @@ public sealed class MigraDocBuilder : IMigraDocBuilder
 
     /// Tỉ lệ co chữ của một sheet; chân trang dùng đúng tỉ lệ này để cùng cỡ với thân.
     ///
-    /// Sheet dạng BẢNG tính từ cột của chính nó; sheet BIỂU MẪU lấy từ MigraDocFormSheets —
-    /// cùng hai trường (bề rộng cột, hướng giấy) mà FormGrid.Render dùng để co thân. Một bản
+    /// Sheet dạng BẢNG tính từ cột của chính nó; sheet BIỂU MẪU lấy từ MigraDocFormRenderer —
+    /// cùng hai trường (bề rộng cột, hướng giấy) mà MigraDocFormRenderer dùng để co thân. Một bản
     /// trước của hàm này chỉ xét PrintTableSheet và rơi xuống 1.0 cho cả ba biểu mẫu, nên
     /// chân trang in 13pt cạnh thân 10,0 / 12,3 / 11,9pt — đúng ba tờ người dùng KÝ, và cũng
     /// là trường hợp xấu nhất cho bất biến khoảng cách chân trang (Chan_trang_nam_gon_duoi_le_duoi).
@@ -159,7 +150,6 @@ public sealed class MigraDocBuilder : IMigraDocBuilder
         PrintTableSheet { Columns.Count: > 0 } table =>
             ExcelFitScale.ScaleFor(table.Columns.Select(column => column.WidthChars), table.Page.Orientation),
         FormTemplatePrintSheet template => MigraDocFormRenderer.ScaleOf(template.Sheet, template.Page),
-        PrintFormSheet form => MigraDocFormSheets.LayoutOf(form).FontScale,
         _ => 1.0,
     };
 

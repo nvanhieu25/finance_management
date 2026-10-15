@@ -55,30 +55,6 @@ public sealed record PrintTableSheet(
     IReadOnlyList<PrintColumn> Columns,
     IReadOnlyList<PrintRow> Rows) : PrintSheet(SheetName, Page);
 
-/// Sheet biểu mẫu: dùng lại nguyên bộ ghi trong FormExcelExporter. Mỗi biểu mẫu một record
-/// con, nên KIỂU của sheet chính là biểu mẫu nó mang: không còn biểu diễn được trạng thái
-/// "không mang biểu mẫu nào" hay "mang hai biểu mẫu", và bộ ghi không cần guard lúc chạy cho
-/// hai trạng thái đó nữa. Thêm biểu mẫu mới (KH vốn / Vốn / QĐ...) là thêm một record con ở
-/// đây và một nhánh trong PrintWorkbookWriter.WriteForm — test
-/// PrintFormSheet_chi_co_ba_bieu_mau_ma_bo_ghi_biet_ve đỏ để nhắc.
-public abstract record PrintFormSheet(string SheetName, PrintPageProfile Page)
-    : PrintSheet(SheetName, Page);
-
-public sealed record ThongTriPrintSheet(
-    string SheetName,
-    PrintPageProfile Page,
-    ThongTriForm Form) : PrintFormSheet(SheetName, Page);
-
-public sealed record KsChiPrintSheet(
-    string SheetName,
-    PrintPageProfile Page,
-    KsChiForm Form) : PrintFormSheet(SheetName, Page);
-
-public sealed record GdnttPrintSheet(
-    string SheetName,
-    PrintPageProfile Page,
-    GdnttForm Form) : PrintFormSheet(SheetName, Page);
-
 /// Sheet biểu mẫu dựng từ bản gốc: bộ ghi .xlsx, bộ dựng MigraDoc và màn hình cùng đọc MỘT ResolvedSheet,
 /// nên thêm biểu mẫu mới không cần thêm record nào ở đây.
 public sealed record FormTemplatePrintSheet(

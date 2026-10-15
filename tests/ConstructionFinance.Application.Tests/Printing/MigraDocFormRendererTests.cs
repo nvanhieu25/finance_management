@@ -131,6 +131,26 @@ public class MigraDocFormRendererTests
         footerPoints.ShouldBe(TableOf(document).Format.Font.Size.Point, 0.01);
     }
 
+    [Theory]
+    [InlineData("thongtri")]
+    [InlineData("kschi")]
+    [InlineData("gdntt")]
+    public void Footer_font_equals_the_body_font_for_each_form_and_never_exceeds_13pt(string id)
+    {
+        var definition = FormDefinitions.All.Single(d => d.Id == id);
+        var context = id == "gdntt" ? Context() with { Selected = new[] { new FormDotKey(1, 0, 0, 0) }.ToHashSet() } : Context();
+        var sheet = definition.Build(context).Sheet;
+        var document = Build(sheet, definition.PrintProfile);
+
+        var footerPoints = document.Sections[0]!.Footers.Primary.Elements.OfType<Paragraph>().First().Format.Font.Size.Point;
+
+        footerPoints.ShouldBe(TableOf(document).Format.Font.Size.Point, 0.01);
+        footerPoints.ShouldBeLessThanOrEqualTo(FormExcelExporter.FontSize);
+        // Chân trang nằm gọn trong lề dưới cho cả ba tờ người dùng ký (bất biến của Chan_trang_nam_gon_duoi_le_duoi).
+        var room = (MigraDocBuilder.VerticalMarginInches - MigraDocBuilder.FooterDistanceInches) * 72.0;
+        room.ShouldBeGreaterThanOrEqualTo(footerPoints * 1.15);
+    }
+
     // ===== nội dung =====
 
     [Theory]

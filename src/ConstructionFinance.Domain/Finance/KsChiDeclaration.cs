@@ -1,12 +1,9 @@
-using ConstructionFinance.Domain.Common;
 namespace ConstructionFinance.Domain.Finance;
 
-/// Các ô người dùng điền tay trên phần ghi của cơ quan kiểm soát, thanh toán.
-public class KsChiDeclaration : BaseEntity
+/// Gói tham số đưa vào builder — KHÔNG phải thực thể lưu: chữ người dùng tự gõ lưu ở FormInput (finance_form_inputs).
+/// Giữ lại vì chữ ký của builder không đổi (cách tính số giữ nguyên).
+public class KsChiDeclaration
 {
-    public int ProjectId { get; set; }
-    public Project Project { get; set; } = null!;
-
     public string? NgayNhanGiayDeNghi { get; set; }
     public string? MucTieuMuc1 { get; set; }
     public string? MucTieuMuc2 { get; set; }

@@ -1,6 +1,6 @@
 # Ba biểu mẫu dựng đúng Mẫu.xlsx — Thiết kế
 
-**Ngày:** 2026-10-15 · **Trạng thái:** chờ user duyệt
+**Ngày:** 2026-10-15 · **Trạng thái:** đã duyệt; đã triển khai theo `docs/superpowers/plans/2026-10-15-bieu-mau-dung-mau.md` (chờ user nghiệm thu bằng mắt)
 **Thay thế:** phần *trình bày* của `2026-08-13-ba-bieu-mau-design.md`. Phần *cách tính số* của spec đó giữ nguyên.
 
 ## 1. Vì sao có đợt này
@@ -141,6 +141,20 @@ Bản gốc giữ phần trên dòng 15 và phần từ `Cộng` trở xuống y
 Bấm vào thì chuyển sang **Tài chính dự án** và chọn tab **Thông tri** của dự án đang chọn. Màn cũ `ThongTriViewModel` không còn lối vào; xoá mã và các bảng `import_batches` / `project_summaries` / `settlement_by_years` thuộc về 7E.
 
 **Spec 7E phải sửa theo:** quyết định 1 (§3) đổi từ "giữ màn Thông tri" sang "trỏ sang tab Thông tri mới, xoá màn cũ"; bỏ tiêu chí nghiệm thu "màn Thông tri vẫn hiện 15 dòng cũ"; ba bảng trên được xoá thay vì giữ. Tôi đã ghi chú việc này ở đầu spec 7E.
+
+### 5.8 Chỗ lệch có chủ ý so với Mẫu, và chỗ thực tế khác spec
+
+1. **Gộp ô thêm ở GĐNTT: `H13:I13`, `H25:I25`, `D28:I28`.** Cột H của Mẫu rộng 0,14 ký tự nên số đặt ở H13/H25 chỉ hiện `###`; D28 (số tài khoản, căn giữa, rộng một cột) không chứa nổi 13–16 chữ số. Test so Mẫu cho phép đúng ba ngoại lệ này.
+2. **Mục lục ngân sách hiện `010 · 011 · 9300 · 9301 · 00 · 00`**, không phải `10 · 11 · 9300 · 9301 · 0 · 0` (§5.2): định dạng ô của Mẫu (`"0"0`, `"0"\1\1`, `00`) mới là chữ hiện ra và in ra.
+3. **Hai nét kẻ: thường và `hair`** (KS chi dòng 7–17 kẻ trên/dưới bằng `hair`); **có chữ gạch chân** (`GĐNTT!D2`, `KS chi!A22`). Kiểu ô mang đủ hai thứ này.
+4. **Lề giấy giữ của ứng dụng** (0,5″ hai bên), không theo Mẫu (0,45″ / 0″ — lề phải 0 không in được).
+5. **Số 0 ở ô tự tính hiện `0`** (đúng `#,##0` của Mẫu); ô số tự nhập còn trống để trống.
+6. **KS chi C8:E12 (số theo từng mục) vẫn là ô trống khoá**; chỉ C14, C15, C16, C19 là ô số tự nhập (như §5.2 liệt kê). Muốn gõ số theo mục: thêm một dòng `Tpl.Number(...)` vào bản gốc — không cần migration.
+7. **Chữ ghi chú của Mẫu** (`Tự nhập liệu`, `( có thể gõ…)`, `Ngân hàng A ( Tự nhập)`) là gợi ý mờ trên màn hình, không in.
+8. **`ThuocKeHoach` (GĐNTT C16:D16)**: Mẫu có ô gộp trống ngay sau nhãn `- Thuộc kế hoạch:` — coi là ô tự nhập chữ.
+9. **Bề rộng cột** lấy theo "ký tự" của Excel = (px − 5)/7 (openpyxl đọc bề rộng LƯU trong tệp, đã gồm 5px đệm; script sinh bản gốc đã quy đổi).
+10. **Bản in GĐNTT ép MỘT trang theo chiều dọc** (co ~0,9 so với 13pt gốc) vì tờ cao 798pt > 277mm khả dụng; KS chi co nhẹ (~0,98). Đây là phép đo lại mà §5.4/§7 đòi: kết quả — GĐNTT dọc vừa một trang kể cả khi các ô chữ dài.
+11. **Bản in: ô chữ tràn sang ô trống bên phải được gộp ô** (mất đường kẻ dọc nằm giữa dải đó), vì MigraDoc xuống dòng trong lòng ô chứ không tràn như Excel; màn hình giữ đường kẻ như Excel.
 
 ## 6. Kiểm chứng
 

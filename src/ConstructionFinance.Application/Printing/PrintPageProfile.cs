@@ -26,10 +26,11 @@ public static class PrintPageProfiles
     public static PrintPageProfile YearSettlement { get; } =
         new(PrintOrientation.Portrait, 1, 0, 1, 0);
 
-    // Ba biểu mẫu cũng chỉ ép vừa bề ngang như mọi hồ sơ khác (spec §5 chỉ có cột "Ép ngang").
-    // Ép luôn chiều dọc thì Excel tự thu nhỏ xuống tận 10% (sàn tỉ lệ của OOXML): một Thông tri dài co đến không đọc nổi thay vì
-    // sang trang — hai trang đọc được hơn một trang không đọc được.
+    // Ba biểu mẫu đều A4 DỌC như Mẫu.xlsx. Thông tri dài tuỳ số đợt nên chỉ ép vừa bề ngang (nhiều trang được: ép luôn
+    // chiều dọc thì Excel tự thu nhỏ xuống tận 10%, sàn tỉ lệ của OOXML — hai trang đọc được hơn một trang không đọc nổi).
+    // KS chi và GĐNTT có chiều cao cố định theo Mẫu nên ép luôn vừa MỘT trang: một giấy đề nghị tràn sang trang hai là
+    // giấy không ký được. Bộ vẽ MigraDoc co thêm theo chiều dọc khi FitToPagesTall == 1 (MigraDocFormRenderer.ScaleOf).
     public static PrintPageProfile ThongTri { get; } = new(PrintOrientation.Portrait, 1, 0, 0, 0);
-    public static PrintPageProfile KsChi { get; } = new(PrintOrientation.Portrait, 1, 0, 0, 0);
-    public static PrintPageProfile Gdntt { get; } = new(PrintOrientation.Landscape, 1, 0, 0, 0);
+    public static PrintPageProfile KsChi { get; } = new(PrintOrientation.Portrait, 1, 1, 0, 0);
+    public static PrintPageProfile Gdntt { get; } = new(PrintOrientation.Portrait, 1, 1, 0, 0);
 }

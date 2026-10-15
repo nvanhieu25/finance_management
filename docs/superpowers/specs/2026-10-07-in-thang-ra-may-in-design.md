@@ -449,3 +449,5 @@ của bạn ở đây trước.
   "Đơn vịBQL" và "Số CTCT-01". Bộ dựng MigraDoc chép nguyên văn thay vì sửa, vì sửa sẽ đổi đầu ra
   `.xlsx` mà người dùng đã duyệt và phá phép so sánh lockstep giữa hai bộ dựng. **Quyết định là của
   người dùng.**
+
+> **2026-10-15 — cập nhật §12:** GĐNTT chuyển sang khổ DỌC theo Mẫu.xlsx; các số đo khổ ngang (dòng 6–16 xuống dòng, lề 0,4″) không còn hiệu lực, thay bằng phép ép một trang theo chiều dọc của `MigraDocFormRenderer` (`FitToPagesTall == 1`). Ba biểu mẫu nay dựng từ một bản gốc chung — xem `2026-10-15-bieu-mau-dung-mau-design.md` và plan cùng ngày. §14 (chuỗi thiếu dấu cách `"Đơn vịBQL"`…) biến mất cùng bộ vẽ cũ.

@@ -1,12 +1,9 @@
-using ConstructionFinance.Domain.Common;
 namespace ConstructionFinance.Domain.Finance;
 
-/// Các ô người dùng điền tay trên Giấy đề nghị thanh toán vốn đầu tư.
-public class GdnttDeclaration : BaseEntity
+/// Gói tham số đưa vào builder — KHÔNG phải thực thể lưu: chữ người dùng tự gõ lưu ở FormInput (finance_form_inputs).
+/// Giữ lại vì chữ ký của builder không đổi (cách tính số giữ nguyên).
+public class GdnttDeclaration
 {
-    public int ProjectId { get; set; }
-    public Project Project { get; set; } = null!;
-
     public string? So { get; set; }
     public string? NgayThangNam { get; set; }
     public string? KinhGui { get; set; }

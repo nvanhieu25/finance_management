@@ -82,9 +82,6 @@ public sealed class PrintWorkbookWriter : IPrintWorkbookWriter
                     FormExcelExporter.WriteSheet(ws, template.Sheet);
                     ApplyPage(ws, template.Page, footer, resetFont: false);
                     break;
-                case PrintFormSheet form:
-                    WriteForm(ws, form, footer);
-                    break;
                 default:
                     throw new NotSupportedException($"Không hỗ trợ loại sheet {sheet.GetType().Name}.");
             }
@@ -150,36 +147,6 @@ public sealed class PrintWorkbookWriter : IPrintWorkbookWriter
         if (text.Length > MaxFooterLeftChars)
             text = TextTruncation.Truncate(text, MaxFooterLeftChars - 1) + "…";   // chừa một chỗ cho "…"
         return text.Replace("&", "&&");
-    }
-
-    /// Sheet biểu mẫu. Hàm vẽ tự đặt font, khổ giấy và HƯỚNG GIẤY bằng hằng số của nó, nên vẽ
-    /// TRƯỚC rồi mới áp hồ sơ căn trang: để hồ sơ có tiếng nói cuối cùng. Cố ý KHÔNG kẻ lưới như
-    /// sheet bảng — biểu mẫu đã tự kẻ khung đúng chỗ Mẫu có, kẻ cả vùng dùng sẽ bao khung luôn
-    /// những ô Mẫu để trắng.
-    private static void WriteForm(IXLWorksheet ws, PrintFormSheet form, PrintFooterInfo footer)
-    {
-        // Kiểu của sheet chính là biểu mẫu nó mang, nên ở đây chỉ còn việc chọn hàm vẽ — không
-        // còn trạng thái "rỗng" hay "hai biểu mẫu" để phải chặn. C# không vét cạn được switch
-        // trên cây kế thừa nên vẫn phải có nhánh cuối; nó bắt đúng một lỗi: thêm record con mà
-        // quên hàm vẽ. Test PrintFormSheet_chi_co_ba_bieu_mau_ma_bo_ghi_biet_ve đỏ trước khi
-        // người dùng bấm In, để lỗi đó không phải đợi tới lúc chạy mới lộ.
-        switch (form)
-        {
-            case ThongTriPrintSheet sheet:
-                FormExcelExporter.WriteThongTriSheet(ws, sheet.Form);
-                break;
-            case KsChiPrintSheet sheet:
-                FormExcelExporter.WriteKsChiSheet(ws, sheet.Form);
-                break;
-            case GdnttPrintSheet sheet:
-                FormExcelExporter.WriteGdnttSheet(ws, sheet.Form);
-                break;
-            default:
-                throw new NotSupportedException(
-                    $"Sheet \"{form.SheetName}\": chưa có hàm vẽ cho {form.GetType().Name}.");
-        }
-
-        ApplyPage(ws, form.Page, footer);
     }
 
     private static void WriteTable(IXLWorksheet ws, PrintTableSheet table, PrintFooterInfo footer)

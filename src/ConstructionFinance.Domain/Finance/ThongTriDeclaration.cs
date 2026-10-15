@@ -1,12 +1,9 @@
-using ConstructionFinance.Domain.Common;
 namespace ConstructionFinance.Domain.Finance;
 
-/// Các ô Mẫu số CQ06-HD để trống cho người dùng điền tay. Một bản cho mỗi dự án.
-public class ThongTriDeclaration : BaseEntity
+/// Gói tham số đưa vào builder — KHÔNG phải thực thể lưu: chữ người dùng tự gõ lưu ở FormInput (finance_form_inputs).
+/// Giữ lại vì chữ ký của builder không đổi (cách tính số giữ nguyên).
+public class ThongTriDeclaration
 {
-    public int ProjectId { get; set; }
-    public Project Project { get; set; } = null!;
-
     public string? SoThongTri { get; set; }
     public string? NgayGhiSo { get; set; }
     public string? TenCTMT { get; set; }
