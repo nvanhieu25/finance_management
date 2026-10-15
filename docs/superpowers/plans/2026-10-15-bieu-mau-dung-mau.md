@@ -2781,11 +2781,15 @@ public class MigraDocFormRendererTests
     // ===== tỉ lệ co =====
 
     [Fact]
-    public void Scale_is_one_for_the_three_templates_because_their_widths_fit_A4_portrait()
+    public void Scale_is_one_for_widths_and_only_the_one_page_profile_shrinks_the_tall_gdntt()
     {
+        // Bề ngang cả ba vừa A4 dọc nên không co theo bề ngang.
         MigraDocFormRenderer.ScaleOf(FormDefinitions.ThongTri.Build(Context()).Sheet, Thong).ShouldBe(1.0, 0.0001);
-        MigraDocFormRenderer.ScaleOf(FormDefinitions.KsChi.Build(Context()).Sheet, OnePage).ShouldBe(1.0, 0.0001);
-        MigraDocFormRenderer.ScaleOf(FormDefinitions.Gdntt.Build(Context()).Sheet, OnePage).ShouldBe(1.0, 0.0001);
+        MigraDocFormRenderer.ScaleOf(FormDefinitions.KsChi.Build(Context()).Sheet, OnePage).ShouldBeInRange(0.9, 1.0);   // chỉ co nhẹ theo biên an toàn chiều dọc
+        var gdntt = FormDefinitions.Gdntt.Build(Context()).Sheet;
+        MigraDocFormRenderer.ScaleOf(gdntt, Thong).ShouldBe(1.0, 0.0001);
+        // GĐNTT cao 798pt > 276,7mm khả dụng: ép một trang thì co nhẹ (đã đo: ~0,9 là đủ để vừa kể cả chữ dài).
+        MigraDocFormRenderer.ScaleOf(gdntt, OnePage).ShouldBeInRange(0.85, 0.99);
     }
 
     [Fact]
@@ -2901,7 +2905,7 @@ internal static class MigraDocFormRenderer
     }
 
     /// Chừa một chút: MigraDoc cộng thêm viền và làm tròn từng hàng, nên vừa khít là tràn sang trang hai.
-    private const double VerticalSafety = 0.97;
+    private const double VerticalSafety = 0.92;
 
     public static Table Write(Section section, ResolvedSheet sheet, PrintPageProfile page)
     {

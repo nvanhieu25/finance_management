@@ -63,6 +63,9 @@ public sealed class MigraDocBuilder : IMigraDocBuilder
                 case ThongTriPrintSheet thongTri:
                     MigraDocFormSheets.WriteThongTri(section, thongTri.Form);
                     break;
+                case FormTemplatePrintSheet template:
+                    MigraDocFormRenderer.Write(section, template.Sheet, template.Page);
+                    break;
                 case KsChiPrintSheet ksChi:
                     MigraDocFormSheets.WriteKsChi(section, ksChi.Form);
                     break;
@@ -155,6 +158,7 @@ public sealed class MigraDocBuilder : IMigraDocBuilder
     {
         PrintTableSheet { Columns.Count: > 0 } table =>
             ExcelFitScale.ScaleFor(table.Columns.Select(column => column.WidthChars), table.Page.Orientation),
+        FormTemplatePrintSheet template => MigraDocFormRenderer.ScaleOf(template.Sheet, template.Page),
         PrintFormSheet form => MigraDocFormSheets.LayoutOf(form).FontScale,
         _ => 1.0,
     };

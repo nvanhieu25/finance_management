@@ -21,6 +21,13 @@ public static class ExcelFitScale
     private const double A4ShortSideMm = 210.0;
     private const double A4LongSideMm = 297.0;
 
+    /// Bề cao giấy còn dùng được: khổ A4 theo hướng giấy, trừ lề trên và dưới của bản giấy (MigraDocBuilder).
+    public static double UsableHeightMm(PrintOrientation orientation)
+    {
+        var pageHeight = orientation == PrintOrientation.Landscape ? A4ShortSideMm : A4LongSideMm;
+        return pageHeight - 2 * MigraDocBuilder.VerticalMarginInches * MillimetersPerInch;
+    }
+
     /// Tổng bề ngang nội dung, tính bằng mm theo đúng công thức của Excel.
     public static double ContentWidthMm(IEnumerable<double> widthChars)
     {
