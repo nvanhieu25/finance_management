@@ -17,6 +17,10 @@ public class Project : BaseEntity
     public List<ProjectDecision> Decisions { get; set; } = new();
     public List<ViTri> ViTris { get; set; } = new();
 
+    /// Chữ người dùng tự gõ trên ba biểu mẫu của dự án này (finance_form_inputs).
+    public List<FormInput> FormInputs { get; set; } = new();
+
+    // Chuyển tiếp tới Task 11: ba bản khai dưới đây không còn ánh xạ vào DB (xem FinanceProjectConfiguration).
     public ThongTriDeclaration? ThongTri { get; set; }
     public KsChiDeclaration? KsChi { get; set; }
     public GdnttDeclaration? Gdntt { get; set; }

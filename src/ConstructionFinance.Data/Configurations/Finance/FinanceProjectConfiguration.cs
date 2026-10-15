@@ -25,5 +25,10 @@ public class FinanceProjectConfiguration : IEntityTypeConfiguration<Project>
             .WithOne(d => d.Project)
             .HasForeignKey(d => d.ProjectId)
             .OnDelete(DeleteBehavior.Cascade);
+
+        // Ba bản khai cũ chỉ còn tồn tại trong bộ nhớ tới Task 11 — bảng của chúng đã bị migration AddFormInputs xoá.
+        b.Ignore(x => x.ThongTri);
+        b.Ignore(x => x.KsChi);
+        b.Ignore(x => x.Gdntt);
     }
 }

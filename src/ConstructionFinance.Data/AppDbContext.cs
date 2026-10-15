@@ -7,9 +7,8 @@ using FinanceViTri = ConstructionFinance.Domain.Finance.ViTri;
 using FinanceCostGroup = ConstructionFinance.Domain.Finance.CostGroup;
 using FinancePackage = ConstructionFinance.Domain.Finance.Package;
 using FinanceDot = ConstructionFinance.Domain.Finance.Dot;
-using FinanceThongTriDeclaration = ConstructionFinance.Domain.Finance.ThongTriDeclaration;
-using FinanceKsChiDeclaration = ConstructionFinance.Domain.Finance.KsChiDeclaration;
-using FinanceGdnttDeclaration = ConstructionFinance.Domain.Finance.GdnttDeclaration;
+
+using FinanceFormInput = ConstructionFinance.Domain.Finance.FormInput;
 
 namespace ConstructionFinance.Data;
 
@@ -40,9 +39,7 @@ public class AppDbContext : DbContext
     public DbSet<FinanceCostGroup> CostGroups => Set<FinanceCostGroup>();
     public DbSet<FinancePackage> Packages => Set<FinancePackage>();
     public DbSet<FinanceDot> Dots => Set<FinanceDot>();
-    public DbSet<FinanceThongTriDeclaration> ThongTriDeclarations => Set<FinanceThongTriDeclaration>();
-    public DbSet<FinanceKsChiDeclaration> KsChiDeclarations => Set<FinanceKsChiDeclaration>();
-    public DbSet<FinanceGdnttDeclaration> GdnttDeclarations => Set<FinanceGdnttDeclaration>();
+    public DbSet<FinanceFormInput> FormInputs => Set<FinanceFormInput>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

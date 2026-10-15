@@ -68,8 +68,8 @@ public class FinanceProjectRepository : IFinanceProjectRepository
             .ToListAsync(ct);
 
     // AsNoTracking: this tree is handed straight to the desktop view models, whose form
-    // pages mutate the declaration entities via property setters. Tracked entities would
-    // let an unrelated SaveChangesAsync elsewhere in the app flush those edits before the
+    // pages read FormInputs from it. Tracked entities would
+    // let an unrelated SaveChangesAsync elsewhere in the app flush edits before the
     // user ever asks to save, and would leave a whole tree parked in the change tracker
     // for the app's lifetime every time a project is opened. ReplaceTreeAsync re-queries
     // its own "existing" tracked copy, so nothing here depends on the identity map.
@@ -78,9 +78,7 @@ public class FinanceProjectRepository : IFinanceProjectRepository
             .AsNoTracking()
             .Include(p => p.ViTris).ThenInclude(v => v.CostGroups)
                 .ThenInclude(g => g.Packages).ThenInclude(pk => pk.Dots)
-            .Include(p => p.ThongTri)
-            .Include(p => p.KsChi)
-            .Include(p => p.Gdntt)
+            .Include(p => p.FormInputs)
             .FirstOrDefaultAsync(p => p.Id == id, ct);
 
     // AsNoTracking: feeds only the all-projects Tổng hợp nav screen, a read/aggregate path.
@@ -104,16 +102,14 @@ public class FinanceProjectRepository : IFinanceProjectRepository
         var existing = await _context.FinanceProjects
             .Include(p => p.ViTris).ThenInclude(v => v.CostGroups)
                 .ThenInclude(g => g.Packages).ThenInclude(pk => pk.Dots)
-            .Include(p => p.ThongTri)
-            .Include(p => p.KsChi)
-            .Include(p => p.Gdntt)
+            .Include(p => p.FormInputs)
             .FirstOrDefaultAsync(p => p.Id == project.Id, ct);
         if (existing is null) return;
 
         existing.Code = project.Code;
         existing.Name = project.Name;
         existing.Notes = project.Notes;
-        UpsertDeclarations(existing, project);
+        UpsertFormInputs(existing, project);
 
         // Replace strategy (mirrors UpdateAsync for flat lines): drop the whole
         // existing tree — SQLite's ON DELETE CASCADE takes the CostGroups/Packages/
@@ -182,77 +178,29 @@ public class FinanceProjectRepository : IFinanceProjectRepository
         }
     }
 
-    /// Bản khai biểu mẫu đi cùng cây nhưng KHÔNG theo chiến lược xóa-rồi-thêm như
-    /// ViTris: nó là hàng 1–1 lâu dài của dự án. Không truyền bản khai nào thì giữ
-    /// nguyên bản đang lưu (màn hình workbook có thể lưu trước khi form được mở).
-    private void UpsertDeclarations(Project existing, Project incoming)
+    /// Chữ tự nhập đi cùng cây nhưng KHÔNG theo chiến lược xoá-rồi-thêm của ViTris: upsert theo (Form, Key) —
+    /// khoá còn thì cập nhật, khoá mới thì thêm, khoá không còn trong bản gửi lên thì xoá. Xoá-rồi-thêm cùng
+    /// khoá trong MỘT lần lưu sẽ đụng chỉ mục duy nhất tuỳ thứ tự lệnh EF phát ra.
+    private void UpsertFormInputs(Project existing, Project incoming)
     {
-        if (incoming.ThongTri is not null)
-        {
-            existing.ThongTri ??= new ThongTriDeclaration { ProjectId = existing.Id };
-            CopyThongTri(incoming.ThongTri, existing.ThongTri);
-        }
-        if (incoming.KsChi is not null)
-        {
-            existing.KsChi ??= new KsChiDeclaration { ProjectId = existing.Id };
-            CopyKsChi(incoming.KsChi, existing.KsChi);
-        }
-        if (incoming.Gdntt is not null)
-        {
-            existing.Gdntt ??= new GdnttDeclaration { ProjectId = existing.Id };
-            CopyGdntt(incoming.Gdntt, existing.Gdntt);
-        }
-    }
+        var wanted = incoming.FormInputs
+            .GroupBy(i => (i.Form, i.Key))
+            .ToDictionary(g => g.Key, g => g.Last().Value);
 
-    private static void CopyThongTri(ThongTriDeclaration from, ThongTriDeclaration to)
-    {
-        to.SoThongTri = from.SoThongTri;
-        to.NgayGhiSo = from.NgayGhiSo;
-        to.TenCTMT = from.TenCTMT;
-        to.MaSo = from.MaSo;
-        to.VeThangNam = from.VeThangNam;
-        to.TaiKhoan1 = from.TaiKhoan1;
-        to.DonVi1 = from.DonVi1;
-        to.SoChungTu1 = from.SoChungTu1;
-        to.TaiKhoan2 = from.TaiKhoan2;
-        to.DonVi2 = from.DonVi2;
-        to.SoChungTu2 = from.SoChungTu2;
-        to.LoaiNganSach = from.LoaiNganSach;
-        to.Khoan = from.Khoan;
-        to.Muc = from.Muc;
-        to.TieuMuc = from.TieuMuc;
-        to.TietMuc = from.TietMuc;
-        to.Nganh = from.Nganh;
-    }
+        foreach (var current in existing.FormInputs.ToList())
+        {
+            if (wanted.TryGetValue((current.Form, current.Key), out var value))
+            {
+                current.Value = value;
+                wanted.Remove((current.Form, current.Key));
+            }
+            else
+            {
+                _context.FormInputs.Remove(current);
+            }
+        }
 
-    private static void CopyKsChi(KsChiDeclaration from, KsChiDeclaration to)
-    {
-        to.NgayNhanGiayDeNghi = from.NgayNhanGiayDeNghi;
-        to.MucTieuMuc1 = from.MucTieuMuc1;
-        to.MucTieuMuc2 = from.MucTieuMuc2;
-        to.MucTieuMuc3 = from.MucTieuMuc3;
-        to.MucTieuMuc4 = from.MucTieuMuc4;
-        to.ThuHoiCacNamTruoc = from.ThuHoiCacNamTruoc;
-        to.ThuHoiNamNay = from.ThuHoiNamNay;
-        to.ThueGTGT = from.ThueGTGT;
-        to.SoTuChoi = from.SoTuChoi;
-        to.LyDoTuChoi = from.LyDoTuChoi;
-        to.GhiChu = from.GhiChu;
-    }
-
-    private static void CopyGdntt(GdnttDeclaration from, GdnttDeclaration to)
-    {
-        to.So = from.So;
-        to.NgayThangNam = from.NgayThangNam;
-        to.KinhGui = from.KinhGui;
-        to.TenDuAnCongTrinh = from.TenDuAnCongTrinh;
-        to.ChuDauTu = from.ChuDauTu;
-        to.CanCuQuyetDinh = from.CanCuQuyetDinh;
-        to.CanCuHopDong = from.CanCuHopDong;
-        to.CanCuGiayDeNghi = from.CanCuGiayDeNghi;
-        to.ThuocKeHoach = from.ThuocKeHoach;
-        to.TaiNganHang = from.TaiNganHang;
-        to.ChuyenTienBaoHanh = from.ChuyenTienBaoHanh;
-        to.ChuyenTienTamGiu = from.ChuyenTienTamGiu;
+        foreach (var ((form, key), value) in wanted)
+            existing.FormInputs.Add(new FormInput { ProjectId = existing.Id, Form = form, Key = key, Value = value });
     }
 }
