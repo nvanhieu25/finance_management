@@ -2,6 +2,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:ConstructionFinance.Desktop.ViewModels.Finance"
              xmlns:finance="using:ConstructionFinance.Domain.Finance"
+             xmlns:local="using:ConstructionFinance.Desktop.Views.Finance"
              x:Class="ConstructionFinance.Desktop.Views.Finance.FinanceWorkbookView"
              x:DataType="vm:FinanceWorkbookViewModel">
     <UserControl.KeyBindings>
@@ -53,7 +54,8 @@
             </StackPanel>
         </Border>
 
-        <TabControl x:Name="ViTriTabs"
+        <!-- Dải tab (tiêu đề) ở đáy; nội dung từng tab do PagesHost giữ (dựng một lần, chỉ ẩn/hiện khi chuyển tab). -->
+        <TabControl x:Name="ViTriTabs" DockPanel.Dock="Bottom"
                     ItemsSource="{Binding ViTriPages}"
                     SelectedItem="{Binding SelectedViTriPage}"
                     TabStripPlacement="Bottom">
@@ -64,9 +66,11 @@
             </TabControl.ItemTemplate>
             <TabControl.ContentTemplate>
                 <DataTemplate x:DataType="vm:WorkbookPageViewModel">
-                    <ContentControl Content="{Binding Content}"/>
+                    <Border Height="0"/>
                 </DataTemplate>
             </TabControl.ContentTemplate>
         </TabControl>
+
+        <local:PagesHost x:Name="PageHost"/>
     </DockPanel>
 </UserControl>
