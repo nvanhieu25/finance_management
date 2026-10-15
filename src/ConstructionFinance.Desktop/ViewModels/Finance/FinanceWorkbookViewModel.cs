@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using ConstructionFinance.Application.Common;
 using ConstructionFinance.Application.Forms;
 using ConstructionFinance.Application.Import;
 using ConstructionFinance.Application.Printing;
@@ -480,7 +481,7 @@ public partial class FinanceWorkbookViewModel : ViewModelBase, IPrintablePage, I
     private void AddProject()
     {
         var taken = new HashSet<string>(Projects.Select(p => p.Name.Trim()), StringComparer.OrdinalIgnoreCase);
-        var name = ImportMerge.NextFreeName("Dự án mới", taken);
+        var name = UniqueName.NextFree("Dự án mới", taken);
 
         var viTri = new ViTri { Name = "Vị trí 1", SortOrder = 0 };
         var project = new Project { Id = 0, Name = name, ViTris = { viTri } };
