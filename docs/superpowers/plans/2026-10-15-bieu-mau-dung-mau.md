@@ -3664,6 +3664,21 @@ public class FormPageViewModelTests
     }
 
     [Fact]
+    public void Setting_the_text_that_is_already_showing_is_not_a_change_even_when_empty()
+    {
+        var (vm, _, _) = Create(FormDefinitions.ThongTri);
+        var raised = 0;
+        vm.InputsChanged += (_, _) => raised++;
+
+        vm.SetInput("SoThongTri", "");     // ô còn trống, TextBox báo ""
+        vm.SetInput("Khoan", "011");       // đúng giá trị điền sẵn
+        vm.SetInput("SoThongTri", null);
+
+        raised.ShouldBe(0);
+        vm.ToFormInputs().ShouldBeEmpty();
+    }
+
+    [Fact]
     public void Typing_a_number_keeps_it_as_a_number_and_ignores_garbage()
     {
         var (vm, _, _) = Create(FormDefinitions.KsChi);
@@ -4046,7 +4061,8 @@ public sealed partial class FormPageViewModel : ViewModelBase, IFormSheetEditor
     private bool SetText(string key, string text)
     {
         // So với chữ ĐANG HIỆN (đã gõ hoặc điền sẵn): gõ lại đúng chữ đó không phải là một thay đổi.
-        if (CurrentSegment(key)?.Value == text && (_inputs.Has(key) || text.Length > 0)) return false;
+        // Ô trống mà TextBox báo "" (lúc dựng, lúc đổi chữ mờ) cũng không phải một lần gõ — nếu không, mở tab là tab dơ.
+        if (CurrentSegment(key)?.Value == text) return false;
         _inputs.Set(key, text);
         return true;
     }

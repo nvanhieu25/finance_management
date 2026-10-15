@@ -266,4 +266,15 @@ public class FormSheetControlTests
             host.Window.Close();
         });
     }
+
+    [Fact]
+    public void ViewLocator_resolves_the_page_view_for_the_form_page_view_model()
+    {
+        Run(() =>
+        {
+            var vm = new FormPageViewModel(FormDefinitions.ThongTri, Mock.Of<IFormExcelExporter>(), new FakeDialogService());
+
+            new ConstructionFinance.Desktop.ViewLocator().Build(vm).ShouldBeOfType<FormPageView>();
+        });
+    }
 }
