@@ -2,7 +2,7 @@
 
 > **Sửa đổi 2026-10-15 — đọc trước:** quyết định 1 (§3) đã đổi. Mục "Thông tri" bên trái **không giữ màn cũ** nữa mà trỏ sang tab Thông tri mới (xem `2026-10-15-bieu-mau-dung-mau-design.md` §5.7). Hệ quả cho 7E: xoá `ThongTriViewModel` + View cùng toàn chuỗi `IProjectSummaryService` và ba bảng `import_batches` / `project_summaries` / `settlement_by_years` (15 dòng là rác từ ba lần import cùng một tệp thử); bỏ tiêu chí nghiệm thu "màn Thông tri vẫn hiện 15 dòng cũ". Lý do: màn cũ chỉ đọc dữ liệu Import Excel, mà 7E xoá Import Excel — giữ lại là một màn đứng yên hiện rác mãi. Kiểm kê 01/10 kết luận màn này "không có gì thay thế"; thật ra tab Thông tri của 7D đã thay thế nó.
 
-**Ngày:** 2026-10-01 · **Trạng thái:** chờ user duyệt
+**Ngày:** 2026-10-01 · **Trạng thái:** ĐÃ THỰC THI 2026-10-16 theo `docs/superpowers/plans/2026-10-16-7e-teardown.md` (plan ghi chỗ khác spec: màn Thông tri cũ và cả chuỗi `ProjectSummary*`/ba bảng import bị xoá; migration `RemoveFlatModel`)
 
 ## 1. Mục tiêu
 
