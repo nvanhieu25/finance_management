@@ -30,7 +30,7 @@
 
 Spec nói "chép tay từng ô"; thực tế plan chép bằng script một lần (`tools/gen_form_templates.py`, đọc Mẫu.xlsx) rồi sửa tay phần chú giải, vì ba bản gốc có ~230 ô và chép tay là nơi sinh lỗi. Test `TemplateMatchesMauTests` (đọc Mẫu.xlsx bằng ClosedXML — một thư viện KHÁC với script dùng openpyxl) là chốt chặn độc lập. Các chỗ plan cố ý khác Mẫu hoặc làm rõ spec:
 
-1. **Gộp ô thêm ở GĐNTT: `H13:I13` và `H25:I25`.** Cột H của Mẫu rộng 0,86 ký tự nên số tiền đặt ở H13 / H25 chỉ hiện `###` trong Excel; các dòng quanh nó (H15:I15, H17:I17, H23:I23, H24:I24) đã gộp H:I. Hai gộp thêm làm hai ô ấy dùng được. Test cho phép đúng hai ngoại lệ này.
+1. **Gộp ô thêm ở GĐNTT: `H13:I13`, `H25:I25` và `D28:I28`.** Cột H của Mẫu rộng 0,86 ký tự nên số tiền đặt ở H13 / H25 chỉ hiện `###` trong Excel; các dòng quanh nó (H15:I15, H17:I17, H23:I23, H24:I24) đã gộp H:I. Hai gộp đầu làm hai ô ấy dùng được; `D28:I28` cho số tài khoản (13–16 chữ số, căn giữa, bề rộng một cột 8,43 không chứa nổi) chỗ rộng như Mẫu vẫn tràn ra hai bên trong Excel. Test cho phép đúng ba ngoại lệ này.
 2. **Mục lục ngân sách (dòng 15 Thông tri) hiện `010 · 011 · 9300 · 9301 · 00 · 00`**, không phải `10 · 11 · 9300 · 9301 · 0 · 0` như spec §5.2 ghi — đó là giá trị lưu; định dạng ô của Mẫu (`"0"0`, `"0"\1\1`, `00`) mới là chữ hiện ra, và Mẫu in chữ hiện ra.
 3. **Đường kẻ có hai nét: thường và `hair` (rất mảnh).** KS chi dòng 7–17 dùng `hair` trên/dưới. `CellBorders` mang kiểu nét từng cạnh.
 4. **Có chữ gạch chân** (`GĐNTT!D2`, `KS chi!A22`) nên kiểu ô có `Underline`.
@@ -653,7 +653,7 @@ ANNOT = {
 }
 
 # ô thêm hoặc sửa so với Mẫu (chỗ lệch có chủ ý, ghi trong spec §5.8 của plan)
-EXTRA_MERGES = {"GĐNTT": ["H13:I13", "H25:I25"]}
+EXTRA_MERGES = {"GĐNTT": ["H13:I13", "H25:I25", "D28:I28"]}
 DROP_CELLS = {"GĐNTT": {"M13"}}
 LAST_COL = {"Thông tri": 8, "KS chi": 5, "GĐNTT": 9}
 LAST_ROW = {"Thông tri": 33, "KS chi": 34, "GĐNTT": 36}
@@ -964,7 +964,7 @@ public class TemplateMatchesMauTests
     /// Gộp chỉ có ở bản gốc (cột H của Mẫu rộng 0,86 nên số đặt ở H13/H25 chỉ ra ###).
     private static readonly Dictionary<string, string[]> ExtraMerges = new()
     {
-        ["GĐNTT"] = new[] { "H13:I13", "H25:I25" },
+        ["GĐNTT"] = new[] { "H13:I13", "H25:I25", "D28:I28" },
     };
 
     /// Mẫu ghi thẳng CHỮ `="Vị trí 1"!D9` (không bao giờ tính ra) vào GĐNTT!D28: lỗi của Mẫu.
@@ -4455,10 +4455,10 @@ public class FormSheetControlTests
 
             var expectedWidth = sheet.ColumnWidths.Sum(w => w * 7.0 + 5.0);
             var expectedHeight = sheet.RowHeights.Sum() * 96.0 / 72.0;
-            var grid = host.Sheet.GetVisualDescendants().OfType<Grid>().First();
+            var canvas = (Canvas)host.Sheet.Child!;
 
-            grid.Bounds.Width.ShouldBe(expectedWidth, 1.0);
-            grid.Bounds.Height.ShouldBe(expectedHeight, 1.0);
+            canvas.Bounds.Width.ShouldBe(expectedWidth, 0.5);
+            canvas.Bounds.Height.ShouldBe(expectedHeight, 0.5);
             host.Window.Close();
         });
     }
@@ -4566,7 +4566,8 @@ public class FormSheetControlTests
     {
         Run(() =>
         {
-            var host = Show(FormDefinitions.ThongTri, select: false);
+            // KS chi có cấu trúc cố định (không vùng lặp): đổi lựa chọn chỉ đổi chữ ô tự tính, không dựng lại ô nhập.
+            var host = Show(FormDefinitions.KsChi, select: false);
             var boxesBefore = Boxes(host);
 
             host.Vm.Picker.Items[0].IsSelected = true;
@@ -4574,7 +4575,7 @@ public class FormSheetControlTests
 
             var texts = host.Sheet.GetVisualDescendants().OfType<TextBlock>().Select(t => t.Text).ToList();
             texts.ShouldContain("10.000.000");
-            Boxes(host).ShouldBe(boxesBefore, ignoreOrder: false);   // cùng các ô nhập, cấu trúc không đổi
+            Boxes(host).ShouldBe(boxesBefore, ignoreOrder: false);   // cùng các ô nhập (cùng đối tượng)
             host.Window.Close();
         });
     }
@@ -4585,7 +4586,7 @@ public class FormSheetControlTests
         Run(() =>
         {
             var host = Show(FormDefinitions.ThongTri, select: false);
-            var rowsBefore = host.Sheet.GetVisualDescendants().OfType<Grid>().First().RowDefinitions.Count;
+            var heightBefore = ((Canvas)host.Sheet.Child!).Height;
             var rows = Enumerable.Range(0, 14)
                 .Select(i => Dot(new(0, 0, 0, i), Fund.NSNN, 1_000_000m, $"Đợt {i}")).ToList();
             host.Vm.Refresh(rows, Array.Empty<LedgerRowViewModel>(), Org, "Dự án A");
@@ -4593,7 +4594,7 @@ public class FormSheetControlTests
             foreach (var item in host.Vm.Picker.Items) item.IsSelected = true;
             Dispatcher.UIThread.RunJobs();
 
-            host.Sheet.GetVisualDescendants().OfType<Grid>().First().RowDefinitions.Count.ShouldBeGreaterThan(rowsBefore);
+            ((Canvas)host.Sheet.Child!).Height.ShouldBeGreaterThan(heightBefore);
             host.Window.Close();
         });
     }
@@ -4637,7 +4638,7 @@ public class FormSheetControlTests
             Boxes(host).ShouldNotBeEmpty();
             host.Vm.CanExport.ShouldBeFalse();
             var export = host.View.GetVisualDescendants().OfType<Button>().Single(b => (string?)b.Content == "Xuất Excel");
-            export.IsEnabled.ShouldBeFalse();
+            export.IsEffectivelyEnabled.ShouldBeFalse();
             host.Window.Close();
         });
     }
@@ -4696,7 +4697,11 @@ public sealed class FormSheetControl : Border
     private static readonly IBrush PaperEdge = new SolidColorBrush(Color.Parse("#B0B0B0"));
     private static readonly FontFamily Serif = new("Times New Roman, Liberation Serif, Tinos, Serif");
 
-    private readonly Grid _grid = new() { HorizontalAlignment = HorizontalAlignment.Left, VerticalAlignment = VerticalAlignment.Top };
+    // Canvas chứ không Grid: Grid chia phần dư của ô gộp vào các cột pixel (đo được +2…+4px ở vài cột), làm tờ lệch Mẫu.
+    // Mỗi ô đặt tại toạ độ tuyệt đối tính từ bề rộng/chiều cao Mẫu nên hình học không thể trôi.
+    private readonly Canvas _canvas = new() { HorizontalAlignment = HorizontalAlignment.Left, VerticalAlignment = VerticalAlignment.Top };
+    private double[] _columnX = Array.Empty<double>();
+    private double[] _rowY = Array.Empty<double>();
     private readonly Dictionary<string, TextBox> _inputs = new();
     private readonly Dictionary<string, Button> _resets = new();
     private readonly Dictionary<(int Row, int Col), TextBlock> _texts = new();
@@ -4712,9 +4717,11 @@ public sealed class FormSheetControl : Border
         BorderBrush = PaperEdge;
         BorderThickness = new Thickness(1);
         Padding = new Thickness(24);
+        // Bề rộng cột lẻ (8,43×7+5 = 64,01px) phải giữ đúng: làm tròn từng cột lên sẽ đẩy cả tờ lệch khỏi Mẫu vài px.
+        UseLayoutRounding = false;
         HorizontalAlignment = HorizontalAlignment.Left;
         VerticalAlignment = VerticalAlignment.Top;
-        Child = _grid;
+        Child = _canvas;
     }
 
     public void Attach(FormPageViewModel? vm)
@@ -4736,7 +4743,7 @@ public sealed class FormSheetControl : Border
         var sheet = _vm?.Sheet;
         if (sheet is null)
         {
-            _grid.Children.Clear();
+            _canvas.Children.Clear();
             _signature = null;
             return;
         }
@@ -4769,18 +4776,20 @@ public sealed class FormSheetControl : Border
 
     private void Build(ResolvedSheet sheet)
     {
-        _grid.Children.Clear();
-        _grid.ColumnDefinitions.Clear();
-        _grid.RowDefinitions.Clear();
+        _canvas.Children.Clear();
         _inputs.Clear();
         _resets.Clear();
         _texts.Clear();
         _fills.Clear();
 
-        foreach (var width in sheet.ColumnWidths)
-            _grid.ColumnDefinitions.Add(new ColumnDefinition(width * PixelsPerChar + CellPaddingPixels, GridUnitType.Pixel));
-        foreach (var height in sheet.RowHeights)
-            _grid.RowDefinitions.Add(new RowDefinition(height * PixelsPerPoint, GridUnitType.Pixel));
+        _columnX = new double[sheet.ColumnWidths.Count + 1];
+        for (var i = 0; i < sheet.ColumnWidths.Count; i++)
+            _columnX[i + 1] = _columnX[i] + sheet.ColumnWidths[i] * PixelsPerChar + CellPaddingPixels;
+        _rowY = new double[sheet.RowHeights.Count + 1];
+        for (var i = 0; i < sheet.RowHeights.Count; i++)
+            _rowY[i + 1] = _rowY[i] + sheet.RowHeights[i] * PixelsPerPoint;
+        _canvas.Width = _columnX[^1];
+        _canvas.Height = _rowY[^1];
 
         // Mỗi ô kẻ cạnh trái/trên của chính nó; cạnh phải/dưới chỉ kẻ khi ô bên cạnh KHÔNG kẻ cạnh trái/trên
         // trùng chỗ — nếu không, hai ô liền nhau cùng kẻ làm đường dày gấp đôi so với Excel.
@@ -4815,7 +4824,8 @@ public sealed class FormSheetControl : Border
             IsHitTestVisible = false,
         };
 
-        if (cell.IsComputed)
+        // Ô chữ tự tính tràn sang ô bên cạnh ("Bằng chữ…") không tô xám: nền xám chỉ phủ ô đầu sẽ cắt ngang chữ.
+        if (cell.IsComputed && cell.TextColSpan <= cell.ColSpan)
         {
             frame.Background = cell.Segments.Any(s => s.IsOverridden) ? OverriddenFill : ComputedFill;
             _fills[(cell.Row, cell.Col)] = frame;
@@ -4827,7 +4837,7 @@ public sealed class FormSheetControl : Border
     private static double Thickness(BorderLine line) => line switch
     {
         BorderLine.Thin => 1.0,
-        BorderLine.Hair => 0.5,
+        BorderLine.Hair => 0.8,
         _ => 0.0,
     };
 
@@ -4857,7 +4867,13 @@ public sealed class FormSheetControl : Border
         };
 
         // Chữ tràn: nội dung chiếm cả dải TextColSpan, còn đường kẻ ở lớp dưới vẫn chỉ trong ColSpan.
-        Place(content, cell.Row, cell.Col, cell.RowSpan, Math.Max(cell.ColSpan, cell.TextColSpan));
+        var span = Math.Min(Math.Max(cell.ColSpan, cell.TextColSpan), _columnX.Length - cell.Col);
+        content.HorizontalAlignment = content is TextBlock or TextBox ? HorizontalAlignment.Stretch : content.HorizontalAlignment;
+
+        // Khung cố định bằng đúng dải ô: nội dung dài hơn bị cắt như Excel cắt chữ ở biên ô, và không thể đẩy ô khác.
+        var host = new Grid { ClipToBounds = true };
+        host.Children.Add(content);
+        Place(host, cell.Row, cell.Col, cell.RowSpan, span);
     }
 
     private Control BuildStrip(ResolvedCell cell)
@@ -4873,7 +4889,10 @@ public sealed class FormSheetControl : Border
                 : BuildInput(cell, segments[0], pixels, fill: true);
 
         var centered = align is CellAlign.Center or CellAlign.Right;
-        var lastIsInput = segments[^1].Kind != SegmentKind.Fixed;
+        // Ô có chữ tràn sang ô bên cạnh (nhãn + chỗ điền ngắn như " + Mục …, tiểu mục …"): chỗ điền cuối chỉ rộng bằng
+        // chữ chấm chấm, không trải hết dải tràn — nếu không, ô nhập phủ lên cả các cột số bên dưới.
+        var overflowing = cell.TextColSpan > cell.ColSpan;
+        var lastIsInput = segments[^1].Kind != SegmentKind.Fixed && !overflowing;
 
         if (centered)
         {
@@ -4940,8 +4959,8 @@ public sealed class FormSheetControl : Border
             VerticalContentAlignment = VerticalAlignment.Center,
             VerticalAlignment = VerticalAlignment.Center,
             HorizontalAlignment = fill ? HorizontalAlignment.Stretch : HorizontalAlignment.Left,
-            MinWidth = fill ? 0 : Math.Max(48, Math.Max(segment.Text.Length, segment.Hint?.Length ?? 0) * pixels * 0.55),
-            TextAlignment = segment.Kind == SegmentKind.InputNumber ? TextAlignment.Right : TextAlignmentOf(cell),
+            MinWidth = fill ? 0 : EstimateWidth(segment, pixels),
+            TextAlignment = segment.Kind == SegmentKind.InputNumber ? TextAlignment.Right : InputAlignmentOf(cell),
             AcceptsReturn = false,
         };
         box.Classes.Add("gridCell");
@@ -4966,7 +4985,7 @@ public sealed class FormSheetControl : Border
     private Control BuildOverridable(ResolvedCell cell, ResolvedSegment segment, double pixels)
     {
         var box = BuildInput(cell, segment, pixels, fill: true);
-        box.TextAlignment = segment.Number is not null ? TextAlignment.Right : TextAlignmentOf(cell);
+        box.TextAlignment = segment.Number is not null ? TextAlignment.Right : InputAlignmentOf(cell);
 
         var reset = new Button
         {
@@ -4991,6 +5010,18 @@ public sealed class FormSheetControl : Border
         return dock;
     }
 
+    /// Chấm chấm và dấu … hẹp hơn chữ thường nhiều; ước lượng bề rộng ô nhập theo từng loại ký tự.
+    private static double EstimateWidth(ResolvedSegment segment, double pixels)
+    {
+        var sample = segment.Text.Length >= (segment.Hint?.Length ?? 0) ? segment.Text : segment.Hint ?? "";
+        var width = sample.Sum(ch => ch is '.' or '…' or ' ' ? 0.3 : 0.55) * pixels;
+        return Math.Max(40, width);
+    }
+
+    /// Ô nhập một dòng: canh đều hai bên (Justify) của ô nhiều dòng biến chữ mờ thành những khoảng trắng lớn.
+    private static TextAlignment InputAlignmentOf(ResolvedCell cell) =>
+        cell.Style.Align == CellAlign.Justify ? TextAlignment.Left : TextAlignmentOf(cell);
+
     private static TextAlignment TextAlignmentOf(ResolvedCell cell) => cell.Style.Align switch
     {
         CellAlign.Center => TextAlignment.Center,
@@ -5002,11 +5033,13 @@ public sealed class FormSheetControl : Border
 
     private void Place(Control element, int row, int col, int rowSpan, int colSpan)
     {
-        Grid.SetRow(element, row - 1);
-        Grid.SetColumn(element, col - 1);
-        Grid.SetRowSpan(element, rowSpan);
-        Grid.SetColumnSpan(element, Math.Min(colSpan, _grid.ColumnDefinitions.Count - col + 1));
-        _grid.Children.Add(element);
+        var lastColumn = Math.Min(col - 1 + colSpan, _columnX.Length - 1);
+        var lastRow = Math.Min(row - 1 + rowSpan, _rowY.Length - 1);
+        element.Width = _columnX[lastColumn] - _columnX[col - 1];
+        element.Height = _rowY[lastRow] - _rowY[row - 1];
+        Canvas.SetLeft(element, _columnX[col - 1]);
+        Canvas.SetTop(element, _rowY[row - 1]);
+        _canvas.Children.Add(element);
     }
 
     // ===== cập nhật tại chỗ =====

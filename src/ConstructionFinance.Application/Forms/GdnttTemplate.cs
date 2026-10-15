@@ -81,7 +81,7 @@ public static class GdnttTemplate
             Tpl.Cell(27, 1, S(13, align: CellAlign.Left, v: CellVAlign.Center), Tpl.Fixed(" - Tên đơn vị thụ hưởng:")),
             Tpl.Merged(27, 3, 1, 7, S(12, bold: true, align: CellAlign.Left, v: CellVAlign.Center, wrap: true), Tpl.Computed("ContractorName")),
             Tpl.Cell(28, 1, S(13, align: CellAlign.Left, v: CellVAlign.Center), Tpl.Fixed(" - Tài khoản:")),
-            Tpl.Cell(28, 4, S(13, bold: true, align: CellAlign.Center, v: CellVAlign.Center), Tpl.Computed("BankAccount")),
+            Tpl.Merged(28, 4, 1, 6, S(13, bold: true, align: CellAlign.Center, v: CellVAlign.Center), Tpl.Computed("BankAccount")),
             Tpl.Cell(29, 1, S(13, align: CellAlign.Left, v: CellVAlign.Top), Tpl.Fixed(" - Tại:")),
             Tpl.Merged(29, 2, 1, 8, S(13, align: CellAlign.Left, v: CellVAlign.Top, wrap: true), Tpl.Input("TaiNganHang", "", hint: "Ngân hàng A ( Tự nhập)")),
             Tpl.Merged(30, 1, 1, 4, S(14, bold: true, align: CellAlign.Center), Tpl.Fixed("Trưởng phòng Tài chính")),

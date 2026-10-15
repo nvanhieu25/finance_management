@@ -29,7 +29,7 @@ public class TemplateMatchesMauTests
     /// Gộp chỉ có ở bản gốc (cột H của Mẫu rộng 0,86 nên số đặt ở H13/H25 chỉ ra ###).
     private static readonly Dictionary<string, string[]> ExtraMerges = new()
     {
-        ["GĐNTT"] = new[] { "H13:I13", "H25:I25" },
+        ["GĐNTT"] = new[] { "H13:I13", "H25:I25", "D28:I28" },
     };
 
     /// Mẫu ghi thẳng CHỮ `="Vị trí 1"!D9` (không bao giờ tính ra) vào GĐNTT!D28: lỗi của Mẫu.

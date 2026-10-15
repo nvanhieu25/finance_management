@@ -93,7 +93,7 @@ ANNOT = {
 }
 
 # ô thêm hoặc sửa so với Mẫu (chỗ lệch có chủ ý, ghi trong spec §5.8 của plan)
-EXTRA_MERGES = {"GĐNTT": ["H13:I13", "H25:I25"]}
+EXTRA_MERGES = {"GĐNTT": ["H13:I13", "H25:I25", "D28:I28"]}
 DROP_CELLS = {"GĐNTT": {"M13"}}
 LAST_COL = {"Thông tri": 8, "KS chi": 5, "GĐNTT": 9}
 LAST_ROW = {"Thông tri": 33, "KS chi": 34, "GĐNTT": 36}
