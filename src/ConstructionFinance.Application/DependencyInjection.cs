@@ -29,12 +29,7 @@ public static class DependencyInjection
         services.AddScoped<ICostUnitTypeService, CostUnitTypeService>();
         services.AddScoped<IAppSettingService, AppSettingService>();
         services.AddScoped<ICompanyInfoService, CompanyInfoService>();
-        services.AddScoped<IExcelImportService, ExcelImportService>();
-        services.AddScoped<IExcelExportService, ExcelExportService>();
-        services.AddScoped<IProjectSummaryService, ProjectSummaryService>();
         services.AddScoped<IFinanceProjectService, FinanceProjectService>();
-        services.AddScoped<IFinanceImportService, FinanceImportService>();
-        services.AddScoped<IFinanceExportService, FinanceExportService>();
         services.AddScoped<IFormExcelExporter, Forms.FormExcelExporter>();
 
         return services;

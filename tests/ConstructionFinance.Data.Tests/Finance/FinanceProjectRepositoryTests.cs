@@ -1,3 +1,4 @@
+using ConstructionFinance.Data.Repositories;
 using ConstructionFinance.Domain.Finance;
 using Microsoft.EntityFrameworkCore;
 using Shouldly;
@@ -7,108 +8,57 @@ namespace ConstructionFinance.Data.Tests.Finance;
 
 public class FinanceProjectRepositoryTests
 {
+    private static Project TreeProject(string name) => new()
+    {
+        Name = name,
+        ViTris =
+        {
+            new ViTri { Name = "Vị trí 1", CostGroups =
+            {
+                new CostGroup { Name = "CHI PHÍ XÂY DỰNG", Packages =
+                {
+                    new Package { Name = "Gói A", ContractValue = 1_000m, ContractAnnexValue = 200m, Dots =
+                    {
+                        new Dot { Date = new DateOnly(2026, 1, 5), Fund = Fund.NSNN, PaymentKLHT = 800m, RecoveredAdvance = 200m }
+                    } }
+                } }
+            } }
+        }
+    };
+
     [Fact]
-    public void Context_round_trips_project_with_lines()
+    public async Task Repository_adds_lists_loads_the_tree_and_deletes()
     {
         using var ctx = TestDbContextFactory.CreateSqliteInMemory();
+        var repo = new FinanceProjectRepository(ctx);
 
-        var p = new Project { Name = "Cầu A12", ContractValue = 1_000m };
-        p.Lines.Add(new ProjectLineItem { SortOrder = 1, Date = new DateOnly(2026, 1, 5), Advance = 500m, DisbursedNSNN = 500m });
-        ctx.FinanceProjects.Add(p);
-        ctx.SaveChanges();
-        ctx.ChangeTracker.Clear();
-
-        var loaded = ctx.FinanceProjects.Include(x => x.Lines).Single();
-        loaded.Name.ShouldBe("Cầu A12");
-        loaded.ContractValue.ShouldBe(1_000m);
-        loaded.Lines.Count.ShouldBe(1);
-        loaded.Lines[0].Advance.ShouldBe(500m);
-        loaded.Lines[0].DisbursedNSNN.ShouldBe(500m);
-    }
-
-    [Fact]
-    public async Task Repository_adds_lists_and_loads_with_lines()
-    {
-        using var ctx = TestDbContextFactory.CreateSqliteInMemory();
-        var repo = new ConstructionFinance.Data.Repositories.FinanceProjectRepository(ctx);
-
-        var p = new Project { Name = "DA1", ContractValue = 1_000m };
-        p.Lines.Add(new ProjectLineItem { SortOrder = 1, Date = new DateOnly(2026, 1, 5), PaymentKLHT = 800m, RecoveredAdvance = 200m, DisbursedNSNN = 600m });
-        var id = await repo.AddAsync(p);
+        var id = await repo.AddAsync(TreeProject("DA1"));
         ctx.ChangeTracker.Clear();
 
         (await repo.ListAsync()).Count.ShouldBe(1);
-        var loaded = await repo.GetWithLinesAsync(id);
-        loaded.ShouldNotBeNull();
-        loaded!.Lines.Count.ShouldBe(1);
+        var tree = await repo.GetTreeAsync(id);
+        var package = tree!.ViTris.Single().CostGroups.Single().Packages.Single();
+        package.ContractAnnexValue.ShouldBe(200m);          // phụ lục HĐ lưu và đọc lại đúng
+        package.Dots.Single().PaymentKLHT.ShouldBe(800m);
 
         await repo.DeleteAsync(id);
         ctx.ChangeTracker.Clear();
         (await repo.ListAsync()).ShouldBeEmpty();
+        ctx.Dots.Count().ShouldBe(0);                       // xoá dự án xoá cả cây (cascade)
     }
 
     [Fact]
-    public async Task UpdateAsync_replaces_lines_and_updates_scalars()
+    public async Task ListTreesAsync_returns_every_project_with_its_tree_ordered_by_name()
     {
         using var ctx = TestDbContextFactory.CreateSqliteInMemory();
-        var repo = new ConstructionFinance.Data.Repositories.FinanceProjectRepository(ctx);
-
-        var p = new Project { Name = "DA1", ContractValue = 1_000m };
-        p.Lines.Add(new ProjectLineItem { SortOrder = 1, Date = new DateOnly(2026, 1, 5), Advance = 500m, DisbursedNSNN = 500m });
-        var id = await repo.AddAsync(p);
+        var repo = new FinanceProjectRepository(ctx);
+        await repo.AddAsync(TreeProject("B"));
+        await repo.AddAsync(TreeProject("A"));
         ctx.ChangeTracker.Clear();
 
-        var edited = new Project { Id = id, Name = "DA1 (sửa)", ContractValue = 2_000m };
-        edited.Lines.Add(new ProjectLineItem { SortOrder = 1, Date = new DateOnly(2026, 3, 9), PaymentKLHT = 700m, RecoveredAdvance = 100m, DisbursedNSNN = 600m });
-        edited.Lines.Add(new ProjectLineItem { SortOrder = 2, Date = new DateOnly(2026, 4, 1), DisbursedNgoaiHoi = 50m });
-        await repo.UpdateAsync(edited);
-        ctx.ChangeTracker.Clear();
+        var trees = await repo.ListTreesAsync();
 
-        var loaded = await repo.GetWithLinesAsync(id);
-        loaded.ShouldNotBeNull();
-        loaded!.Name.ShouldBe("DA1 (sửa)");
-        loaded.ContractValue.ShouldBe(2_000m);
-        loaded.Lines.Count.ShouldBe(2);
-        loaded.Lines.OrderBy(l => l.SortOrder).First().PaymentKLHT.ShouldBe(700m);
-
-        // old lines fully gone — only the 2 new rows remain in the table
-        ctx.FinanceProjectLines.Count(l => l.ProjectId == id).ShouldBe(2);
-    }
-
-    [Fact]
-    public async Task ContractAnnexValue_round_trips()
-    {
-        using var ctx = TestDbContextFactory.CreateSqliteInMemory();
-        var repo = new ConstructionFinance.Data.Repositories.FinanceProjectRepository(ctx);
-
-        var id = await repo.AddAsync(new Project { Name = "DA1", ContractValue = 1_000m, ContractAnnexValue = 1_100m });
-        ctx.ChangeTracker.Clear();
-
-        var loaded = await repo.GetWithLinesAsync(id);
-        loaded!.ContractValue.ShouldBe(1_000m);
-        loaded.ContractAnnexValue.ShouldBe(1_100m);
-    }
-
-    [Fact]
-    public async Task ListWithLinesAsync_returns_all_projects_with_their_lines()
-    {
-        using var ctx = TestDbContextFactory.CreateSqliteInMemory();
-        var repo = new ConstructionFinance.Data.Repositories.FinanceProjectRepository(ctx);
-
-        var a = new Project { Name = "Beta", ContractValue = 100m };
-        a.Lines.Add(new ProjectLineItem { SortOrder = 1, Date = new DateOnly(2026, 1, 1), Advance = 50m, DisbursedNSNN = 50m });
-        var b = new Project { Name = "Alpha", ContractValue = 200m };
-        b.Lines.Add(new ProjectLineItem { SortOrder = 1, Date = new DateOnly(2026, 2, 1), PaymentKLHT = 80m, DisbursedNSNN = 80m });
-        b.Lines.Add(new ProjectLineItem { SortOrder = 2, Date = new DateOnly(2026, 3, 1), DisbursedNgoaiHoi = 20m });
-        await repo.AddAsync(a);
-        await repo.AddAsync(b);
-        ctx.ChangeTracker.Clear();
-
-        var all = await repo.ListWithLinesAsync();
-        all.Count.ShouldBe(2);
-        all[0].Name.ShouldBe("Alpha");           // ordered by Name
-        all[0].Lines.Count.ShouldBe(2);
-        all[1].Name.ShouldBe("Beta");
-        all[1].Lines.Single().Advance.ShouldBe(50m);
+        trees.Select(t => t.Name).ShouldBe(new[] { "A", "B" });
+        trees.ShouldAllBe(t => t.ViTris.Single().CostGroups.Single().Packages.Single().Dots.Count == 1);
     }
 }

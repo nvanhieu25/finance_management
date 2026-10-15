@@ -29,7 +29,6 @@ public static class DependencyInjection
         services.AddScoped<ICostRepository, CostRepository>();
         services.AddScoped<ICostUnitTypeRepository, CostUnitTypeRepository>();
         services.AddScoped<IAppSettingRepository, AppSettingRepository>();
-        services.AddScoped<IProjectSummaryRepository, ProjectSummaryRepository>();
         services.AddScoped<IFinanceProjectRepository, FinanceProjectRepository>();
         services.AddScoped<IUnitOfWork, UnitOfWork>();
         return services;

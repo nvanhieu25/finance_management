@@ -17,55 +17,8 @@ public class FinanceProjectRepository : IFinanceProjectRepository
         return project.Id;
     }
 
-    public async Task<Project?> GetWithLinesAsync(int id, CancellationToken ct = default) =>
-        await _context.FinanceProjects
-            .Include(p => p.Lines)
-            .FirstOrDefaultAsync(p => p.Id == id, ct);
-
-    public async Task UpdateAsync(Project project, CancellationToken ct = default)
-    {
-        var existing = await _context.FinanceProjects
-            .Include(p => p.Lines)
-            .FirstOrDefaultAsync(p => p.Id == project.Id, ct);
-        if (existing is null) return;
-
-        existing.Code = project.Code;
-        existing.Name = project.Name;
-        existing.ContractorName = project.ContractorName;
-        existing.ContractValue = project.ContractValue;
-        existing.Notes = project.Notes;
-
-        // Replace strategy: drop all current lines, re-add the incoming ones as
-        // fresh rows. Single-user, small data — simplest correct approach and it
-        // sidesteps identity-matching of edited rows.
-        _context.FinanceProjectLines.RemoveRange(existing.Lines);
-        existing.Lines.Clear();
-        foreach (var line in project.Lines)
-        {
-            existing.Lines.Add(new ProjectLineItem
-            {
-                SortOrder = line.SortOrder,
-                Date = line.Date,
-                PackageName = line.PackageName,
-                ContractRef = line.ContractRef,
-                Advance = line.Advance,
-                PaymentKLHT = line.PaymentKLHT,
-                RecoveredAdvance = line.RecoveredAdvance,
-                DisbursedNSNN = line.DisbursedNSNN,
-                DisbursedNgoaiHoi = line.DisbursedNgoaiHoi
-            });
-        }
-        await _context.SaveChangesAsync(ct);
-    }
-
     public async Task<IReadOnlyList<Project>> ListAsync(CancellationToken ct = default) =>
         await _context.FinanceProjects.OrderBy(p => p.Name).ToListAsync(ct);
-
-    public async Task<IReadOnlyList<Project>> ListWithLinesAsync(CancellationToken ct = default) =>
-        await _context.FinanceProjects
-            .Include(p => p.Lines)
-            .OrderBy(p => p.Name)
-            .ToListAsync(ct);
 
     // AsNoTracking: this tree is handed straight to the desktop view models, whose form
     // pages read FormInputs from it. Tracked entities would
