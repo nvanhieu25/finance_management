@@ -45,6 +45,9 @@ public sealed class FormSheetControl : Border
     private readonly Dictionary<string, Button> _resets = new();
     private readonly Dictionary<(int Row, int Col), TextBlock> _texts = new();
     private readonly Dictionary<(int Row, int Col), Border> _fills = new();
+    // Chữ khoá không xuống dòng bị cắt ở biên ô thì thu nhỏ vừa ô; nhớ cỡ chữ gốc và bề rộng chỗ chứa để tính lại khi chữ đổi.
+    private readonly Dictionary<(int Row, int Col), (double BaseSize, double Width)> _textFit = new();
+    private readonly Dictionary<string, (string Hint, double Width, double FontPixels)> _hintFit = new();
 
     private FormPageViewModel? _vm;
     private string? _signature;
@@ -120,6 +123,8 @@ public sealed class FormSheetControl : Border
         _resets.Clear();
         _texts.Clear();
         _fills.Clear();
+        _textFit.Clear();
+        _hintFit.Clear();
 
         _columnX = new double[sheet.ColumnWidths.Count + 1];
         for (var i = 0; i < sheet.ColumnWidths.Count; i++)
@@ -252,12 +257,18 @@ public sealed class FormSheetControl : Border
         // Ô chữ tự tính tràn sang ô bên cạnh ("Bằng chữ…") không tô xám: nền xám chỉ phủ ô đầu sẽ cắt ngang chữ.
         if (cell.IsComputed && cell.TextColSpan <= cell.ColSpan)
         {
-            frame.Background = cell.Segments.Any(s => s.IsOverridden) ? OverriddenFill : ComputedFill;
+            frame.Background = FillOf(cell);
             _fills[(cell.Row, cell.Col)] = frame;
         }
 
         Place(frame, cell.Row, cell.Col, cell.RowSpan, cell.ColSpan);
     }
+
+    /// Nền xám báo "ô tự tính": chỉ tô khi ô có chữ/số — ô tự tính còn trống (chưa chọn đợt) để trắng cho tờ khỏi loang.
+    private static IBrush? FillOf(ResolvedCell cell) =>
+        cell.Segments.Any(s => s.IsOverridden) ? OverriddenFill
+        : cell.DisplayText.Length > 0 ? ComputedFill
+        : null;
 
     private static double Thickness(BorderLine line) => line switch
     {
@@ -277,6 +288,11 @@ public sealed class FormSheetControl : Border
             block.HorizontalAlignment = HorizontalAlignment.Stretch;
             block.TextAlignment = TextAlignmentOf(cell);
             _texts[(cell.Row, cell.Col)] = block;
+            if (!cell.Style.Wrap && cell.TextColSpan <= cell.ColSpan)
+            {
+                _textFit[(cell.Row, cell.Col)] = (block.FontSize, SpanPixels(cell));
+                ShrinkToFit(block, block.FontSize, SpanPixels(cell));
+            }
             content = block;
         }
         else
@@ -304,6 +320,24 @@ public sealed class FormSheetControl : Border
         Place(host, cell.Row, cell.Col, cell.RowSpan, span);
     }
 
+    /// Như "thu nhỏ vừa ô" của Excel: chữ một dòng rộng hơn ô (ví dụ "Tạm ứng" trong cột hẹp) thu nhỏ tối đa 35% cho khỏi bị cắt.
+    private static void ShrinkToFit(TextBlock block, double baseSize, double width)
+    {
+        block.FontSize = baseSize;
+        if (string.IsNullOrEmpty(block.Text)) return;
+        block.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+        var needed = block.DesiredSize.Width;
+        if (needed > width && width > 0) block.FontSize = Math.Max(baseSize * 0.65, baseSize * (width / needed) * 0.98);
+    }
+
+    /// Chữ mờ gợi ý dài hơn chỗ chứa thì cắt bớt kèm "…" (TextBox không tự cắt chữ mờ).
+    private static string? FitHint(string? hint, double width, double fontPixels)
+    {
+        if (string.IsNullOrEmpty(hint)) return hint;
+        var max = (int)((width - 8) / (0.5 * fontPixels));
+        return max <= 1 || hint.Length <= max ? hint : hint[..(max - 1)] + "…";
+    }
+
     private double SpanPixels(ResolvedCell cell)
     {
         var span = Math.Min(Math.Max(cell.ColSpan, cell.TextColSpan), _columnX.Length - cell.Col);
@@ -317,6 +351,11 @@ public sealed class FormSheetControl : Border
         var align = cell.Style.Align;
 
         // Một đoạn duy nhất và nó là chỗ điền: ô nhập trải kín ô.
+        if (segments.Count == 1)
+        {
+            if (segments[0].Key is { } hintKey)
+                _hintFit[hintKey] = (segments[0].Hint ?? "", spanPixels, pixels);
+        }
         if (segments.Count == 1)
             return segments[0].Kind == SegmentKind.Overridable
                 ? BuildOverridable(cell, segments[0], pixels)
@@ -404,7 +443,7 @@ public sealed class FormSheetControl : Border
         {
             Tag = segment.Key,
             Text = segment.Value,
-            Watermark = segment.Hint,
+            Watermark = _hintFit.TryGetValue(segment.Key ?? "", out var hintFit) ? FitHint(segment.Hint, hintFit.Width, hintFit.FontPixels) : segment.Hint,
             FontFamily = Serif,
             FontSize = pixels,
             FontWeight = cell.Style.Bold ? FontWeight.Bold : FontWeight.Normal,
@@ -518,9 +557,12 @@ public sealed class FormSheetControl : Border
             foreach (var cell in sheet.Cells)
             {
                 if (_texts.TryGetValue((cell.Row, cell.Col), out var block) && block.Text != cell.DisplayText)
+                {
                     block.Text = cell.DisplayText;
+                    if (_textFit.TryGetValue((cell.Row, cell.Col), out var fit)) ShrinkToFit(block, fit.BaseSize, fit.Width);
+                }
                 if (_fills.TryGetValue((cell.Row, cell.Col), out var fill))
-                    fill.Background = cell.Segments.Any(s => s.IsOverridden) ? OverriddenFill : ComputedFill;
+                    fill.Background = FillOf(cell);
 
                 foreach (var segment in cell.Segments)
                 {
@@ -529,7 +571,8 @@ public sealed class FormSheetControl : Border
                     {
                         // Ô đang có con trỏ giữ nguyên chữ người dùng đang gõ; rời ô mới chuẩn hoá.
                         if (!box.IsFocused && box.Text != segment.Value) box.Text = segment.Value;
-                        box.Watermark = segment.Hint;
+                        box.Watermark = _hintFit.TryGetValue(segment.Key, out var hf)
+                            ? FitHint(segment.Hint, hf.Width, hf.FontPixels) : segment.Hint;
                         box.BorderBrush = OverrideMarker;
                         box.BorderThickness = new Thickness(segment.IsOverridden ? 3 : 0, 0, 0, 0);
                     }
