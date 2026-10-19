@@ -61,7 +61,9 @@
                     TabStripPlacement="Bottom">
             <TabControl.ItemTemplate>
                 <DataTemplate x:DataType="vm:WorkbookPageViewModel">
-                    <TextBlock Text="{Binding Header}"/>
+                    <Border Classes="tabChip">
+                        <TextBlock Text="{Binding Header}"/>
+                    </Border>
                 </DataTemplate>
             </TabControl.ItemTemplate>
             <TabControl.ContentTemplate>

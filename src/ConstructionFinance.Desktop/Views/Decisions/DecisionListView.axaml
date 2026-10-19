@@ -2,6 +2,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:ui="using:FluentAvalonia.UI.Controls"
              xmlns:vm="using:ConstructionFinance.Desktop.ViewModels.Decisions"
+             xmlns:common="using:ConstructionFinance.Desktop.Common"
              x:Class="ConstructionFinance.Desktop.Views.Decisions.DecisionListView"
              x:DataType="vm:DecisionListViewModel">
     <DockPanel>
@@ -57,9 +58,9 @@
                     <DataGrid.Columns>
                         <DataGridTextColumn Header="Mã QĐ" Binding="{Binding DecisionCode}" Width="180"/>
                         <DataGridTextColumn Header="Trích yếu" Binding="{Binding DecisionTitle}" Width="*"/>
-                        <DataGridTextColumn Header="Ngày" Binding="{Binding DecisionDate}" Width="110"/>
+                        <DataGridTextColumn Header="Ngày" Binding="{Binding DecisionDate, StringFormat='{}{0:dd/MM/yyyy}'}" Width="110"/>
                         <DataGridTextColumn Header="Cơ quan" Binding="{Binding IssuingAuthority}" Width="220"/>
-                        <DataGridTextColumn Header="Tổng giá trị" Binding="{Binding TotalApprovedAmount, StringFormat=#\,##0}" Width="160"/>
+                        <DataGridTextColumn Header="Tổng giá trị" Binding="{Binding TotalApprovedAmount, Converter={x:Static common:MoneyDotsConverter.Instance}}" Width="160"/>
                     </DataGrid.Columns>
                 </DataGrid>
             </DockPanel>

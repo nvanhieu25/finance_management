@@ -4,7 +4,7 @@
              x:Class="ConstructionFinance.Desktop.Views.Settings.PreferencesView"
              x:DataType="vm:PreferencesViewModel">
     <ScrollViewer Padding="16">
-        <Border Classes="card" MaxWidth="780" HorizontalAlignment="Left">
+        <Border Classes="card" MaxWidth="780" HorizontalAlignment="Stretch">
             <StackPanel Spacing="10">
                 <TextBlock Classes="sectionTitle" Text="Tùy chọn chung"/>
                 <CheckBox IsChecked="{Binding AutoBackupOnExit}"

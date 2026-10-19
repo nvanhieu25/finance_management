@@ -5,7 +5,7 @@
              x:Class="ConstructionFinance.Desktop.Views.Settings.CompanyInfoView"
              x:DataType="vm:CompanyInfoViewModel">
     <ScrollViewer Padding="16">
-        <Border Classes="card" MaxWidth="780" HorizontalAlignment="Left">
+        <Border Classes="card" MaxWidth="780" HorizontalAlignment="Stretch">
             <StackPanel Spacing="14">
                 <TextBlock Classes="sectionTitle" Text="Thông tin cơ quan"/>
                 <Grid ColumnDefinitions="220,*">

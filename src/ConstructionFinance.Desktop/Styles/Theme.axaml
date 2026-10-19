@@ -33,6 +33,37 @@
 
         <!-- ===== Navigation pane: deep-blue, high-contrast (applied via the SplitView + item styles below) ===== -->
         <SolidColorBrush x:Key="NavPaneBrush" Color="#15355A"/>
+        <!-- Điểm nhấn ấm (hổ phách) dùng rất tiết kiệm: vạch chọn ở thanh bên và tab — để xanh navy khỏi đơn điệu. -->
+        <SolidColorBrush x:Key="WarmAccentBrush" Color="#E9A23B"/>
+
+        <!-- FluentAvalonia NavigationView: thanh bên navy, chữ sáng, mục đang chọn nền sáng nhẹ + vạch hổ phách. -->
+        <SolidColorBrush x:Key="NavigationViewDefaultPaneBackground" Color="#15355A"/>
+        <SolidColorBrush x:Key="NavigationViewExpandedPaneBackground" Color="#15355A"/>
+        <SolidColorBrush x:Key="NavigationViewTopPaneBackground" Color="#15355A"/>
+        <SolidColorBrush x:Key="NavigationViewItemForeground" Color="#D3E0EF"/>
+        <SolidColorBrush x:Key="NavigationViewItemForegroundPointerOver" Color="#FFFFFF"/>
+        <SolidColorBrush x:Key="NavigationViewItemForegroundPressed" Color="#FFFFFF"/>
+        <SolidColorBrush x:Key="NavigationViewItemForegroundSelected" Color="#FFFFFF"/>
+        <SolidColorBrush x:Key="NavigationViewItemForegroundSelectedPointerOver" Color="#FFFFFF"/>
+        <SolidColorBrush x:Key="NavigationViewItemForegroundSelectedPressed" Color="#FFFFFF"/>
+        <SolidColorBrush x:Key="NavigationViewItemBackgroundPointerOver" Color="#1FFFFFFF"/>
+        <SolidColorBrush x:Key="NavigationViewItemBackgroundPressed" Color="#2BFFFFFF"/>
+        <SolidColorBrush x:Key="NavigationViewItemBackgroundSelected" Color="#2EFFFFFF"/>
+        <SolidColorBrush x:Key="NavigationViewItemBackgroundSelectedPointerOver" Color="#38FFFFFF"/>
+        <SolidColorBrush x:Key="NavigationViewItemBackgroundSelectedPressed" Color="#38FFFFFF"/>
+        <SolidColorBrush x:Key="NavigationViewItemHeaderForeground" Color="#8FA9C8"/>
+        <SolidColorBrush x:Key="NavigationViewSelectionIndicatorForeground" Color="#E9A23B"/>
+        <SolidColorBrush x:Key="NavigationViewButtonForegroundPointerOver" Color="#FFFFFF"/>
+        <SolidColorBrush x:Key="NavigationViewButtonForegroundPressed" Color="#FFFFFF"/>
+
+        <!-- Tab ở đáy sổ (kiểu tab trang tính): chữ vừa phải, tab đang chọn đậm + vạch nhấn. -->
+        <x:Double x:Key="TabItemHeaderFontSize">14</x:Double>
+        <SolidColorBrush x:Key="TabItemForeground" Color="#46546B"/>
+        <SolidColorBrush x:Key="TabItemForegroundPointerOver" Color="#1C4E80"/>
+        <SolidColorBrush x:Key="TabItemForegroundSelected" Color="#1C4E80"/>
+        <SolidColorBrush x:Key="TabItemBackgroundPointerOver" Color="#EBF1F8"/>
+        <SolidColorBrush x:Key="TabItemBackgroundSelected" Color="#FFFFFF"/>
+        <SolidColorBrush x:Key="TabItemSelectionIndicatorColor" Color="Transparent"/>
     </Styles.Resources>
 
     <!-- ===== Card surface ===== -->
@@ -42,14 +73,14 @@
         <Setter Property="BorderThickness" Value="1"/>
         <Setter Property="CornerRadius" Value="12"/>
         <Setter Property="Padding" Value="18"/>
-        <Setter Property="BoxShadow" Value="0 6 18 0 #14141F2E"/>
+        <Setter Property="BoxShadow" Value="0 4 14 0 #10141F2E"/>
     </Style>
 
     <!-- ===== Typography ===== -->
     <Style Selector="TextBlock.pageTitle">
         <Setter Property="FontSize" Value="22"/>
         <Setter Property="FontWeight" Value="SemiBold"/>
-        <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/>
+        <Setter Property="Foreground" Value="{StaticResource BrandPrimaryDarkBrush}"/>
     </Style>
     <Style Selector="TextBlock.pageSubtitle">
         <Setter Property="FontSize" Value="13"/>
@@ -71,7 +102,7 @@
         <Setter Property="BorderThickness" Value="1"/>
         <Setter Property="CornerRadius" Value="12"/>
         <Setter Property="ClipToBounds" Value="True"/>
-        <Setter Property="BoxShadow" Value="0 6 18 0 #14141F2E"/>
+        <Setter Property="BoxShadow" Value="0 4 14 0 #10141F2E"/>
     </Style>
 
     <!-- ===== Toolbar strip attached to the top of a table card ===== -->
@@ -96,8 +127,14 @@
 
     <!-- ===== Toolbar buttons: a touch more breathing room ===== -->
     <Style Selector="Button.toolbar">
-        <Setter Property="CornerRadius" Value="6"/>
+        <Setter Property="CornerRadius" Value="8"/>
         <Setter Property="Padding" Value="12,7"/>
+    </Style>
+    <!-- Nút In ở đáy thanh bên (màu nút khai ở Button.Resources trong MainWindow.axaml — Style.Resources rò ra mọi nút): nền hổ phách, chữ navy đậm — nổi bật trên nền navy, là điểm nhấn ấm duy nhất của thanh bên. -->
+    <Style Selector="Button#PrintButton">
+        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="CornerRadius" Value="8"/>
+        <Setter Property="Padding" Value="12,9"/>
     </Style>
     <Style Selector="Button.danger">
         <Setter Property="Foreground" Value="{StaticResource DangerBrush}"/>
@@ -151,6 +188,7 @@
     </Style>
     <Style Selector="DataGridColumnHeader">
         <Setter Property="Background" Value="{StaticResource GridHeaderBrush}"/>
+        <Setter Property="BorderBrush" Value="#CBD6E4"/>
         <Setter Property="FontWeight" Value="SemiBold"/>
         <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/>
         <Setter Property="MinHeight" Value="42"/>
@@ -209,18 +247,40 @@
         <Setter Property="TextAlignment" Value="Right"/>
     </Style>
 
-    <!-- ===== Navigation pane: force deep-blue via the inner SplitView + light content ===== -->
-    <Style Selector="ui|NavigationView /template/ SplitView">
-        <Setter Property="PaneBackground" Value="{DynamicResource NavPaneBrush}"/>
+    <!-- ===== Tab trang tính ở đáy sổ: thẻ phẳng, tab đang chọn trắng + vạch hổ phách phía trên ===== -->
+    <Style Selector="TabControl#ViTriTabs">
+        <Setter Property="Background" Value="#E8EDF5"/>
+        <Setter Property="BorderBrush" Value="{StaticResource CardBorderBrush}"/>
+        <Setter Property="BorderThickness" Value="0,1,0,0"/>
+        <Setter Property="Padding" Value="0"/>
     </Style>
-    <Style Selector="ui|NavigationViewItem">
-        <Setter Property="Foreground" Value="#E4ECF6"/>
+    <Style Selector="TabItem Border.tabChip">
+        <Setter Property="Padding" Value="18,9"/>
+        <Setter Property="BorderThickness" Value="0,3,0,0"/>
+        <Setter Property="BorderBrush" Value="Transparent"/>
+        <Setter Property="Background" Value="Transparent"/>
     </Style>
+    <Style Selector="TabItem Border.tabChip TextBlock">
+        <Setter Property="Foreground" Value="#46546B"/>
+    </Style>
+    <Style Selector="TabItem:pointerover Border.tabChip TextBlock">
+        <Setter Property="Foreground" Value="{StaticResource BrandPrimaryBrush}"/>
+    </Style>
+    <Style Selector="TabItem:pointerover Border.tabChip">
+        <Setter Property="Background" Value="#F3F6FB"/>
+    </Style>
+    <Style Selector="TabItem:selected Border.tabChip">
+        <Setter Property="Background" Value="{StaticResource CardBackgroundBrush}"/>
+        <Setter Property="BorderBrush" Value="{StaticResource WarmAccentBrush}"/>
+    </Style>
+    <Style Selector="TabItem:selected Border.tabChip TextBlock">
+        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="Foreground" Value="{StaticResource BrandPrimaryBrush}"/>
+    </Style>
+
+    <!-- ===== Navigation pane: chữ mục chọn đậm hơn một chút ===== -->
     <Style Selector="ui|NavigationViewItem:selected">
-        <Setter Property="Foreground" Value="#FFFFFF"/>
-    </Style>
-    <Style Selector="ui|NavigationViewItemHeader">
-        <Setter Property="Foreground" Value="#93AECB"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
     </Style>
 
 </Styles>

@@ -50,13 +50,26 @@
                     <!-- Nút In nằm một chỗ cố định ở mọi màn. Màn đang mở không có gì để in thì nút MỜ chứ không ẩn, để
                          người dùng quen tay; ShowOnDisabled để lúc mờ vẫn đọc được tooltip nói vì sao. -->
                     <Button x:Name="PrintButton"
-                            Classes="accent"
                             HorizontalAlignment="Stretch"
                             HorizontalContentAlignment="Center"
                             Margin="8,4"
                             IsEnabled="{Binding CanPrint}"
                             ToolTip.Tip="{Binding PrintToolTip}"
                             ToolTip.ShowOnDisabled="True">
+                        <Button.Resources>
+                        <SolidColorBrush x:Key="ButtonBackground" Color="#E9A23B"/>
+                        <SolidColorBrush x:Key="ButtonBackgroundPointerOver" Color="#F2B656"/>
+                        <SolidColorBrush x:Key="ButtonBackgroundPressed" Color="#D8912C"/>
+                        <SolidColorBrush x:Key="ButtonBackgroundDisabled" Color="#2EFFFFFF"/>
+                        <SolidColorBrush x:Key="ButtonForeground" Color="#14253D"/>
+                        <SolidColorBrush x:Key="ButtonForegroundPointerOver" Color="#14253D"/>
+                        <SolidColorBrush x:Key="ButtonForegroundPressed" Color="#14253D"/>
+                        <SolidColorBrush x:Key="ButtonForegroundDisabled" Color="#8FA9C8"/>
+                        <SolidColorBrush x:Key="ButtonBorderBrush" Color="Transparent"/>
+                        <SolidColorBrush x:Key="ButtonBorderBrushPointerOver" Color="Transparent"/>
+                        <SolidColorBrush x:Key="ButtonBorderBrushPressed" Color="Transparent"/>
+                        <SolidColorBrush x:Key="ButtonBorderBrushDisabled" Color="Transparent"/>
+                        </Button.Resources>
                         <StackPanel Orientation="Horizontal" Spacing="8">
                             <ui:SymbolIcon Symbol="{x:Static ui:Symbol.Print}"/>
                             <TextBlock Text="In"/>
