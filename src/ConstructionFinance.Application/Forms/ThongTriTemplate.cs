@@ -97,24 +97,24 @@ public static class ThongTriTemplate
 
             ViTriRow: new TemplateRow(24.95, new[]
             {
-                Tpl.Cell(0, 1, S(10, bold: true, align: CellAlign.Center, v: CellVAlign.Center, borders: "lrb")),
-                Tpl.Cell(0, 2, S(10, bold: true, align: CellAlign.Center, v: CellVAlign.Center, borders: "lrb")),
-                Tpl.Cell(0, 3, S(10, bold: true, align: CellAlign.Center, v: CellVAlign.Center, borders: "lrb")),
-                Tpl.Cell(0, 4, S(10, bold: true, align: CellAlign.Center, v: CellVAlign.Center, borders: "lrb")),
-                Tpl.Cell(0, 5, S(10, bold: true, align: CellAlign.Center, v: CellVAlign.Center, borders: "lrb")),
-                Tpl.Cell(0, 6, S(10, bold: true, align: CellAlign.Center, v: CellVAlign.Center, borders: "lrb")),
+                Tpl.Cell(0, 1, S(10, bold: true, align: CellAlign.Center, v: CellVAlign.Center, borders: "lrb"), Tpl.Input("LoaiNganSach@line", "")),
+                Tpl.Cell(0, 2, S(10, bold: true, align: CellAlign.Center, v: CellVAlign.Center, borders: "lrb"), Tpl.Input("Khoan@line", "")),
+                Tpl.Cell(0, 3, S(10, bold: true, align: CellAlign.Center, v: CellVAlign.Center, borders: "lrb"), Tpl.Input("Muc@line", "")),
+                Tpl.Cell(0, 4, S(10, bold: true, align: CellAlign.Center, v: CellVAlign.Center, borders: "lrb"), Tpl.Input("TieuMuc@line", "")),
+                Tpl.Cell(0, 5, S(10, bold: true, align: CellAlign.Center, v: CellVAlign.Center, borders: "lrb"), Tpl.Input("TietMuc@line", "")),
+                Tpl.Cell(0, 6, S(10, bold: true, align: CellAlign.Center, v: CellVAlign.Center, borders: "lrb"), Tpl.Input("Nganh@line", "")),
                 Tpl.Cell(0, 7, S(11, bold: true, align: CellAlign.Center, v: CellVAlign.Center, wrap: true, borders: "lrb"), Tpl.Computed("Line.Text")),
                 Tpl.Cell(0, 8, S(11, bold: true, v: CellVAlign.Center, wrap: true, borders: "lrb", format: "#,##0_);(#,##0)"), Tpl.Computed("Line.Amount")),
             }),
 
             DotRow: new TemplateRow(47.25, new[]
             {
-                Tpl.Cell(0, 1, S(10, align: CellAlign.Center, v: CellVAlign.Center, borders: "lrb")),
-                Tpl.Cell(0, 2, S(10, align: CellAlign.Center, v: CellVAlign.Center, borders: "lrb")),
-                Tpl.Cell(0, 3, S(10, align: CellAlign.Center, v: CellVAlign.Center, borders: "lrb")),
-                Tpl.Cell(0, 4, S(10, align: CellAlign.Center, v: CellVAlign.Center, borders: "lrb")),
-                Tpl.Cell(0, 5, S(10, align: CellAlign.Center, v: CellVAlign.Center, borders: "lrb")),
-                Tpl.Cell(0, 6, S(10, align: CellAlign.Center, v: CellVAlign.Center, borders: "lrb")),
+                Tpl.Cell(0, 1, S(10, align: CellAlign.Center, v: CellVAlign.Center, borders: "lrb"), Tpl.Input("LoaiNganSach@line", "")),
+                Tpl.Cell(0, 2, S(10, align: CellAlign.Center, v: CellVAlign.Center, borders: "lrb"), Tpl.Input("Khoan@line", "")),
+                Tpl.Cell(0, 3, S(10, align: CellAlign.Center, v: CellVAlign.Center, borders: "lrb"), Tpl.Input("Muc@line", "")),
+                Tpl.Cell(0, 4, S(10, align: CellAlign.Center, v: CellVAlign.Center, borders: "lrb"), Tpl.Input("TieuMuc@line", "")),
+                Tpl.Cell(0, 5, S(10, align: CellAlign.Center, v: CellVAlign.Center, borders: "lrb"), Tpl.Input("TietMuc@line", "")),
+                Tpl.Cell(0, 6, S(10, align: CellAlign.Center, v: CellVAlign.Center, borders: "lrb"), Tpl.Input("Nganh@line", "")),
                 Tpl.Cell(0, 7, S(11, align: CellAlign.Center, v: CellVAlign.Center, wrap: true, borders: "lrb"), Tpl.Computed("Line.Text")),
                 Tpl.Cell(0, 8, S(11, v: CellVAlign.Center, wrap: true, borders: "lrb", format: "#,##0_);(#,##0)"), Tpl.Computed("Line.Amount")),
             }),

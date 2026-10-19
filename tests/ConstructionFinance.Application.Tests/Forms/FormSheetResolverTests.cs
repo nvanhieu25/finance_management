@@ -259,13 +259,50 @@ public class FormSheetResolverTests
     }
 
     [Fact]
-    public void Only_the_project_row_carries_the_budget_code_inputs()
+    public void Project_row_has_the_default_budget_codes_and_every_vitri_and_dot_row_is_typable_but_blank()
     {
-        var sheet = ResolveThongTri(lines: Lines(3));
+        var sheet = ResolveThongTri(lines: new[]
+        {
+            new ThongTriLine(0, "DA", 300m),
+            new ThongTriLine(1, "Vị trí 1", 300m, "v0"),
+            new ThongTriLine(2, "Đợt 1", 300m, "d0.0.0.0"),
+        });
 
-        Cell(sheet, 15, 1).IsEditable.ShouldBeTrue();
-        Cell(sheet, 16, 1).IsEditable.ShouldBeFalse();
-        Cell(sheet, 17, 1).IsEditable.ShouldBeFalse();
+        Cell(sheet, 15, 1).DisplayText.ShouldBe("010");
+        Cell(sheet, 16, 1).IsEditable.ShouldBeTrue();
+        Cell(sheet, 16, 1).DisplayText.ShouldBe("");
+        Cell(sheet, 17, 6).IsEditable.ShouldBeTrue();
+        Cell(sheet, 16, 3).Segments[0].Key.ShouldBe("Muc@v0");
+        Cell(sheet, 17, 3).Segments[0].Key.ShouldBe("Muc@d0.0.0.0");
+    }
+
+    [Fact]
+    public void Budget_codes_typed_on_a_row_stay_on_that_row_only()
+    {
+        var lines = new[]
+        {
+            new ThongTriLine(0, "DA", 300m),
+            new ThongTriLine(1, "Vị trí 1", 300m, "v0"),
+            new ThongTriLine(2, "Đợt 1", 200m, "d0.0.0.0"),
+            new ThongTriLine(2, "Đợt 2", 100m, "d0.0.0.1"),
+        };
+        var inputs = new FormInputSet();
+        inputs.Set("Muc@d0.0.0.1", "9302");
+
+        var sheet = FormSheetResolver.Resolve(ThongTriTemplate.Create(), ThongTriValues(), inputs, Org, 2026, lines);
+
+        Cell(sheet, 17, 3).DisplayText.ShouldBe("");
+        Cell(sheet, 18, 3).DisplayText.ShouldBe("9302");
+        Cell(sheet, 15, 3).DisplayText.ShouldBe("9300");
+    }
+
+    [Fact]
+    public void Line_scoped_keys_map_back_to_the_template_key()
+    {
+        FormSheetResolver.TemplateKey("Muc@d0.0.0.1").ShouldBe("Muc@line");
+        FormSheetResolver.TemplateKey("Muc").ShouldBe("Muc");
+        FormSheetResolver.StoredKey("Muc@line", new ThongTriLine(2, "x", 1m, "d1")).ShouldBe("Muc@d1");
+        FormSheetResolver.StoredKey("Muc@line", new ThongTriLine(0, "x", 1m)).ShouldBe("Muc");
     }
 
     [Fact]

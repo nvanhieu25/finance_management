@@ -109,6 +109,25 @@ public class FormPageViewModelTests
     }
 
     [Fact]
+    public void Budget_codes_typed_on_a_dot_row_are_kept_for_that_row_and_saved()
+    {
+        var (vm, _, _) = Create(FormDefinitions.ThongTri);
+        SelectAll(vm);                                     // dự án + vị trí 1 + đợt (0,0,0,0)
+
+        vm.SetInput("Muc@d0.0.0.0", "9302");
+
+        Segment(vm, "Muc@d0.0.0.0").Value.ShouldBe("9302");
+        Segment(vm, "Muc@v0").Value.ShouldBe("");          // dòng vị trí không bị ảnh hưởng
+        vm.ToFormInputs().Single(i => i.Key == "Muc@d0.0.0.0").Value.ShouldBe("9302");
+
+        var reloaded = new FormPageViewModel(FormDefinitions.ThongTri, new Mock<IFormExcelExporter>().Object, new FakeDialogService()) { Year = 2026 };
+        reloaded.Refresh(Rows(), Array.Empty<LedgerRowViewModel>(), Org, "Dự án A");
+        reloaded.LoadInputs(vm.ToFormInputs());
+        SelectAll(reloaded);
+        Segment(reloaded, "Muc@d0.0.0.0").Value.ShouldBe("9302");
+    }
+
+    [Fact]
     public void Typing_a_number_keeps_it_as_a_number_and_ignores_garbage()
     {
         var (vm, _, _) = Create(FormDefinitions.KsChi);

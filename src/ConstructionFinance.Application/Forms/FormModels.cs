@@ -29,7 +29,8 @@ public record FormDotRow(
 public record FormOrgInfo(string? DonViCapTren, string? DonViCoSo);
 
 /// Một dòng trong bảng Thông tri. Level 0 = dự án, 1 = vị trí, 2 = đợt.
-public record ThongTriLine(int Level, string Content, decimal Amount);
+/// Key: định danh dòng (theo chỉ số trong sổ) để chữ gõ riêng cho dòng đó (Mục lục ngân sách) lưu đúng chỗ; dòng dự án để trống.
+public record ThongTriLine(int Level, string Content, decimal Amount, string Key = "");
 
 public record ThongTriForm(
     string? DonViCapTren,

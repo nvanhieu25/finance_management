@@ -26,11 +26,12 @@ public static class ThongTriBuilder
         foreach (var group in rows.GroupBy(r => r.Key.ViTriIndex))
         {
             var viTriName = group.First().ViTriName;
-            lines.Add(new ThongTriLine(1, viTriName, group.Sum(r => r.Disbursed)));
+            lines.Add(new ThongTriLine(1, viTriName, group.Sum(r => r.Disbursed), $"v{group.Key}"));
             foreach (var row in group)
                 lines.Add(new ThongTriLine(2,
                     string.IsNullOrWhiteSpace(row.Content) ? NoContent : row.Content!,
-                    row.Disbursed));
+                    row.Disbursed,
+                    $"d{row.Key.ViTriIndex}.{row.Key.GroupIndex}.{row.Key.PackageIndex}.{row.Key.DotIndex}"));
         }
 
         return new ThongTriForm(

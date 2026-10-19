@@ -12,7 +12,23 @@ public static class FormSheetResolver
     public const string LineText = "Line.Text";
     public const string LineAmount = "Line.Amount";
 
+    /// Hậu tố khoá của ô tự nhập nằm trong một dòng của vùng lặp: "Muc@line" được lưu riêng cho từng dòng thành "Muc@<khoá dòng>".
+    public const string LineScope = "@line";
+
     public const double DefaultRowHeight = 15;
+
+    /// Khoá lưu trữ của một ô tự nhập; ô thuộc dòng (hậu tố "@line") gắn khoá dòng, dòng không có khoá thì dùng khoá chung.
+    public static string StoredKey(string templateKey, ThongTriLine? line) =>
+        !templateKey.EndsWith(LineScope, StringComparison.Ordinal) ? templateKey
+        : string.IsNullOrEmpty(line?.Key) ? templateKey[..^LineScope.Length]
+        : $"{templateKey[..^LineScope.Length]}@{line.Key}";
+
+    /// Ngược lại của StoredKey: khoá lưu trữ → khoá của bản gốc (để biết ô thuộc loại nào).
+    public static string TemplateKey(string storedKey)
+    {
+        var at = storedKey.IndexOf('@');
+        return at <= 0 ? storedKey : storedKey[..at] + LineScope;
+    }
 
     private sealed record Context(
         FormTemplate Template, FormValues Computed, FormInputSet Inputs, FormOrgInfo Org, string Year);
@@ -105,9 +121,12 @@ public static class FormSheetResolver
                 return new ResolvedSegment(segment.Kind, null, text, text, null, false, false, null);
             }
             case SegmentKind.Input:
-                return ResolveText(segment, context.Inputs.Get(segment.Key!) ?? Year(segment.Default, context), context);
+            {
+                var key = StoredKey(segment.Key!, line);
+                return ResolveText(segment, key, context.Inputs.Get(key) ?? Year(segment.Default, context), context);
+            }
             case SegmentKind.SettingInput:
-                return ResolveText(segment, context.Org.Get(segment.Key!), context);
+                return ResolveText(segment, segment.Key!, context.Org.Get(segment.Key!), context);
             case SegmentKind.InputNumber:
                 return context.Inputs.TryGetNumber(segment.Key!, out var typed)
                     ? Numeric(segment, typed, style, overridden: false)
@@ -139,16 +158,16 @@ public static class FormSheetResolver
 
     /// Ô chữ tự nhập: có chữ (đã gõ hoặc điền sẵn) thì in chữ đó; trống thì in chữ chấm chấm của Mẫu và
     /// cho màn hình một Hint mờ (ghi chú của Mẫu, nếu không có thì chính chữ chấm chấm).
-    private static ResolvedSegment ResolveText(TemplateSegment segment, string? value, Context context)
+    private static ResolvedSegment ResolveText(TemplateSegment segment, string key, string? value, Context context)
     {
         var hint = Year(segment.Hint, context);
         if (!string.IsNullOrEmpty(value))
-            return new ResolvedSegment(segment.Kind, segment.Key, value, value, hint, false, false, null);
+            return new ResolvedSegment(segment.Kind, key, value, value, hint, false, false, null);
 
         var placeholder = Year(segment.Text, context)!;
         return new ResolvedSegment(
             // Ô điền sẵn mà người dùng đã xoá hết: chữ mờ nhắc lại giá trị Mẫu, để ô trống không biến thành một dải không nhìn thấy.
-            segment.Kind, segment.Key, placeholder, "",
+            segment.Kind, key, placeholder, "",
             hint ?? (placeholder.Length > 0 ? placeholder : Year(segment.Default, context)),
             IsPlaceholder: true, false, null);
     }

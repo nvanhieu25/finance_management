@@ -389,7 +389,9 @@ public class TemplateMatchesMauTests
             .ToList();
 
         inputs.ShouldAllBe(s => !string.IsNullOrWhiteSpace(s.Key));
-        inputs.GroupBy(s => s.Key).Where(g => g.Count() > 1).Select(g => g.Key)
+        // Khoá "...@line" của ô trong vùng lặp được gắn khoá dòng lúc dựng tờ, nên hai hàng mẫu dùng chung là đúng.
+        inputs.Where(s => !s.Key!.EndsWith(FormSheetResolver.LineScope, StringComparison.Ordinal))
+            .GroupBy(s => s.Key).Where(g => g.Count() > 1).Select(g => g.Key)
             .ShouldBeEmpty("khoá ô nhập bị trùng — hai ô cùng ghi vào một chỗ");
         template.AllSegments().Where(s => s.Kind is SegmentKind.Computed)
             .ShouldAllBe(s => !string.IsNullOrWhiteSpace(s.Key));
