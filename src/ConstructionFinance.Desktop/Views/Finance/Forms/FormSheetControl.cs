@@ -339,6 +339,26 @@ public sealed class FormSheetControl : Border
         if (needed > width && width > 0) block.FontSize = Math.Max(baseSize * 0.65, baseSize * (width / needed) * 0.98);
     }
 
+    /// Ô nhập một dòng trong ô hẹp ("Tạm ứng", "TTKLHT" ở cột 64px): chữ (đang gõ, hoặc chữ mờ khi trống) rộng hơn ô thì thu nhỏ
+    /// tối đa 35% cho khỏi bị cắt cụt.
+    private static void FitInputFont(TextBox box, double baseSize, double width)
+    {
+        var sample = (string.IsNullOrEmpty(box.Text) ? box.Watermark : box.Text)?.Trim() ?? "";
+        var size = baseSize;
+        if (sample.Length > 0 && width > 0)
+        {
+            var probe = new TextBlock
+            {
+                Text = sample, FontFamily = box.FontFamily, FontSize = baseSize, FontWeight = box.FontWeight, FontStyle = box.FontStyle,
+            };
+            probe.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+            var available = width - box.Padding.Left - box.Padding.Right - 6;
+            if (probe.DesiredSize.Width > available && available > 0)
+                size = Math.Max(baseSize * 0.65, baseSize * (available / probe.DesiredSize.Width) * 0.98);
+        }
+        if (Math.Abs(box.FontSize - size) > 0.01) box.FontSize = size;
+    }
+
     /// Chữ mờ gợi ý dài hơn chỗ chứa thì cắt bớt kèm "…" (TextBox không tự cắt chữ mờ).
     private static string? FitHint(string? hint, double width, double fontPixels)
     {
@@ -484,6 +504,7 @@ public sealed class FormSheetControl : Border
         box.TextChanged += (_, _) =>
         {
             ApplyFill();
+            if (_hintFit.TryGetValue(key, out var fit)) FitInputFont(box, fit.FontPixels, fit.Width);
             if (!_updating) _vm?.SetInput(key, box.Text);
         };
         // Rời ô: chữ số được định dạng lại có dấu chấm phân nghìn (lúc đang gõ không đụng tới để khỏi nhảy con trỏ).
@@ -492,6 +513,7 @@ public sealed class FormSheetControl : Border
             if (_vm?.Sheet is { } current) Update(current);
         };
 
+        if (_hintFit.TryGetValue(key, out var fit)) FitInputFont(box, fit.FontPixels, fit.Width);
         _inputs[key] = box;
         return box;
     }
