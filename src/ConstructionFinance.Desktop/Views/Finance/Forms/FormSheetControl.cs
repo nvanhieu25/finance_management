@@ -426,13 +426,10 @@ public sealed class FormSheetControl : Border
         box.Background = InputFill;
 
         var key = segment.Key!;
-        // Nền xanh chỉ báo "chỗ này cần điền": ô đã có chữ (điền sẵn hay đã gõ) và ô trống có viền gõ tự do (rất nhiều ô trong
-        // một bảng) để trong suốt cho tờ không xanh lè, chỉ hiện nền khi rê chuột tới. Nền trong suốt vẫn nhận chuột; khi có
-        // tiêu điểm thì kiểu của TextBox tự tô trắng.
-        var free = FormSheetResolver.IsFreeKey(key);
+        // Ô nhập trong suốt cho tờ giống Mẫu (chữ mờ/chấm chấm đã báo chỗ điền); rê chuột tới thì hiện nền xanh nhạt, có tiêu
+        // điểm thì kiểu của TextBox tự tô trắng. Nền trong suốt vẫn nhận chuột.
         var hovered = false;
-        void ApplyFill() =>
-            box.Background = hovered || (!free && string.IsNullOrEmpty(box.Text)) ? InputFill : Brushes.Transparent;
+        void ApplyFill() => box.Background = hovered ? InputFill : Brushes.Transparent;
         ApplyFill();
         box.PointerEntered += (_, _) => { hovered = true; ApplyFill(); };
         box.PointerExited += (_, _) => { hovered = false; ApplyFill(); };

@@ -104,7 +104,9 @@ public static class FormSheetResolver
         var overflowed = WithOverflow(ordered, columnWidths.Count);
         return new ResolvedSheet(
             template.SheetName, template.Orientation, columnWidths, rowHeights,
-            WithFreeInputs(overflowed, rowKeys, template.Repeat?.FirstRow ?? 0, columnWidths, context), rowKeys);
+            WithoutLinesThroughText(
+                WithFreeInputs(overflowed, rowKeys, template.Repeat?.FirstRow ?? 0, columnWidths, context), columnWidths),
+            rowKeys);
     }
 
     private static ResolvedCell ResolveCell(TemplateCell cell, Context context, ThongTriLine? line) =>
@@ -207,19 +209,9 @@ public static class FormSheetResolver
         IReadOnlyList<ResolvedCell> cells, IReadOnlyList<string> rowKeys, int regionFirstRow,
         IReadOnlyList<double> columnWidths, Context context)
     {
-        // Ô bị chữ tràn che: chữ khoá/tự tính che hết dải tràn; ô nhập tràn (" + Mục …, tiểu mục …") chỉ che đúng phần
-        // chữ của nó chiếm (ước lượng theo ký tự), phần dải còn lại bỏ trống — các ô số bên cạnh vẫn phải gõ được.
-        var covered = new HashSet<(int Row, int Col)>();
-        foreach (var cell in cells.Where(c => c.TextColSpan > c.ColSpan))
-        {
-            var natural = cell.IsEditable ? NaturalChars(cell) : double.MaxValue;
-            var used = Enumerable.Range(cell.Col, cell.ColSpan).Sum(col => columnWidths[col - 1]);
-            for (var col = cell.Col + cell.ColSpan; col < cell.Col + cell.TextColSpan && used < natural; col++)
-            {
-                covered.Add((cell.Row, col));
-                used += columnWidths[col - 1];
-            }
-        }
+        var covered = CoveredByText(cells, columnWidths)
+            .SelectMany(chain => chain.Value.Select(col => (chain.Key.Row, col)))
+            .ToHashSet();
 
         return cells.Select(cell =>
         {
@@ -232,6 +224,63 @@ public static class FormSheetResolver
             var value = context.Inputs.Get(key) ?? "";
             var segment = new ResolvedSegment(SegmentKind.Input, key, value, value, null, value.Length == 0, false, null);
             return cell with { Segments = new[] { segment } };
+        }).ToList();
+    }
+
+    /// Ô bị chữ tràn che: chữ khoá/tự tính che hết dải tràn; ô nhập tràn (" + Mục …, tiểu mục …") chỉ che đúng phần chữ của
+    /// nó chiếm (ước lượng theo ký tự), phần dải còn lại bỏ trống — các ô số bên cạnh vẫn phải gõ được.
+    private static Dictionary<ResolvedCell, List<int>> CoveredByText(
+        IReadOnlyList<ResolvedCell> cells, IReadOnlyList<double> columnWidths)
+    {
+        var result = new Dictionary<ResolvedCell, List<int>>();
+        foreach (var cell in cells.Where(c => c.TextColSpan > c.ColSpan))
+        {
+            var natural = cell.IsEditable ? NaturalChars(cell) : double.MaxValue;
+            var used = Enumerable.Range(cell.Col, cell.ColSpan).Sum(col => columnWidths[col - 1]);
+            var columns = new List<int>();
+            for (var col = cell.Col + cell.ColSpan; col < cell.Col + cell.TextColSpan && used < natural; col++)
+            {
+                columns.Add(col);
+                used += columnWidths[col - 1];
+            }
+            if (columns.Count > 0) result[cell] = columns;
+        }
+        return result;
+    }
+
+    /// Chữ tràn qua nhiều ô thì các đường kẻ DỌC nằm giữa những ô đó không được cắt ngang chữ ("+ Số thu|hồi tạm ứng"): bỏ
+    /// viền phải của ô chữ và của các ô bị tràn lên (trừ ô cuối), bỏ viền trái của các ô bị tràn lên. Mẫu.xlsx vẽ các đường này
+    /// nhưng trên màn hình/giấy trông như chữ bị gạch ngang — cố ý khác Mẫu; cả ba nơi (màn hình, Excel, in) cùng theo.
+    private static IReadOnlyList<ResolvedCell> WithoutLinesThroughText(
+        IReadOnlyList<ResolvedCell> cells, IReadOnlyList<double> columnWidths)
+    {
+        var covered = CoveredByText(cells, columnWidths);
+        if (covered.Count == 0) return cells;
+
+        var noRight = new HashSet<(int Row, int Col)>();
+        var noLeft = new HashSet<(int Row, int Col)>();
+        foreach (var (cell, columns) in covered)
+        {
+            noRight.Add((cell.Row, cell.Col));
+            for (var i = 0; i < columns.Count; i++)
+            {
+                noLeft.Add((cell.Row, columns[i]));
+                if (i < columns.Count - 1) noRight.Add((cell.Row, columns[i]));
+            }
+        }
+
+        return cells.Select(cell =>
+        {
+            var left = noLeft.Contains((cell.Row, cell.Col));
+            var right = noRight.Contains((cell.Row, cell.Col));
+            if (!left && !right) return cell;
+            var borders = cell.Style.Borders;
+            borders = borders with
+            {
+                Left = left ? BorderLine.None : borders.Left,
+                Right = right ? BorderLine.None : borders.Right,
+            };
+            return cell with { Style = cell.Style with { Borders = borders } };
         }).ToList();
     }
 

@@ -332,6 +332,19 @@ public class FormSheetResolverTests
     }
 
     [Fact]
+    public void Vertical_lines_do_not_cut_through_text_that_overflows_into_the_next_cell()
+    {
+        var sheet = FormSheetResolver.Resolve(KsChiTemplate.Create(), new FormValues { BlankMissing = true }, new FormInputSet(),
+            Org, 2026);
+
+        // A14 "  Các năm trước" tràn sang B14 (C14 là ô nhập nên chữ dừng ở B): đường kẻ giữa A và B bị bỏ, đường kẻ phải của B vẫn còn.
+        Cell(sheet, 14, 1).Style.Borders.Right.ShouldBe(BorderLine.None);
+        Cell(sheet, 14, 2).Style.Borders.Left.ShouldBe(BorderLine.None);
+        Cell(sheet, 14, 2).Style.Borders.Right.ShouldNotBe(BorderLine.None);
+        Cell(sheet, 14, 3).Style.Borders.Left.ShouldNotBe(BorderLine.None);
+    }
+
+    [Fact]
     public void Cells_under_overflowing_text_are_not_free_inputs()
     {
         var sheet = ResolveThongTri(lines: Lines(3));
