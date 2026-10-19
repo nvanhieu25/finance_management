@@ -426,16 +426,19 @@ public sealed class FormSheetControl : Border
         box.Background = InputFill;
 
         var key = segment.Key!;
-        // Ô trống có viền gõ tự do (rất nhiều ô trong một bảng): để trong suốt cho tờ không xanh lè, chỉ hiện nền khi rê chuột
-        // tới. Nền trong suốt vẫn nhận chuột; khi có tiêu điểm thì kiểu của TextBox tự tô trắng.
-        if (FormSheetResolver.IsFreeKey(key))
-        {
-            box.Background = Brushes.Transparent;
-            box.PointerEntered += (_, _) => box.Background = InputFill;
-            box.PointerExited += (_, _) => box.Background = Brushes.Transparent;
-        }
+        // Nền xanh chỉ báo "chỗ này cần điền": ô đã có chữ (điền sẵn hay đã gõ) và ô trống có viền gõ tự do (rất nhiều ô trong
+        // một bảng) để trong suốt cho tờ không xanh lè, chỉ hiện nền khi rê chuột tới. Nền trong suốt vẫn nhận chuột; khi có
+        // tiêu điểm thì kiểu của TextBox tự tô trắng.
+        var free = FormSheetResolver.IsFreeKey(key);
+        var hovered = false;
+        void ApplyFill() =>
+            box.Background = hovered || (!free && string.IsNullOrEmpty(box.Text)) ? InputFill : Brushes.Transparent;
+        ApplyFill();
+        box.PointerEntered += (_, _) => { hovered = true; ApplyFill(); };
+        box.PointerExited += (_, _) => { hovered = false; ApplyFill(); };
         box.TextChanged += (_, _) =>
         {
+            ApplyFill();
             if (!_updating) _vm?.SetInput(key, box.Text);
         };
         // Rời ô: chữ số được định dạng lại có dấu chấm phân nghìn (lúc đang gõ không đụng tới để khỏi nhảy con trỏ).
