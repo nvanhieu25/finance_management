@@ -46,7 +46,7 @@ public static class GdnttTemplate
             Tpl.Cell(14, 1, S(13, align: CellAlign.Left, v: CellVAlign.Center), Tpl.Fixed(" - Số tiền đề nghị:")),
             Tpl.Cell(14, 3, S(13, align: CellAlign.Center, v: CellVAlign.Center, borders: "lrtb"), Tpl.Input("LoaiTamUng", "", @default: " Tạm ứng")),
             Tpl.Cell(14, 4, S(13, align: CellAlign.Center, v: CellVAlign.Center, borders: "lrtb"), Tpl.Input("LoaiTTKLHT", "", @default: "TTKLHT")),
-            Tpl.Merged(14, 5, 1, 3, S(13, align: CellAlign.Left, v: CellVAlign.Center, wrap: true, borders: "l"), Tpl.Fixed("đến kỳ này:")),
+            Tpl.Merged(14, 5, 1, 3, S(13, align: CellAlign.Left, v: CellVAlign.Center, wrap: true, borders: "l"), Tpl.Fixed("đến kỳ này: "), Tpl.Input("DenKyNay", "………………")),
             Tpl.Cell(15, 1, S(13, align: CellAlign.Left, v: CellVAlign.Center), Tpl.Fixed(" - Thuộc nguồn vốn: ")),
             Tpl.Cell(15, 3, S(13, v: CellVAlign.Center), Tpl.Fixed("Quỹ dự trữ ngoại hối")),
             Tpl.Merged(15, 8, 1, 2, S(12, bold: true, align: CellAlign.Right, v: CellVAlign.Center)),
