@@ -426,6 +426,14 @@ public sealed class FormSheetControl : Border
         box.Background = InputFill;
 
         var key = segment.Key!;
+        // Ô trống có viền gõ tự do (rất nhiều ô trong một bảng): để trong suốt cho tờ không xanh lè, chỉ hiện nền khi rê chuột
+        // tới. Nền trong suốt vẫn nhận chuột; khi có tiêu điểm thì kiểu của TextBox tự tô trắng.
+        if (FormSheetResolver.IsFreeKey(key))
+        {
+            box.Background = Brushes.Transparent;
+            box.PointerEntered += (_, _) => box.Background = InputFill;
+            box.PointerExited += (_, _) => box.Background = Brushes.Transparent;
+        }
         box.TextChanged += (_, _) =>
         {
             if (!_updating) _vm?.SetInput(key, box.Text);
