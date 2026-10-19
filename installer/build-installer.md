@@ -6,6 +6,11 @@
 > `%LocalAppData%\ConstructionFinance\app.db`, nên thay file .exe bằng bản mới không đụng tới dữ liệu. Đã kiểm: chạy thử
 > dưới wine64 (migration + nạp dữ liệu không lỗi), PE là GUI x86-64, icon nhúng đủ 7 cỡ, có `WindowsPrinterPort`.
 > Chưa kiểm trên Windows thật. File chưa ký số nên Windows SmartScreen có thể cảnh báo lần đầu ("Thông tin khác → Vẫn chạy").
+> **File cài đặt:** `tools/build-setup.sh` → `dist/ConstructionFinance-Setup-1.0.0.exe` (~81 MB, Inno Setup chạy trong Docker
+> `amake/innosetup`, dùng `docker --context default` vì Docker Desktop thường tắt). Cài theo từng người dùng (không cần quyền
+> admin) vào `%LocalAppData%\Programs\ConstructionFinance`, tạo icon ở Desktop (tích sẵn) + Start Menu, có mục Gỡ cài đặt trong
+> Settings → Apps. Đã chạy thử cài/gỡ im lặng dưới wine trong container: cài đủ file, 3 lối tắt, mục gỡ cài đặt, gỡ sạch.
+> Bộ cài chỉ chạy trên Windows 64-bit. Bộ cài nhúng bản .exe KHÔNG nén (nhanh khi mở), bản `ConstructionFinance.exe` độc lập thì nén.
 > Phần ZIP xách tay + `Tạo lối tắt.cmd` bên dưới là cách CŨ, giữ lại để tham khảo.
 
 > **Trạng thái 2026-08-14:** bản ZIP xách tay đã dựng và nằm ở

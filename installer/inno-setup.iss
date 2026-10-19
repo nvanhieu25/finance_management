@@ -1,11 +1,15 @@
 ; Inno Setup script for Construction Finance Management
-; Compile with: iscc.exe inno-setup.iss (Windows or Wine)
+; Dựng bằng tools/build-setup.sh (Docker + Inno Setup) — cần dist\ConstructionFinance.exe dựng sẵn bởi tools/build-windows-exe.sh.
 
 #define MyAppName "Quản lý Tài chính Công trình"
 #define MyAppNameAscii "ConstructionFinance"
 #define MyAppVersion "1.0.0"
 #define MyAppPublisher "Sở Xây dựng"
 #define MyAppExeName "ConstructionFinance.exe"
+; File .exe nguồn: build-setup.sh truyền bản KHÔNG nén (/DSourceExe=...) để app cài xong mở nhanh; mặc định là bản nén.
+#ifndef SourceExe
+  #define SourceExe "..\dist\ConstructionFinance.exe"
+#endif
 
 [Setup]
 AppId={{B7A9F4F1-2C8E-4D6E-9F2A-1B3C4D5E6F7A}
@@ -15,41 +19,34 @@ AppPublisher={#MyAppPublisher}
 DefaultDirName={autopf}\{#MyAppNameAscii}
 DefaultGroupName={#MyAppName}
 DisableProgramGroupPage=yes
-LicenseFile=assets\license.txt
+;LicenseFile=assets\license.txt  ; bỏ trang giấy phép: app nội bộ, người dùng chỉ cần bấm Tiếp tục
 ; Cùng một icon với ConstructionFinance.exe (nguồn: src/.../Assets/app.ico)
 SetupIconFile=assets\app.ico
 UninstallDisplayIcon={app}\{#MyAppExeName}
-OutputDir=output
+OutputDir=..\dist
 OutputBaseFilename=ConstructionFinance-Setup-{#MyAppVersion}
 Compression=lzma
 SolidCompression=yes
 WizardStyle=modern
 PrivilegesRequired=lowest
-ArchitecturesAllowed=x64
-ArchitecturesInstallIn64BitMode=x64
+ArchitecturesAllowed=x64compatible
+ArchitecturesInstallIn64BitMode=x64compatible
 
 [Languages]
 Name: "vietnamese"; MessagesFile: "compiler:Languages\Vietnamese.isl"
 
 [Files]
-; Self-contained publish output (built before running this script — see build-installer.md
-; step 1, which publishes to dist/win-x64 at the repo root)
-Source: "..\dist\win-x64\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+; MỘT file .exe tự chứa .NET (xem tools/build-windows-exe.sh). Không còn thư mục 286 tệp như bản ZIP cũ.
+Source: "{#SourceExe}"; DestDir: "{app}"; Flags: ignoreversion
 
 [Icons]
-Name: "{group}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"
-Name: "{group}\Gỡ cài đặt {#MyAppName}"; Filename: "{uninstallexe}"
-Name: "{commondesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: desktopicon
+Name: "{autoprograms}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"
+Name: "{autoprograms}\Gỡ cài đặt {#MyAppName}"; Filename: "{uninstallexe}"
+Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: desktopicon
 
 [Tasks]
-Name: "desktopicon"; Description: "Tạo shortcut trên Desktop"; GroupDescription: "Tùy chọn:"; Flags: unchecked
-
-[Registry]
-; Associate .cfb files with this app
-Root: HKCU; Subkey: "Software\Classes\.cfb"; ValueType: string; ValueData: "ConstructionFinance.Backup"; Flags: uninsdeletekey
-Root: HKCU; Subkey: "Software\Classes\ConstructionFinance.Backup"; ValueType: string; ValueData: "{#MyAppName} Backup"; Flags: uninsdeletekey
-Root: HKCU; Subkey: "Software\Classes\ConstructionFinance.Backup\DefaultIcon"; ValueType: string; ValueData: "{app}\{#MyAppExeName},0"; Flags: uninsdeletekey
-Root: HKCU; Subkey: "Software\Classes\ConstructionFinance.Backup\shell\open\command"; ValueType: string; ValueData: """{app}\{#MyAppExeName}"" ""%1"""; Flags: uninsdeletekey
+; Mặc định TÍCH SẴN: người dùng cuối mong thấy icon ở màn hình nền sau khi cài.
+Name: "desktopicon"; Description: "Tạo biểu tượng ngoài màn hình nền (Desktop)"; GroupDescription: "Tùy chọn:"
 
 [Run]
-Filename: "{app}\{#MyAppExeName}"; Description: "Khởi chạy {#MyAppName}"; Flags: nowait postinstall skipifsilent
+Filename: "{app}\{#MyAppExeName}"; Description: "Mở {#MyAppName} ngay"; Flags: nowait postinstall skipifsilent
