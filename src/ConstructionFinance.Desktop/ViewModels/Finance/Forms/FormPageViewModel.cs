@@ -108,7 +108,9 @@ public sealed partial class FormPageViewModel : ViewModelBase, IFormSheetEditor
 
     public void SetInput(string key, string? text)
     {
-        if (!_kinds.TryGetValue(FormSheetResolver.TemplateKey(key), out var kind)) return;
+        SegmentKind kind;
+        if (FormSheetResolver.IsFreeKey(key)) kind = SegmentKind.Input;
+        else if (!_kinds.TryGetValue(FormSheetResolver.TemplateKey(key), out kind)) return;
         text ??= "";
 
         var changed = kind switch

@@ -281,7 +281,7 @@ public sealed class FormSheetControl : Border
         }
         else
         {
-            content = BuildStrip(cell);
+            content = BuildStrip(cell, SpanPixels(cell));
         }
 
         // Ô nhập trải kín CHIỀU CAO ô (cả ô là chỗ bấm, như Excel); chữ trong ô tự canh giữa dọc. Chỉ chữ khoá mới canh theo ô.
@@ -304,7 +304,13 @@ public sealed class FormSheetControl : Border
         Place(host, cell.Row, cell.Col, cell.RowSpan, span);
     }
 
-    private Control BuildStrip(ResolvedCell cell)
+    private double SpanPixels(ResolvedCell cell)
+    {
+        var span = Math.Min(Math.Max(cell.ColSpan, cell.TextColSpan), _columnX.Length - cell.Col);
+        return _columnX[Math.Min(cell.Col - 1 + span, _columnX.Length - 1)] - _columnX[cell.Col - 1];
+    }
+
+    private Control BuildStrip(ResolvedCell cell, double spanPixels)
     {
         var segments = cell.Segments;
         var pixels = cell.Style.FontSize * PixelsPerPoint;
@@ -333,7 +339,13 @@ public sealed class FormSheetControl : Border
             return panel;
         }
 
-        if (!overflowing)
+        // Ô tràn nhưng nối đuôi theo bề rộng ước lượng mà tổng vượt dải ô (" Tên CTMT, DA…… Mã số: ……"): chỗ điền cuối bị cắt
+        // mất một đoạn nên bấm vào đó không được. Khi đó dùng lưới chia đều trong dải ô; còn vừa thì giữ nối đuôi (phần dải
+        // còn lại bỏ trống để bấm xuống các ô bên dưới).
+        var natural = segments.Sum(s => s.Kind is SegmentKind.Fixed or SegmentKind.Computed
+            ? s.Text.Length * 0.55 * pixels
+            : EstimateWidth(s, pixels));
+        if (!overflowing || natural > spanPixels)
         {
             // Ô nhiều chỗ điền trong một ô gộp (" TK… Đơn vị… Số CT…"): nhãn rộng vừa chữ, mọi chỗ điền chia đều phần còn
             // lại theo độ dài chữ chấm chấm — chỗ điền nào cũng có chỗ gõ (trước đây chỗ điền cuối bị đẩy ra ngoài ô).

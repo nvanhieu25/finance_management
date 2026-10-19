@@ -128,6 +128,22 @@ public class FormPageViewModelTests
     }
 
     [Fact]
+    public void Free_text_typed_into_an_empty_table_cell_is_kept_and_saved()
+    {
+        var (vm, _, _) = Create(FormDefinitions.KsChi);
+        var raised = 0;
+        vm.InputsChanged += (_, _) => raised++;
+        var free = vm.Sheet.Cells.First(c => c.Segments.Count == 1 && c.Segments[0].Key is { } k && FormSheetResolver.IsFreeKey(k));
+        var key = free.Segments[0].Key!;
+
+        vm.SetInput(key, "1.200.000");
+
+        raised.ShouldBe(1);
+        Segment(vm, key).Value.ShouldBe("1.200.000");
+        vm.ToFormInputs().Single(i => i.Key == key).Value.ShouldBe("1.200.000");
+    }
+
+    [Fact]
     public void Typing_a_number_keeps_it_as_a_number_and_ignores_garbage()
     {
         var (vm, _, _) = Create(FormDefinitions.KsChi);

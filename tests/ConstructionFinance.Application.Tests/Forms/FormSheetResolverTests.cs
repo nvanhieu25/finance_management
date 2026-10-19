@@ -311,8 +311,36 @@ public class FormSheetResolverTests
         var sheet = FormSheetResolver.Resolve(ThongTriTemplate.Create(), ThongTriValues(), new FormInputSet(),
             Org, 2026, Array.Empty<ThongTriLine>());
 
-        sheet.Cells.Any(c => c.Row == 15 && c.Col == 1 && c.IsEditable).ShouldBeFalse();
+        // Hàng trống còn lại của vùng lặp cho gõ tự do (như Excel), không còn ô nào là ô Mục lục riêng của dòng.
+        Cell(sheet, 15, 1).Segments.Single().Key.ShouldBe("x.blank0.1");
         Cell(sheet, 24, 7).DisplayText.ShouldBe("Cộng");
+    }
+
+    [Fact]
+    public void Empty_bordered_table_cells_take_free_text_that_stays_in_its_own_cell()
+    {
+        var inputs = new FormInputSet();
+        inputs.Set("x.blank2.7", "Ghi chú tay");
+
+        var sheet = FormSheetResolver.Resolve(ThongTriTemplate.Create(), ThongTriValues(), inputs, Org, 2026,
+            new[] { new ThongTriLine(0, "DA", 0m) });
+
+        Cell(sheet, 17, 7).Segments.Single().Value.ShouldBe("Ghi chú tay");
+        Cell(sheet, 17, 7).DisplayText.ShouldBe("Ghi chú tay");
+        Cell(sheet, 16, 7).Segments.Single().Value.ShouldBe("");
+        FormSheetResolver.IsFreeKey("x.blank2.7").ShouldBeTrue();
+    }
+
+    [Fact]
+    public void Cells_under_overflowing_text_are_not_free_inputs()
+    {
+        var sheet = ResolveThongTri(lines: Lines(3));
+        var overflowing = sheet.Cells.Where(c => c.TextColSpan > c.ColSpan).ToList();
+
+        foreach (var cell in overflowing)
+            for (var col = cell.Col + cell.ColSpan; col < cell.Col + cell.TextColSpan; col++)
+                sheet.Cells.Where(c => c.Row == cell.Row && c.Col == col)
+                    .ShouldAllBe(c => c.Segments.Count == 0 || c.Segments[0].Key == null || !FormSheetResolver.IsFreeKey(c.Segments[0].Key!));
     }
 
     // ===== chữ tràn sang ô trống bên phải =====

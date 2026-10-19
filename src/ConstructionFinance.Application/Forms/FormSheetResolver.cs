@@ -101,9 +101,10 @@ public static class FormSheetResolver
                 rowHeights[i] = customHeight;
 
         var ordered = cells.OrderBy(c => c.Row).ThenBy(c => c.Col).ToList();
+        var overflowed = WithOverflow(ordered, columnWidths.Count);
         return new ResolvedSheet(
             template.SheetName, template.Orientation, columnWidths, rowHeights,
-            WithOverflow(ordered, columnWidths.Count), rowKeys);
+            WithFreeInputs(overflowed, rowKeys, template.Repeat?.FirstRow ?? 0, columnWidths, context), rowKeys);
     }
 
     private static ResolvedCell ResolveCell(TemplateCell cell, Context context, ThongTriLine? line) =>
@@ -191,6 +192,55 @@ public static class FormSheetResolver
     }
 
     private static string? Year(string? text, Context context) => text?.Replace(YearToken, context.Year);
+
+    // ===== ô trống có viền gõ tự do =====
+
+    /// Khoá của ô gõ tự do (xem WithFreeInputs).
+    public const string FreePrefix = "x.";
+
+    public static bool IsFreeKey(string key) => key.StartsWith(FreePrefix, StringComparison.Ordinal);
+
+    /// Như Excel: ô trống nằm trong bảng (có viền, không có đoạn nào, không bị chữ ô khác tràn lên) cho gõ chữ tuỳ ý. Chữ
+    /// gõ vào in ra và xuất Excel đúng như vậy; không tham gia tính toán. Khoá theo khoá hàng + cột, hàng trống của vùng
+    /// lặp theo thứ tự trong vùng.
+    private static IReadOnlyList<ResolvedCell> WithFreeInputs(
+        IReadOnlyList<ResolvedCell> cells, IReadOnlyList<string> rowKeys, int regionFirstRow,
+        IReadOnlyList<double> columnWidths, Context context)
+    {
+        // Ô bị chữ tràn che: chữ khoá/tự tính che hết dải tràn; ô nhập tràn (" + Mục …, tiểu mục …") chỉ che đúng phần
+        // chữ của nó chiếm (ước lượng theo ký tự), phần dải còn lại bỏ trống — các ô số bên cạnh vẫn phải gõ được.
+        var covered = new HashSet<(int Row, int Col)>();
+        foreach (var cell in cells.Where(c => c.TextColSpan > c.ColSpan))
+        {
+            var natural = cell.IsEditable ? NaturalChars(cell) : double.MaxValue;
+            var used = Enumerable.Range(cell.Col, cell.ColSpan).Sum(col => columnWidths[col - 1]);
+            for (var col = cell.Col + cell.ColSpan; col < cell.Col + cell.TextColSpan && used < natural; col++)
+            {
+                covered.Add((cell.Row, col));
+                used += columnWidths[col - 1];
+            }
+        }
+
+        return cells.Select(cell =>
+        {
+            if (cell.Segments.Count != 0 || !cell.Style.Borders.Any || covered.Contains((cell.Row, cell.Col)))
+                return cell;
+
+            var rowKey = rowKeys[cell.Row - 1];
+            if (rowKey == "blank") rowKey = $"blank{cell.Row - regionFirstRow}";
+            var key = $"{FreePrefix}{rowKey}.{cell.Col}";
+            var value = context.Inputs.Get(key) ?? "";
+            var segment = new ResolvedSegment(SegmentKind.Input, key, value, value, null, value.Length == 0, false, null);
+            return cell with { Segments = new[] { segment } };
+        }).ToList();
+    }
+
+    /// Ước lượng bề rộng chữ của ô theo "ký tự Excel": chấm chấm hẹp hơn chữ thường nhiều.
+    private static double NaturalChars(ResolvedCell cell) => cell.Segments.Sum(segment =>
+    {
+        var sample = segment.Text.Length >= (segment.Hint?.Length ?? 0) ? segment.Text : segment.Hint ?? "";
+        return Math.Max(4, sample.Sum(ch => ch is '.' or '…' or ' ' ? 0.35 : 1.0));
+    });
 
     // ===== chữ tràn sang ô trống bên phải =====
 
