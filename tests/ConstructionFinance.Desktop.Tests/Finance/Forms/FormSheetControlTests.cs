@@ -74,14 +74,19 @@ public class FormSheetControlTests
     }
 
     [Fact]
-    public void Sheet_is_left_aligned_not_stretched_into_a_half_empty_card()
+    public void Sheet_is_centered_in_the_viewer_and_not_stretched_into_a_half_empty_card()
     {
         Run(() =>
         {
             var host = Show(FormDefinitions.ThongTri);
+            var scroll = host.View.FindControl<ScrollViewer>("SheetScroll")!;
 
-            host.Sheet.Bounds.X.ShouldBeLessThan(40);
+            var left = host.Sheet.TranslatePoint(new Point(0, 0), scroll)!.Value.X;
+            var right = scroll.Viewport.Width - left - host.Sheet.Bounds.Width;
+
             host.Sheet.Bounds.Width.ShouldBeLessThan(900);   // 183mm ≈ 692px + lề giấy
+            left.ShouldBeGreaterThan(40);                      // có chừa hai bên
+            Math.Abs(left - right).ShouldBeLessThan(2.0);      // và chừa đều
             host.Window.Close();
         });
     }

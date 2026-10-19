@@ -29,9 +29,9 @@
 
         <ScrollViewer x:Name="SheetScroll" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto"
                       Background="#E7E7E7">
-            <!-- Phóng to/thu nhỏ cả tờ (ô nhập to ra theo), không đổi bố cục của Mẫu. -->
-            <LayoutTransformControl x:Name="ZoomHost" HorizontalAlignment="Left" VerticalAlignment="Top">
-                <v:FormSheetControl x:Name="SheetHost" Margin="12"/>
+            <!-- Phóng to/thu nhỏ cả tờ (ô nhập to ra theo), không đổi bố cục của Mẫu. Tờ giấy nằm giữa vùng xem (rộng hơn tờ thì hai bên chừa đều). -->
+            <LayoutTransformControl x:Name="ZoomHost" HorizontalAlignment="Center" VerticalAlignment="Top">
+                <v:FormSheetControl x:Name="SheetHost" Margin="16,16,16,24"/>
             </LayoutTransformControl>
         </ScrollViewer>
     </DockPanel>

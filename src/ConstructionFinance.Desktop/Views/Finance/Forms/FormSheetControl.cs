@@ -61,7 +61,7 @@ public sealed class FormSheetControl : Border
         Padding = new Thickness(24);
         // Bề rộng cột lẻ (8,43×7+5 = 64,01px) phải giữ đúng: làm tròn từng cột lên sẽ đẩy cả tờ lệch khỏi Mẫu vài px.
         UseLayoutRounding = false;
-        HorizontalAlignment = HorizontalAlignment.Left;
+        HorizontalAlignment = HorizontalAlignment.Center;
         VerticalAlignment = VerticalAlignment.Top;
         Child = _canvas;
     }
@@ -264,10 +264,12 @@ public sealed class FormSheetControl : Border
         Place(frame, cell.Row, cell.Col, cell.RowSpan, cell.ColSpan);
     }
 
-    /// Nền xám báo "ô tự tính": chỉ tô khi ô có chữ/số — ô tự tính còn trống (chưa chọn đợt) để trắng cho tờ khỏi loang.
+    /// Nền xám báo "ô tự tính": chỉ tô ô nằm trong bảng (có viền) và đã có chữ/số. Ô tự tính đứng lẻ ngoài bảng ("Số trả nhà
+    /// thầu", "Tên đơn vị thụ hưởng"…) và ô còn trống (chưa chọn đợt) để trắng — Mẫu gộp ô mỗi dòng một kiểu nên nền xám của
+    /// chúng bắt đầu ở những cột khác nhau, nhìn lệch.
     private static IBrush? FillOf(ResolvedCell cell) =>
         cell.Segments.Any(s => s.IsOverridden) ? OverriddenFill
-        : cell.DisplayText.Length > 0 ? ComputedFill
+        : cell.DisplayText.Length > 0 && cell.Style.Borders.Any ? ComputedFill
         : null;
 
     private static double Thickness(BorderLine line) => line switch
@@ -324,9 +326,16 @@ public sealed class FormSheetControl : Border
     private static void ShrinkToFit(TextBlock block, double baseSize, double width)
     {
         block.FontSize = baseSize;
-        if (string.IsNullOrEmpty(block.Text)) return;
-        block.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
-        var needed = block.DesiredSize.Width;
+        // Chữ ở Mẫu hay có cả chuỗi dấu cách đuôi (để canh) — đo phần chữ thật, không tính dấu cách đuôi.
+        var trimmed = block.Text?.TrimEnd() ?? "";
+        if (trimmed.Length == 0) return;
+        var probe = new TextBlock
+        {
+            Text = trimmed, FontFamily = block.FontFamily, FontSize = baseSize, FontWeight = block.FontWeight,
+            FontStyle = block.FontStyle, Margin = block.Margin,
+        };
+        probe.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+        var needed = probe.DesiredSize.Width;
         if (needed > width && width > 0) block.FontSize = Math.Max(baseSize * 0.65, baseSize * (width / needed) * 0.98);
     }
 
