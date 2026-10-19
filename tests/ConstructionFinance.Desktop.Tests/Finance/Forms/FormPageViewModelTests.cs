@@ -143,6 +143,21 @@ public class FormPageViewModelTests
         vm.ToFormInputs().Single(i => i.Key == key).Value.ShouldBe("1.200.000");
     }
 
+    [Theory]
+    [InlineData("kschi")]
+    [InlineData("gdntt")]
+    public void The_Tam_ung_and_TTKLHT_boxes_can_be_cleared_to_keep_only_the_one_that_applies(string id)
+    {
+        var (vm, _, _) = Create(FormDefinitions.All.Single(d => d.Id == id));
+        Segment(vm, "LoaiTTKLHT").Value.ShouldBe("TTKLHT");
+
+        vm.SetInput("LoaiTTKLHT", "");
+
+        Segment(vm, "LoaiTTKLHT").Value.ShouldBe("");
+        Segment(vm, "LoaiTTKLHT").Text.ShouldBe("");          // in ra trống, không in lại chữ Mẫu
+        Segment(vm, "LoaiTamUng").Value.Trim().ShouldBe("Tạm ứng");
+    }
+
     [Fact]
     public void Typing_a_number_keeps_it_as_a_number_and_ignores_garbage()
     {
