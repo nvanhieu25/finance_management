@@ -1,5 +1,13 @@
 # Building the Windows Installer
 
+> **Cách phát hành hiện tại (2026-10-20): MỘT file `ConstructionFinance.exe`.** Chạy `tools/build-windows-exe.sh` →
+> `dist/ConstructionFinance.exe` (~119 MB, tự chứa .NET, đã nén, có icon, không cửa sổ console). Người dùng chỉ cần chép
+> file này sang máy Windows rồi bấm đúp — không giải nén, không cài đặt, không script tạo lối tắt. Dữ liệu vẫn nằm ở
+> `%LocalAppData%\ConstructionFinance\app.db`, nên thay file .exe bằng bản mới không đụng tới dữ liệu. Đã kiểm: chạy thử
+> dưới wine64 (migration + nạp dữ liệu không lỗi), PE là GUI x86-64, icon nhúng đủ 7 cỡ, có `WindowsPrinterPort`.
+> Chưa kiểm trên Windows thật. File chưa ký số nên Windows SmartScreen có thể cảnh báo lần đầu ("Thông tin khác → Vẫn chạy").
+> Phần ZIP xách tay + `Tạo lối tắt.cmd` bên dưới là cách CŨ, giữ lại để tham khảo.
+
 > **Trạng thái 2026-08-14:** bản ZIP xách tay đã dựng và nằm ở
 > `dist/ConstructionFinance-1.0.0-win-x64-portable.zip` (67,7 MB). Icon đã có
 > (`src/ConstructionFinance.Desktop/Assets/app.ico`, 7 cỡ 16→256px, nhúng sẵn
