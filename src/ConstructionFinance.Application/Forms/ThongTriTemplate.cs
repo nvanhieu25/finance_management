@@ -33,7 +33,8 @@ public static class ThongTriTemplate
             Tpl.Merged(3, 7, 1, 2, S(11, italic: true, align: CellAlign.Right), Tpl.Fixed("Ghi sổ ngày"), Tpl.Input("NgayGhiSo", "     tháng     năm {năm}")),
             Tpl.Merged(4, 1, 1, 8, S(14, bold: true, align: CellAlign.Center), Tpl.Fixed("THÔNG TRI")),
             Tpl.Merged(5, 1, 1, 8, S(14, bold: true, align: CellAlign.Center, v: CellVAlign.Center, wrap: true), Tpl.Fixed("Thu hồi tạm ứng")),
-            Tpl.Merged(6, 1, 1, 8, S(14, bold: true, align: CellAlign.Center, v: CellVAlign.Center), Tpl.Fixed("Kinh phí: NSNN")),
+            // Mẫu ghi cứng "NSNN"; app ghi theo nguồn đang chọn trên tab, và vẫn cho gõ đè.
+            Tpl.Merged(6, 1, 1, 8, S(14, bold: true, align: CellAlign.Center, v: CellVAlign.Center), Tpl.Fixed("Kinh phí: "), Tpl.Over("KinhPhi")),
             Tpl.Merged(7, 1, 1, 8, S(14, bold: true, align: CellAlign.Center)),
             Tpl.Merged(8, 1, 1, 2, S(13, bold: true, align: CellAlign.Left, v: CellVAlign.Center), Tpl.Fixed("Đơn vị:                         ")),
             Tpl.Cell(8, 3, S(13, bold: true, v: CellVAlign.Center), Tpl.Input("DonVi", "….......")),
@@ -74,12 +75,14 @@ public static class ThongTriTemplate
             Tpl.Cell(25, 6, S(10.5, italic: true, v: CellVAlign.Center, wrap: true, borders: "t")),
             Tpl.Cell(25, 7, S(10.5, italic: true, v: CellVAlign.Center, wrap: true, borders: "t")),
             Tpl.Cell(25, 8, S(10.5, italic: true, v: CellVAlign.Center, wrap: true, borders: "t")),
-            Tpl.Merged(26, 7, 1, 2, S(13, italic: true, align: CellAlign.Center)),
-            Tpl.Merged(27, 1, 1, 6, S(13, bold: true, align: CellAlign.Center)),
-            Tpl.Merged(27, 7, 1, 2, S(13, bold: true, align: CellAlign.Center)),
+            // Chỗ ký: Mẫu chừa sẵn ô (đúng kiểu chữ) nhưng để trống. Chức danh và ngày điền sẵn, sửa được;
+            // họ tên lưu ở Cài đặt, dùng chung mọi dự án.
+            Tpl.Merged(26, 7, 1, 2, S(13, italic: true, align: CellAlign.Center), Tpl.Input("NgayKy", "", @default: "Ngày     tháng     năm {năm}")),
+            Tpl.Merged(27, 1, 1, 6, S(13, bold: true, align: CellAlign.Center), Tpl.Input("ChucDanhNguoiLap", "", @default: "Người lập")),
+            Tpl.Merged(27, 7, 1, 2, S(13, bold: true, align: CellAlign.Center), Tpl.Input("ChucDanhThuTruong", "", @default: "Thủ trưởng đơn vị")),
             Tpl.Merged(28, 7, 1, 2, S(13, bold: true, align: CellAlign.Center)),
-            Tpl.Merged(32, 1, 1, 6, S(13.5, bold: true, align: CellAlign.Center)),
-            Tpl.Merged(32, 7, 1, 2, S(13.5, bold: true, align: CellAlign.Center)),
+            Tpl.Merged(32, 1, 1, 6, S(13.5, bold: true, align: CellAlign.Center), Tpl.Setting(FormOrgKeys.NguoiLap, "")),
+            Tpl.Merged(32, 7, 1, 2, S(13.5, bold: true, align: CellAlign.Center), Tpl.Setting(FormOrgKeys.ThuTruongDonVi, "")),
         },
         Repeat: new RepeatRegion(
             FirstRow: 15, MinRows: 9,

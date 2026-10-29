@@ -19,14 +19,19 @@ internal static class MigraDocFormRenderer
     public static double ScaleOf(ResolvedSheet sheet, PrintPageProfile page)
     {
         var scale = ExcelFitScale.ScaleFor(sheet.ColumnWidths, page.Orientation);
-        if (page.FitToPagesTall == 1)
-        {
-            var contentMm = sheet.RowHeights.Take(UsedRowCount(sheet)).Sum() / PointsPerMillimeter;
-            if (contentMm > 0)
-                scale = Math.Min(scale, ExcelFitScale.UsableHeightMm(page.Orientation) * VerticalSafety / contentMm);
-        }
+        var contentMm = sheet.RowHeights.Take(UsedRowCount(sheet)).Sum() / PointsPerMillimeter;
+        if (contentMm <= 0) return scale;
+
+        var onePage = ExcelFitScale.UsableHeightMm(page.Orientation) * VerticalSafety / contentMm;
+        // Ép một trang; hoặc tờ nhiều trang được (Thông tri) mà chỉ tràn NHẸ: co nhẹ cho vừa một tờ — tờ để ký mà sang trang
+        // hai chỉ vì vài hàng thì phí giấy và khó ký. Tràn nhiều thì cứ nhiều trang, đừng co tới mức không đọc nổi.
+        if (page.FitToPagesTall == 1 || (page.FitToPagesTall == 0 && onePage >= scale * MinOverflowShrink))
+            scale = Math.Min(scale, onePage);
         return scale;
     }
+
+    /// Co tối đa bao nhiêu để kéo một tờ tràn nhẹ về một trang.
+    private const double MinOverflowShrink = 0.85;
 
     /// Số hàng cần in: tới hàng cuối cùng có chữ, ô nhập hoặc đường kẻ. Mẫu để trống nhiều hàng cuối (chỗ ký, ghi chú…) —
     /// Excel không in phần trống ở đáy, nhưng MigraDoc dựng đủ mọi hàng và hàng trống đẩy tờ sang một trang TRẮNG
@@ -39,6 +44,14 @@ internal static class MigraDocFormRenderer
                 last = Math.Max(last, cell.Row + cell.RowSpan - 1);
         return Math.Min(Math.Max(last, 1), sheet.RowHeights.Count);
     }
+
+    /// Hàng cuối của thân bảng: hàng cuối có ô kẻ cạnh trái hoặc phải. 0 nếu tờ không có bảng.
+    internal static int LastBodyRow(ResolvedSheet sheet) =>
+        sheet.Cells
+            .Where(cell => cell.Style.Borders.Left != BorderLine.None || cell.Style.Borders.Right != BorderLine.None)
+            .Select(cell => cell.Row + cell.RowSpan - 1)
+            .DefaultIfEmpty(0)
+            .Max();
 
     /// Chừa một chút: MigraDoc cộng thêm viền và làm tròn từng hàng, nên vừa khít là tràn sang trang hai.
     private const double VerticalSafety = 0.92;
@@ -64,6 +77,13 @@ internal static class MigraDocFormRenderer
             row.Height = Unit.FromPoint(height * scale);
             row.HeightRule = RowHeightRule.AtLeast;
         }
+
+        // Phần dưới bảng (Bằng chữ, ngày, chức danh, họ tên người ký) đi liền MỘT khối với hàng cuối của bảng: Thông tri dài
+        // sang trang hai thì cả khối sang cùng, không để họ tên người ký lẻ loi một mình đầu trang sau (thấy khi in thử 2026-10-29).
+        var lastBodyRow = LastBodyRow(sheet);
+        var usedRowCount = UsedRowCount(sheet);
+        if (lastBodyRow > 0 && lastBodyRow < usedRowCount)
+            table.Rows[lastBodyRow - 1]!.KeepWith = usedRowCount - lastBodyRow;
 
         var byAnchor = sheet.Cells.ToDictionary(cell => (cell.Row, cell.Col));
         var covered = new HashSet<(int Row, int Col)>();

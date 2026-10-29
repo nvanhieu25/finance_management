@@ -10,14 +10,22 @@ public sealed class YearSettlementPageViewModel : WorkbookPageViewModel
     // không được làm đổi tên sheet trong bản in.
     private const string SheetName = "Quyết toán năm";
 
-    // ImmutableArray vì danh sách được trao nguyên cho mọi PrintTableSheet (xem ViTriPageViewModel.PrintColumns).
+    private const string DisbursedGroup = "Giá trị giải ngân";
+
+    // Sheet "Quyết toán năm" của Mẫu.xlsx để trống, nên bố cục theo cùng kiểu với sheet Tổng hợp: tiêu đề tờ, tiêu đề cột
+    // hai tầng, NSNN/DTNH cạnh nhau. ImmutableArray vì danh sách được trao nguyên cho mọi PrintTableSheet (xem
+    // ViTriPageViewModel.PrintColumns).
     private static readonly ImmutableArray<PrintColumn> PrintColumns =
     [
-        new("Năm", 12, PrintAlign.Center),
-        new("NSNN", 18, PrintAlign.Right),
-        new("Ngoại hối", 18, PrintAlign.Right),
-        new("Tổng", 18, PrintAlign.Right),
+        new("Số TT", 6, PrintAlign.Center),
+        new("Năm tài chính", 22, PrintAlign.Left),
+        new("Dự phòng NSNN", 18, PrintAlign.Right, DisbursedGroup),
+        new("Quỹ dự trữ ngoại hối", 18, PrintAlign.Right, DisbursedGroup),
+        new("Tổng cộng", 18, PrintAlign.Right),
     ];
+
+    private static readonly IReadOnlyList<string> Titles =
+        ["QUYẾT TOÁN THEO NĂM TÀI CHÍNH", "(Năm tài chính từ 01/02 đến 31/01 năm sau — Đơn vị tính: đồng)"];
 
     public YearSettlementPageViewModel(YearSettlementViewModel inner)
     {
@@ -34,13 +42,15 @@ public sealed class YearSettlementPageViewModel : WorkbookPageViewModel
         SheetName,
         PrintPageProfiles.YearSettlement,
         PrintColumns,
-        Inner.Rows.Select(ToPrintRow).ToList());
+        Inner.Rows.Select((row, index) => ToPrintRow(row, index)).ToList(),
+        Titles);
 
     // Nhãn năm giữ nguyên chuỗi của màn hình. Ba cột tiền là SỐ thật (cột Tổng là tổng của hai cột kia, như
-    // trên màn hình) để chọn một vùng trong Excel là thấy tổng; 0 ra ô trống như màn hình.
-    private static PrintRow ToPrintRow(YearSettlementRow row) => new(
+    // trên màn hình) để chọn một vùng trong Excel là thấy tổng; 0 ra ô trống như màn hình. Dòng TỔNG CỘNG không đánh số.
+    private static PrintRow ToPrintRow(YearSettlementRow row, int index) => new(
         new[]
         {
+            PrintCell.OfText(row.IsBold ? "" : (index + 1).ToString()),
             PrintCell.OfText(row.YearLabel),
             Money(row.NsnnAmount),
             Money(row.NgoaiHoiAmount),

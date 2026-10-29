@@ -28,6 +28,8 @@ public partial class CompanyInfoViewModel : ViewModelBase
     [ObservableProperty] private string? _defaultRecipients;
     [ObservableProperty] private string? _donViCapTren;
     [ObservableProperty] private string? _donViCoSo;
+    [ObservableProperty] private string? _nguoiLap;
+    [ObservableProperty] private string? _thuTruongDonVi;
     [ObservableProperty] private bool _isBusy;
 
     public async Task LoadAsync()
@@ -46,6 +48,8 @@ public partial class CompanyInfoViewModel : ViewModelBase
             DefaultRecipients = info.DefaultRecipients;
             DonViCapTren = info.DonViCapTren;
             DonViCoSo = info.DonViCoSo;
+            NguoiLap = info.NguoiLap;
+            ThuTruongDonVi = info.ThuTruongDonVi;
         }
         finally { IsBusy = false; }
     }
@@ -58,7 +62,7 @@ public partial class CompanyInfoViewModel : ViewModelBase
             await _service.SaveAsync(new CompanyInfoDto(
                 CompanyName, CompanyAddress, CompanyPhone, CompanyEmail,
                 LogoPath, DefaultSignerName, DefaultSignerTitle, DefaultRecipients,
-                DonViCapTren, DonViCoSo));
+                DonViCapTren, DonViCoSo, NguoiLap, ThuTruongDonVi));
             await _dialog.ShowMessageAsync("Cài đặt", "Đã lưu thông tin cơ quan thành công.");
         }
         catch (Exception ex)

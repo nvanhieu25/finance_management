@@ -4,11 +4,14 @@
              xmlns:conv="using:ConstructionFinance.Desktop.Common"
              x:Class="ConstructionFinance.Desktop.Views.Finance.YearSettlementView"
              x:DataType="vm:YearSettlementViewModel">
-    <StackPanel Margin="0,4,0,0">
-        <TextBlock Classes="pageSubtitle" Margin="4,0,0,8"
-                   Text="Quyết toán theo năm tài chính (1/2 → 31/1)"/>
-        <DataGrid ItemsSource="{Binding Rows}" IsReadOnly="True"
-                  GridLinesVisibility="All" HeadersVisibility="All"
+    <!-- Cùng cột và tên cột với bản in (YearSettlementPageViewModel). -->
+    <DockPanel Margin="0,4,0,0">
+        <StackPanel DockPanel.Dock="Top" Margin="4,0,0,8" Spacing="2">
+            <TextBlock Classes="pageSubtitle" FontWeight="SemiBold" Text="QUYẾT TOÁN THEO NĂM TÀI CHÍNH"/>
+            <TextBlock Classes="muted" Text="Năm tài chính từ 01/02 đến 31/01 năm sau · Đơn vị tính: đồng"/>
+        </StackPanel>
+        <DataGrid Classes="report" ItemsSource="{Binding Rows}" IsReadOnly="True"
+                  HeadersVisibility="Column" HorizontalAlignment="Left"
                   CanUserResizeColumns="True" CanUserSortColumns="False">
             <DataGrid.Styles>
                 <Style Selector="DataGridRow" x:DataType="vm:YearSettlementRow">
@@ -17,11 +20,11 @@
                 </Style>
             </DataGrid.Styles>
             <DataGrid.Columns>
-                <DataGridTextColumn Header="Năm" Binding="{Binding YearLabel}" Width="220"/>
-                <DataGridTextColumn Header="Dự phòng NSNN" Binding="{Binding NSNN}" Width="180"/>
-                <DataGridTextColumn Header="Quỹ dự trữ ngoại hối" Binding="{Binding NgoaiHoi}" Width="200"/>
-                <DataGridTextColumn Header="Tổng" Binding="{Binding Total}" Width="180"/>
+                <DataGridTextColumn Header="Năm tài chính" Binding="{Binding YearLabel}" Width="220"/>
+                <DataGridTextColumn Header="Giải ngân&#10;Dự phòng NSNN" Binding="{Binding NSNN}" Width="180" CellStyleClasses="money"/>
+                <DataGridTextColumn Header="Giải ngân Quỹ&#10;dự trữ ngoại hối" Binding="{Binding NgoaiHoi}" Width="180" CellStyleClasses="money"/>
+                <DataGridTextColumn Header="Tổng cộng" Binding="{Binding Total}" Width="180" CellStyleClasses="money"/>
             </DataGrid.Columns>
         </DataGrid>
-    </StackPanel>
+    </DockPanel>
 </UserControl>

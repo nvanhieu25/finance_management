@@ -207,6 +207,30 @@
         <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/>
     </Style>
 
+    <!-- ===== Bảng báo cáo (Tổng hợp, Quyết toán năm): đọc như tờ in theo Mẫu ===== -->
+    <Style Selector="DataGrid.report">
+        <Setter Property="GridLinesVisibility" Value="All"/>
+        <Setter Property="VerticalGridLinesBrush" Value="{StaticResource GridLineBrush}"/>
+        <Setter Property="RowHeight" Value="34"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="BorderBrush" Value="#CBD6E4"/>
+    </Style>
+    <Style Selector="DataGrid.report DataGridColumnHeader">
+        <Setter Property="HorizontalContentAlignment" Value="Center"/>
+        <Setter Property="MinHeight" Value="56"/>
+        <Setter Property="Padding" Value="6,4"/>
+        <Setter Property="FontSize" Value="12"/>
+        <!-- Tiêu đề nhiều dòng (&#10;) căn giữa từng dòng như ô tiêu đề của Mẫu. Đặt ContentTemplate ở đây vô ích: ô tiêu
+             đề nhận HeaderTemplate của cột làm giá trị cục bộ, đè lên style. TextAlignment thì kế thừa xuống TextBlock. -->
+        <Setter Property="TextBlock.TextAlignment" Value="Center"/>
+    </Style>
+    <Style Selector="DataGrid.report DataGridCell.money">
+        <Setter Property="HorizontalContentAlignment" Value="Right"/>
+    </Style>
+    <Style Selector="DataGrid.report DataGridCell.center">
+        <Setter Property="HorizontalContentAlignment" Value="Center"/>
+    </Style>
+
     <!-- ===== Excel-like entry grid cell styles ===== -->
     <Style Selector="TextBlock.gridHeaderCell">
         <Setter Property="Padding" Value="8,8"/>

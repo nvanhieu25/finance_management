@@ -68,11 +68,15 @@ public static class FormOrgKeys
 {
     public const string DonViCapTren = "don_vi_cap_tren";
     public const string DonViCoSo = "don_vi_co_so";
+    public const string NguoiLap = "nguoi_lap";
+    public const string ThuTruongDonVi = "thu_truong_don_vi";
 
     public static string? Get(this FormOrgInfo org, string key) => key switch
     {
         DonViCapTren => org.DonViCapTren,
         DonViCoSo => org.DonViCoSo,
+        NguoiLap => org.NguoiLap,
+        ThuTruongDonVi => org.ThuTruongDonVi,
         _ => throw new ArgumentException($"Khoá Cài đặt không biết: \"{key}\".", nameof(key))
     };
 
@@ -80,6 +84,8 @@ public static class FormOrgKeys
     {
         DonViCapTren => org with { DonViCapTren = value },
         DonViCoSo => org with { DonViCoSo = value },
+        NguoiLap => org with { NguoiLap = value },
+        ThuTruongDonVi => org with { ThuTruongDonVi = value },
         _ => throw new ArgumentException($"Khoá Cài đặt không biết: \"{key}\".", nameof(key))
     };
 }

@@ -437,9 +437,9 @@ public class PrintWorkbookTests
             .OfType<PrintTableSheet>().Single(s => s.SheetName == "Quyết toán năm");
 
         quyetToan.Rows.Count.ShouldBe(2);                                       // năm tài chính 2026, TỔNG CỘNG
-        CellAt(quyetToan, 0, "NSNN").ShouldBe(PrintCell.OfMoney(2_500_000m), "dòng năm 2026");
-        CellAt(quyetToan, 1, "Năm").ShouldBe(PrintCell.OfText("TỔNG CỘNG"));
-        CellAt(quyetToan, 1, "Tổng").ShouldBe(PrintCell.OfMoney(2_500_000m), "dòng TỔNG CỘNG");
+        CellAt(quyetToan, 0, "Dự phòng NSNN").ShouldBe(PrintCell.OfMoney(2_500_000m), "dòng năm 2026");
+        CellAt(quyetToan, 1, "Năm tài chính").ShouldBe(PrintCell.OfText("TỔNG CỘNG"));
+        CellAt(quyetToan, 1, "Tổng cộng").ShouldBe(PrintCell.OfMoney(2_500_000m), "dòng TỔNG CỘNG");
     }
 
     [Fact]
@@ -619,7 +619,7 @@ public class PrintWorkbookTests
         var thongTri = (FormTemplatePrintSheet)workbook.ViTriPages.FormTab("thongtri").BuildPrintSheet()!;
         return new AggregatesShown(
             CellAt(tongHop, 2, "Tạm ứng"),       // dòng TỔNG CỘNG của Tổng hợp (Vị trí 1, Vị trí 2, TỔNG CỘNG)
-            CellAt(quyetToan, 1, "Tổng"),        // dòng TỔNG CỘNG của Quyết toán năm (năm 2026, TỔNG CỘNG)
+            CellAt(quyetToan, 1, "Tổng cộng"),        // dòng TỔNG CỘNG của Quyết toán năm (năm 2026, TỔNG CỘNG)
             NumberAt(thongTri, 24, 8)!.Value);
     }
 

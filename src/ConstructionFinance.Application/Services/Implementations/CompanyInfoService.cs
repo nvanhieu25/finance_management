@@ -15,6 +15,8 @@ public class CompanyInfoService : ICompanyInfoService
     private const string KeyRecipients = "default_recipients";
     private const string KeyDonViCapTren = "don_vi_cap_tren";
     private const string KeyDonViCoSo = "don_vi_co_so";
+    private const string KeyNguoiLap = "nguoi_lap";
+    private const string KeyThuTruongDonVi = "thu_truong_don_vi";
 
     private readonly IAppSettingService _settings;
 
@@ -30,7 +32,9 @@ public class CompanyInfoService : ICompanyInfoService
         DefaultSignerTitle: await _settings.GetAsync(KeySignerTitle, ct),
         DefaultRecipients: await _settings.GetAsync(KeyRecipients, ct),
         DonViCapTren: await _settings.GetAsync(KeyDonViCapTren, ct),
-        DonViCoSo: await _settings.GetAsync(KeyDonViCoSo, ct));
+        DonViCoSo: await _settings.GetAsync(KeyDonViCoSo, ct),
+        NguoiLap: await _settings.GetAsync(KeyNguoiLap, ct),
+        ThuTruongDonVi: await _settings.GetAsync(KeyThuTruongDonVi, ct));
 
     public async Task SaveAsync(CompanyInfoDto info, CancellationToken ct = default)
     {
@@ -44,5 +48,7 @@ public class CompanyInfoService : ICompanyInfoService
         await _settings.SetAsync(KeyRecipients, info.DefaultRecipients, ct: ct);
         await _settings.SetAsync(KeyDonViCapTren, info.DonViCapTren, ct: ct);
         await _settings.SetAsync(KeyDonViCoSo, info.DonViCoSo, ct: ct);
+        await _settings.SetAsync(KeyNguoiLap, info.NguoiLap, ct: ct);
+        await _settings.SetAsync(KeyThuTruongDonVi, info.ThuTruongDonVi, ct: ct);
     }
 }

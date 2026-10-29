@@ -109,7 +109,8 @@ public sealed class PrintWorkbookWriter : IPrintWorkbookWriter
     /// Căn trang + chân trang theo hồ sơ. Một chỗ duy nhất cho mọi loại sheet, để bảng và
     /// biểu mẫu không có hai đường căn trang. Áp lại lên cùng một sheet cho kết quả như áp một
     /// lần; `internal` để test kiểm đúng điều đó.
-    internal static void ApplyPage(IXLWorksheet ws, PrintPageProfile page, PrintFooterInfo footer, bool resetFont = true)
+    internal static void ApplyPage(IXLWorksheet ws, PrintPageProfile page, PrintFooterInfo footer, bool resetFont = true,
+        int repeatFirstRow = 1, int extraRepeatRows = 0)
     {
         // Font, khổ A4, hướng giấy, lề trái/phải — dùng lại đúng bộ đang áp cho ba biểu mẫu. Với sheet
         // biểu mẫu dòng này chạy SAU khi ô đã vẽ và đặt lại FontName/FontSize của cả sheet (đo bằng
@@ -125,8 +126,10 @@ public sealed class PrintWorkbookWriter : IPrintWorkbookWriter
         setup.CenterHorizontally = true;
         setup.FitToPages(page.FitToPagesWide, page.FitToPagesTall);
 
-        // Gọi với 0 dòng/cột sẽ ném, nên 0 nghĩa là bỏ qua.
-        if (page.RepeatRowsTop > 0) setup.SetRowsToRepeatAtTop(1, page.RepeatRowsTop);
+        // Gọi với 0 dòng/cột sẽ ném, nên 0 nghĩa là bỏ qua. Bảng có dòng tiêu đề tờ thì phần lặp bắt đầu ở tiêu đề cột
+        // (repeatFirstRow); tiêu đề cột hai tầng lặp thêm một dòng (extraRepeatRows).
+        if (page.RepeatRowsTop > 0)
+            setup.SetRowsToRepeatAtTop(repeatFirstRow, repeatFirstRow + page.RepeatRowsTop - 1 + extraRepeatRows);
         if (page.RepeatColsLeft > 0) setup.SetColumnsToRepeatAtLeft(1, page.RepeatColsLeft);
 
         // AddText nối thêm vào chữ đã có, nên phải xóa trước: áp lại hồ sơ lên cùng một sheet
@@ -151,41 +154,80 @@ public sealed class PrintWorkbookWriter : IPrintWorkbookWriter
 
     private static void WriteTable(IXLWorksheet ws, PrintTableSheet table, PrintFooterInfo footer)
     {
-        ApplyPage(ws, table.Page, footer);
+        var headerRow = table.TitleRowCount + 1;
+        ApplyPage(ws, table.Page, footer, repeatFirstRow: headerRow, extraRepeatRows: table.HeaderRowCount - 1);
 
-        WriteHeader(ws, table.Columns);
+        WriteTitles(ws, table);
+        WriteHeader(ws, table, headerRow);
         for (var r = 0; r < table.Rows.Count; r++)
             WriteRow(ws, table, r);
 
-        DrawGrid(ws, lastRow: table.Rows.Count + 1, columnCount: table.Columns.Count);
+        DrawGrid(ws, headerRow, table.HeaderRowCount, lastRow: headerRow + table.HeaderRowCount - 1 + table.Rows.Count,
+            columnCount: table.Columns.Count);
+    }
+
+    /// Các dòng tiêu đề tờ, gộp ngang cả bề rộng bảng. Dòng đầu cỡ 14 (như tên biểu mẫu), các dòng sau cỡ thường.
+    private static void WriteTitles(IXLWorksheet ws, PrintTableSheet table)
+    {
+        if (table.Titles is not { Count: > 0 } titles || table.Columns.Count == 0) return;
+        for (var i = 0; i < titles.Count; i++)
+        {
+            var range = ws.Range(i + 1, 1, i + 1, table.Columns.Count);
+            range.Merge();
+            range.FirstCell().Value = titles[i];
+            range.Style.Font.Bold = true;
+            if (i == 0) range.Style.Font.FontSize = FormExcelExporter.FontSize + 1;
+            range.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+            range.Style.Alignment.WrapText = true;
+        }
     }
 
     /// Kẻ khung cả bảng (tiêu đề + dữ liệu). Excel mặc định không in đường lưới, nên không kẻ
     /// thì bản in chỉ là chữ rời rạc. Cạnh dưới tiêu đề kẻ đậm hơn để tách phần đầu bảng.
-    private static void DrawGrid(IXLWorksheet ws, int lastRow, int columnCount)
+    private static void DrawGrid(IXLWorksheet ws, int headerRow, int headerRows, int lastRow, int columnCount)
     {
-        var grid = ws.Range(1, 1, lastRow, columnCount).Style.Border;
+        var grid = ws.Range(headerRow, 1, lastRow, columnCount).Style.Border;
         grid.OutsideBorder = GridBorder;
         grid.InsideBorder = GridBorder;
 
         // Cạnh này là của cả hai ô liền kề (đáy tiêu đề, đỉnh dòng dữ liệu đầu). ClosedXML không
         // tự đồng bộ hai bên, nên ghi cả hai để Excel không phải chọn giữa hai nét khác nhau.
-        ws.Range(1, 1, 1, columnCount).Style.Border.BottomBorder = HeaderBottomBorder;
-        if (lastRow > 1)
-            ws.Range(2, 1, 2, columnCount).Style.Border.TopBorder = HeaderBottomBorder;
+        var lastHeaderRow = headerRow + headerRows - 1;
+        ws.Range(lastHeaderRow, 1, lastHeaderRow, columnCount).Style.Border.BottomBorder = HeaderBottomBorder;
+        if (lastRow > lastHeaderRow)
+            ws.Range(lastHeaderRow + 1, 1, lastHeaderRow + 1, columnCount).Style.Border.TopBorder = HeaderBottomBorder;
     }
 
-    private static void WriteHeader(IXLWorksheet ws, IReadOnlyList<PrintColumn> columns)
+    private static void WriteHeader(IXLWorksheet ws, PrintTableSheet table, int headerRow)
     {
+        var columns = table.Columns;
+        if (columns.Count == 0) return;
+        var twoTier = table.HeaderRowCount == 2;
+        var grouped = new HashSet<int>();
+
+        foreach (var (first, count, text) in table.GroupSpans())
+        {
+            var range = ws.Range(headerRow, first + 1, headerRow, first + count);
+            if (count > 1) range.Merge();
+            range.FirstCell().Value = text;
+            for (var c = first; c < first + count; c++) grouped.Add(c);
+        }
+
         for (var c = 0; c < columns.Count; c++)
         {
             ws.Column(c + 1).Width = columns[c].WidthChars;
-            ws.Cell(1, c + 1).Value = columns[c].Header;
+            if (!twoTier) ws.Cell(headerRow, c + 1).Value = columns[c].Header;
+            else if (grouped.Contains(c)) ws.Cell(headerRow + 1, c + 1).Value = columns[c].Header;
+            else
+            {
+                ws.Range(headerRow, c + 1, headerRow + 1, c + 1).Merge();   // cột không nhóm: gộp dọc hai tầng
+                ws.Cell(headerRow, c + 1).Value = columns[c].Header;
+            }
         }
 
         // Tiêu đề căn giữa và tự xuống dòng: cột hẹp mà tên dài ("Tạm ứng chưa thu hồi") sẽ
         // bị cụt chữ nếu không xuống dòng.
-        var style = ws.Range(1, 1, 1, columns.Count).Style;
+        var style = ws.Range(headerRow, 1, headerRow + table.HeaderRowCount - 1, columns.Count).Style;
         style.Font.Bold = true;
         style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
         style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
@@ -200,7 +242,7 @@ public sealed class PrintWorkbookWriter : IPrintWorkbookWriter
             throw new ArgumentException(
                 $"Sheet \"{table.SheetName}\": Rows[{index}] có {row.Cells.Count} ô nhưng bảng chỉ có {columns.Count} cột.");
 
-        var sheetRow = index + 2;   // dòng 1 là tiêu đề cột
+        var sheetRow = table.TitleRowCount + table.HeaderRowCount + index + 1;   // sau tiêu đề tờ và tiêu đề cột
 
         // Đậm và nền đặt cho cả dải cột của bảng, không chỉ ô có chữ — để dải nền liền nhau.
         var rowStyle = ws.Range(sheetRow, 1, sheetRow, columns.Count).Style;

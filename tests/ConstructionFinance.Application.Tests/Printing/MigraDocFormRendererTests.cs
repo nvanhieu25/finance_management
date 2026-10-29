@@ -103,8 +103,19 @@ public class MigraDocFormRendererTests
     {
         var sheet = FormDefinitions.ThongTri.Build(Context()).Sheet;
 
-        MigraDocFormRenderer.UsedRowCount(sheet).ShouldBe(25);                 // tới dòng "Bằng chữ", bỏ hàng 26–33
-        TableOf(Build(sheet, Thong)).Rows.Count.ShouldBe(25);
+        MigraDocFormRenderer.UsedRowCount(sheet).ShouldBe(32);                 // tới dòng họ tên người ký, bỏ hàng 33
+        TableOf(Build(sheet, Thong)).Rows.Count.ShouldBe(32);
+    }
+
+    /// In thử 2026-10-29: Thông tri sang trang hai thì họ tên người ký nằm lẻ một mình đầu trang sau.
+    [Fact]
+    public void Khoi_chu_ky_di_lien_voi_hang_cuoi_cua_bang()
+    {
+        var sheet = FormDefinitions.ThongTri.Build(Context()).Sheet;
+        var table = TableOf(Build(sheet, Thong));
+
+        MigraDocFormRenderer.LastBodyRow(sheet).ShouldBe(24);                       // hàng "Cộng"
+        table.Rows[23]!.KeepWith.ShouldBe(MigraDocFormRenderer.UsedRowCount(sheet) - 24);
     }
 
     [Fact]
@@ -122,8 +133,9 @@ public class MigraDocFormRendererTests
     [Fact]
     public void Scale_is_one_for_widths_and_only_the_one_page_profile_shrinks_the_tall_gdntt()
     {
-        // Bề ngang cả ba vừa A4 dọc nên không co theo bề ngang.
-        MigraDocFormRenderer.ScaleOf(FormDefinitions.ThongTri.Build(Context()).Sheet, Thong).ShouldBe(1.0, 0.0001);
+        // Bề ngang cả ba vừa A4 dọc nên không co theo bề ngang. Thông tri có khối chữ ký thì chỉ tràn nhẹ một trang,
+        // nên co nhẹ cho vừa một tờ (không quá MinOverflowShrink).
+        MigraDocFormRenderer.ScaleOf(FormDefinitions.ThongTri.Build(Context()).Sheet, Thong).ShouldBeInRange(0.85, 1.0);
         MigraDocFormRenderer.ScaleOf(FormDefinitions.KsChi.Build(Context()).Sheet, OnePage).ShouldBeInRange(0.9, 1.0);   // chỉ co nhẹ theo biên an toàn chiều dọc
         var gdntt = FormDefinitions.Gdntt.Build(Context()).Sheet;
         MigraDocFormRenderer.ScaleOf(gdntt, Thong).ShouldBe(1.0, 0.0001);
@@ -210,8 +222,9 @@ public class MigraDocFormRendererTests
     {
         var sheet = FormDefinitions.ThongTri.Build(Context()).Sheet;
         var table = TableOf(Build(sheet, Thong));
+        var scale = MigraDocFormRenderer.ScaleOf(sheet, Thong);
 
-        table.Rows[16]!.Height.Point.ShouldBe(47.25, 0.01);                // hàng 17: đợt
+        table.Rows[16]!.Height.Point.ShouldBe(47.25 * scale, 0.01);        // hàng 17: đợt, theo tỉ lệ co của cả tờ
         table.Rows[16]!.HeightRule.ShouldBe(RowHeightRule.AtLeast);
     }
 

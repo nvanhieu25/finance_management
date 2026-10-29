@@ -31,8 +31,15 @@ public abstract class FormDefinition
     public abstract string Title { get; }
     public abstract string ExportPrefix { get; }
     public abstract string ExportDialogTitle { get; }
+    /// Nguồn mặc định của biểu mẫu (null = mọi nguồn).
     public abstract Fund? FundFilter { get; }
     public abstract PrintPageProfile PrintProfile { get; }
+
+    /// Biểu mẫu cho người dùng tự chọn nguồn trên tab (Thông tri) hay không.
+    public virtual bool UserChoosesFund => false;
+
+    /// Nguồn đang dùng, tính cả lựa chọn người dùng đã lưu cùng chữ đã gõ.
+    public virtual Fund? FundFor(FormInputSet inputs) => FundFilter;
 
     public FormTemplate Template { get; }
 
@@ -50,10 +57,25 @@ public sealed class ThongTriDefinition : FormDefinition
     public override Fund? FundFilter => Fund.NSNN;
     public override PrintPageProfile PrintProfile => PrintPageProfiles.ThongTri;
 
+    /// Khoá lưu nguồn đã chọn, cùng bảng với chữ đã gõ (theo dự án). ĐỔI là mất lựa chọn đã lưu.
+    public const string FundKey = "_nguon";
+
+    public override bool UserChoosesFund => true;
+
+    public override Fund? FundFor(FormInputSet inputs) =>
+        Enum.TryParse<Fund>(inputs.Get(FundKey), out var fund) ? fund : Fund.NSNN;
+
+    public static string FundStoredValue(Fund fund) => fund.ToString();
+
+    /// Chữ sau "Kinh phí: " — NSNN đúng như Mẫu.
+    public static string FundLabel(Fund fund) => fund == Fund.NSNN ? "NSNN" : "Quỹ dự trữ ngoại hối";
+
     public override FormBuildResult Build(FormBuildContext context)
     {
-        var form = ThongTriBuilder.Build(context.Rows, context.Selected, null, context.Org, context.ProjectName);
+        var fund = FundFor(context.Inputs) ?? Fund.NSNN;
+        var form = ThongTriBuilder.Build(context.Rows, context.Selected, null, context.Org, context.ProjectName, fund);
         var values = new FormValues()
+            .Text("KinhPhi", FundLabel(fund))
             .Number("Total", form.Total)
             .Text("TotalInWords", form.TotalInWords);
 

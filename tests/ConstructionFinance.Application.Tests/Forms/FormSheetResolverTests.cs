@@ -9,7 +9,7 @@ public class FormSheetResolverTests
     private static readonly FormOrgInfo Org = new("Sở Tài chính", "Ban QLDA số 1");
 
     private static FormValues ThongTriValues(decimal total = 0m) =>
-        new FormValues().Number("Total", total).Text("TotalInWords", "Không đồng.");
+        new FormValues().Text("KinhPhi", "NSNN").Number("Total", total).Text("TotalInWords", "Không đồng.");
 
     private static ResolvedSheet ResolveThongTri(
         FormInputSet? inputs = null, IReadOnlyList<ThongTriLine>? lines = null, int year = 2031, FormOrgInfo? org = null) =>
@@ -198,7 +198,7 @@ public class FormSheetResolverTests
 
         Should.Throw<InvalidOperationException>(() =>
             FormSheetResolver.Resolve(template, new FormValues(), new FormInputSet(), Org, 2026, lines))
-            .Message.ShouldContain("Total");
+            .Message.ShouldContain("KinhPhi");   // khoá tự tính đầu tiên của Thông tri (hàng 6)
 
         var sheet = FormSheetResolver.Resolve(template, new FormValues { BlankMissing = true },
             new FormInputSet(), Org, 2026, lines);

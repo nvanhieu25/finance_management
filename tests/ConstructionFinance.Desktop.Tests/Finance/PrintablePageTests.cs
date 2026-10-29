@@ -101,6 +101,13 @@ public class PrintablePageTests
         return sheet.Rows[row].Cells[column];
     }
 
+    /// Như CellAt nhưng cho cột dưới một tiêu đề nhóm (Tổng hợp có một cặp NSNN/DTNH cho MỖI năm).
+    private static PrintCell CellAt(PrintTableSheet sheet, int row, string group, string header)
+    {
+        var column = sheet.Columns.Select((c, i) => (c, i)).Single(x => x.c.Group == group && x.c.Header == header).i;
+        return sheet.Rows[row].Cells[column];
+    }
+
     /// Tiêu đề của những cột mà dòng này có ghi gì đó. Đem so với danh sách mong đợi là cách chứng
     /// minh "mọi ô còn lại là ô trống" mà không phải liệt kê từng ô trống. "Trống" theo IsBlank, không phải so với
     /// PrintCell.Empty: bản in lấy thẳng chuỗi rỗng của màn hình nên một ô trống thường là OfText("") chứ không phải Empty.
@@ -380,26 +387,51 @@ public class PrintablePageTests
         sheet.Page.ShouldBe(PrintPageProfiles.ProjectTongHop);
     }
 
+    private const string Klht = "Thanh toán khối lượng hoàn thành";
+
+    /// Đúng các cột của sheet "Tổng hợp" trong Mẫu.xlsx (A6:L7). Fixture() không có tiền nên không có năm nào → không có
+    /// cặp cột Quyết toán năm.
     [Fact]
-    public void Tong_hop_co_dung_tieu_de_be_rong_va_canh_cua_13_cot()
+    public void Tong_hop_co_12_cot_co_dinh_theo_Mau()
     {
-        AssertColumns(TongHopSheet(Fixture()),
-            new("STT", 5, PrintAlign.Center),
-            new("Tên vị trí", 30, PrintAlign.Left),
-            new("Đơn vị thi công", 24, PrintAlign.Left),
-            new("Giá trị HĐ, PL", 16, PrintAlign.Right),
-            new("Tạm ứng", 16, PrintAlign.Right),
-            new("TT KLHT", 16, PrintAlign.Right),
-            new("Thu hồi", 16, PrintAlign.Right),
-            new("TT cho nhà thầu", 16, PrintAlign.Right),
-            new("Tạm ứng chưa thu hồi", 16, PrintAlign.Right),
-            new("GN Dự phòng NSNN", 16, PrintAlign.Right),
-            new("GN Quỹ DTNH", 16, PrintAlign.Right),
-            new("Tổng đã giải ngân", 16, PrintAlign.Right),
-            new("Quyết toán năm", 28, PrintAlign.Left));
+        var sheet = TongHopSheet(Fixture());
+
+        AssertColumns(sheet,
+            new("Số TT", 5, PrintAlign.Center),
+            new("Tên vị trí", 26, PrintAlign.Left),
+            new("Đơn vị thi công xây lắp", 20, PrintAlign.Left),
+            new("Giá trị HĐ, PLHĐ xây lắp", 17, PrintAlign.Right),
+            new("Tạm ứng", 17, PrintAlign.Right),
+            new("TT khối lượng hoàn thành", 17, PrintAlign.Right, Klht),
+            new("Thu hồi tạm ứng", 17, PrintAlign.Right, Klht),
+            new("TT tiền cho nhà thầu", 17, PrintAlign.Right, Klht),
+            new("Tạm ứng chưa thu hồi", 17, PrintAlign.Right),
+            new("Giải ngân từ Dự phòng NSNN", 17, PrintAlign.Right),
+            new("Giải ngân từ Quỹ dự trữ ngoại hối", 17, PrintAlign.Right),
+            new("Tổng giá trị đã giải ngân", 17, PrintAlign.Right));
+        sheet.HeaderRowCount.ShouldBe(2);
+        sheet.Titles.ShouldNotBeNull().ShouldContain("NGUỒN KINH PHÍ ĐẦU TƯ XÂY DỰNG");
     }
 
-    private const string RichYearlyText = "2026: NSNN 5.250.000  |  2027: DTNH 1.500.000";
+    /// Như Mẫu (M6:N6 "Quyết toán năm 2026", O6:P6 "Quyết toán năm 2027"): mỗi năm có số thêm một cặp NSNN/DTNH.
+    [Fact]
+    public void Tong_hop_co_mot_cap_cot_NSNN_DTNH_cho_moi_nam_co_so()
+    {
+        var sheet = TongHopSheet(RichFixture());
+
+        sheet.Columns.Skip(12).Select(c => (c.Group, c.Header)).ShouldBe(new (string?, string)[]
+        {
+            ("Quyết toán năm 2026", "NSNN"), ("Quyết toán năm 2026", "DTNH"),
+            ("Quyết toán năm 2027", "NSNN"), ("Quyết toán năm 2027", "DTNH"),
+        });
+        foreach (var row in new[] { 0, 1 })
+        {
+            CellAt(sheet, row, "Quyết toán năm 2026", "NSNN").ShouldBe(PrintCell.OfMoney(5_250_000m));
+            CellAt(sheet, row, "Quyết toán năm 2026", "DTNH").ShouldBe(PrintCell.Empty);
+            CellAt(sheet, row, "Quyết toán năm 2027", "NSNN").ShouldBe(PrintCell.Empty);
+            CellAt(sheet, row, "Quyết toán năm 2027", "DTNH").ShouldBe(PrintCell.OfMoney(1_500_000m));
+        }
+    }
 
     [Fact]
     public void Tong_hop_ghi_tien_thanh_SO_that_con_chu_va_nhan_giu_nguyen()
@@ -408,18 +440,16 @@ public class PrintablePageTests
 
         sheet.Rows.Count.ShouldBe(2);   // một Vị trí + TỔNG CỘNG
 
-        CellAt(sheet, 0, "STT").ShouldBe(PrintCell.OfText("1"));
+        CellAt(sheet, 0, "Số TT").ShouldBe(PrintCell.OfText("1"));
         CellAt(sheet, 0, "Tên vị trí").ShouldBe(PrintCell.OfText("Vị trí 1 — Nhà điều hành"));
-        CellAt(sheet, 0, "Đơn vị thi công").ShouldBe(PrintCell.OfText("Công ty An Phát"));
-        CellAt(sheet, 0, "Quyết toán năm").ShouldBe(PrintCell.OfText(RichYearlyText));
+        CellAt(sheet, 0, "Đơn vị thi công xây lắp").ShouldBe(PrintCell.OfText("Công ty An Phát"));
         AssertTongHopMoney(sheet, 0);
         sheet.Rows[0].IsBold.ShouldBeFalse();
 
         // Dòng TỔNG CỘNG: STT và Đơn vị thi công để trống; cùng số với dòng trên vì chỉ có một Vị trí.
         CellAt(sheet, 1, "Tên vị trí").ShouldBe(PrintCell.OfText("TỔNG CỘNG"));
-        IsBlank(CellAt(sheet, 1, "STT")).ShouldBeTrue();
-        IsBlank(CellAt(sheet, 1, "Đơn vị thi công")).ShouldBeTrue();
-        CellAt(sheet, 1, "Quyết toán năm").ShouldBe(PrintCell.OfText(RichYearlyText));
+        IsBlank(CellAt(sheet, 1, "Số TT")).ShouldBeTrue();
+        IsBlank(CellAt(sheet, 1, "Đơn vị thi công xây lắp")).ShouldBeTrue();
         AssertTongHopMoney(sheet, 1);
         sheet.Rows[1].IsBold.ShouldBeTrue();
     }
@@ -435,25 +465,27 @@ public class PrintablePageTests
 
         FilledHeaders(sheet, 1).ShouldBe(new[]
         {
-            "Tên vị trí", "Giá trị HĐ, PL", "Tạm ứng", "TT KLHT", "Thu hồi", "TT cho nhà thầu",
-            "Tạm ứng chưa thu hồi", "GN Dự phòng NSNN", "GN Quỹ DTNH", "Tổng đã giải ngân", "Quyết toán năm",
+            "Tên vị trí", "Giá trị HĐ, PLHĐ xây lắp", "Tạm ứng", "TT khối lượng hoàn thành", "Thu hồi tạm ứng",
+            "TT tiền cho nhà thầu", "Tạm ứng chưa thu hồi", "Giải ngân từ Dự phòng NSNN",
+            "Giải ngân từ Quỹ dự trữ ngoại hối", "Tổng giá trị đã giải ngân",
+            "NSNN", "DTNH",   // Quyết toán năm 2026 · NSNN, Quyết toán năm 2027 · DTNH
         });
     }
 
     /// Chín cột tiền của Tổng hợp là SỐ thật (kiểu Money) chứ không phải chuỗi "5.250.000" của màn
-    /// hình, để chọn một vùng trong Excel là thấy tổng. "TT cho nhà thầu" và "Tổng đã giải ngân" cùng
-    /// lấy từ một số (TotalDisbursed) — đúng như màn hình (SummaryDisplayRow.From); bản in giữ nguyên.
+    /// hình, để chọn một vùng trong Excel là thấy tổng. "TT tiền cho nhà thầu" và "Tổng giá trị đã giải ngân" cùng
+    /// lấy từ một số (TotalDisbursed) — Mẫu cũng trỏ cả hai về cùng một ô.
     private static void AssertTongHopMoney(PrintTableSheet sheet, int row)
     {
-        CellAt(sheet, row, "Giá trị HĐ, PL").ShouldBe(PrintCell.OfMoney(86_000_000m));
+        CellAt(sheet, row, "Giá trị HĐ, PLHĐ xây lắp").ShouldBe(PrintCell.OfMoney(86_000_000m));
         CellAt(sheet, row, "Tạm ứng").ShouldBe(PrintCell.OfMoney(4_750_000m));
-        CellAt(sheet, row, "TT KLHT").ShouldBe(PrintCell.OfMoney(2_800_000m));
-        CellAt(sheet, row, "Thu hồi").ShouldBe(PrintCell.OfMoney(800_000m));
-        CellAt(sheet, row, "TT cho nhà thầu").ShouldBe(PrintCell.OfMoney(6_750_000m));
+        CellAt(sheet, row, "TT khối lượng hoàn thành").ShouldBe(PrintCell.OfMoney(2_800_000m));
+        CellAt(sheet, row, "Thu hồi tạm ứng").ShouldBe(PrintCell.OfMoney(800_000m));
+        CellAt(sheet, row, "TT tiền cho nhà thầu").ShouldBe(PrintCell.OfMoney(6_750_000m));
         CellAt(sheet, row, "Tạm ứng chưa thu hồi").ShouldBe(PrintCell.OfMoney(3_950_000m));
-        CellAt(sheet, row, "GN Dự phòng NSNN").ShouldBe(PrintCell.OfMoney(5_250_000m));
-        CellAt(sheet, row, "GN Quỹ DTNH").ShouldBe(PrintCell.OfMoney(1_500_000m));
-        CellAt(sheet, row, "Tổng đã giải ngân").ShouldBe(PrintCell.OfMoney(6_750_000m));
+        CellAt(sheet, row, "Giải ngân từ Dự phòng NSNN").ShouldBe(PrintCell.OfMoney(5_250_000m));
+        CellAt(sheet, row, "Giải ngân từ Quỹ dự trữ ngoại hối").ShouldBe(PrintCell.OfMoney(1_500_000m));
+        CellAt(sheet, row, "Tổng giá trị đã giải ngân").ShouldBe(PrintCell.OfMoney(6_750_000m));
     }
 
     [Fact]
@@ -479,19 +511,23 @@ public class PrintablePageTests
         var sheet = (PrintTableSheet)new YearSettlementPageViewModel(inner).BuildPrintSheet()!;
 
         sheet.SheetName.ShouldBe("Quyết toán năm");
-        sheet.Columns.Count.ShouldBe(4);
+        sheet.Columns.Count.ShouldBe(5);
         sheet.Rows.Count.ShouldBe(inner.Rows.Count);
         sheet.Page.ShouldBe(PrintPageProfiles.YearSettlement);
     }
 
     [Fact]
-    public void Quyet_toan_nam_co_dung_tieu_de_be_rong_va_canh_cua_4_cot()
+    public void Quyet_toan_nam_co_dung_tieu_de_be_rong_va_canh_cua_5_cot()
     {
-        AssertColumns(QuyetToanSheet(Fixture()),
-            new("Năm", 12, PrintAlign.Center),
-            new("NSNN", 18, PrintAlign.Right),
-            new("Ngoại hối", 18, PrintAlign.Right),
-            new("Tổng", 18, PrintAlign.Right));
+        var sheet = QuyetToanSheet(Fixture());
+
+        AssertColumns(sheet,
+            new("Số TT", 6, PrintAlign.Center),
+            new("Năm tài chính", 22, PrintAlign.Left),
+            new("Dự phòng NSNN", 18, PrintAlign.Right, "Giá trị giải ngân"),
+            new("Quỹ dự trữ ngoại hối", 18, PrintAlign.Right, "Giá trị giải ngân"),
+            new("Tổng cộng", 18, PrintAlign.Right));
+        sheet.Titles.ShouldNotBeNull().ShouldContain("QUYẾT TOÁN THEO NĂM TÀI CHÍNH");
     }
 
     [Fact]
@@ -501,20 +537,23 @@ public class PrintablePageTests
 
         sheet.Rows.Count.ShouldBe(3);   // hai năm tài chính + TỔNG CỘNG
 
-        CellAt(sheet, 0, "Năm").ShouldBe(PrintCell.OfText("Quyết toán năm 2026"));
-        CellAt(sheet, 0, "NSNN").ShouldBe(PrintCell.OfMoney(5_250_000m));
-        CellAt(sheet, 0, "Ngoại hối").ShouldBe(PrintCell.Empty);          // 0 ra ô trống
-        CellAt(sheet, 0, "Tổng").ShouldBe(PrintCell.OfMoney(5_250_000m));
+        CellAt(sheet, 0, "Số TT").ShouldBe(PrintCell.OfText("1"));
+        CellAt(sheet, 0, "Năm tài chính").ShouldBe(PrintCell.OfText("Quyết toán năm 2026"));
+        CellAt(sheet, 0, "Dự phòng NSNN").ShouldBe(PrintCell.OfMoney(5_250_000m));
+        CellAt(sheet, 0, "Quỹ dự trữ ngoại hối").ShouldBe(PrintCell.Empty);          // 0 ra ô trống
+        CellAt(sheet, 0, "Tổng cộng").ShouldBe(PrintCell.OfMoney(5_250_000m));
 
-        CellAt(sheet, 1, "Năm").ShouldBe(PrintCell.OfText("Quyết toán năm 2027"));
-        CellAt(sheet, 1, "NSNN").ShouldBe(PrintCell.Empty);
-        CellAt(sheet, 1, "Ngoại hối").ShouldBe(PrintCell.OfMoney(1_500_000m));
-        CellAt(sheet, 1, "Tổng").ShouldBe(PrintCell.OfMoney(1_500_000m));
+        CellAt(sheet, 1, "Số TT").ShouldBe(PrintCell.OfText("2"));
+        CellAt(sheet, 1, "Năm tài chính").ShouldBe(PrintCell.OfText("Quyết toán năm 2027"));
+        CellAt(sheet, 1, "Dự phòng NSNN").ShouldBe(PrintCell.Empty);
+        CellAt(sheet, 1, "Quỹ dự trữ ngoại hối").ShouldBe(PrintCell.OfMoney(1_500_000m));
+        CellAt(sheet, 1, "Tổng cộng").ShouldBe(PrintCell.OfMoney(1_500_000m));
 
-        CellAt(sheet, 2, "Năm").ShouldBe(PrintCell.OfText("TỔNG CỘNG"));
-        CellAt(sheet, 2, "NSNN").ShouldBe(PrintCell.OfMoney(5_250_000m));
-        CellAt(sheet, 2, "Ngoại hối").ShouldBe(PrintCell.OfMoney(1_500_000m));
-        CellAt(sheet, 2, "Tổng").ShouldBe(PrintCell.OfMoney(6_750_000m));
+        IsBlank(CellAt(sheet, 2, "Số TT")).ShouldBeTrue();                            // dòng tổng không đánh số
+        CellAt(sheet, 2, "Năm tài chính").ShouldBe(PrintCell.OfText("TỔNG CỘNG"));
+        CellAt(sheet, 2, "Dự phòng NSNN").ShouldBe(PrintCell.OfMoney(5_250_000m));
+        CellAt(sheet, 2, "Quỹ dự trữ ngoại hối").ShouldBe(PrintCell.OfMoney(1_500_000m));
+        CellAt(sheet, 2, "Tổng cộng").ShouldBe(PrintCell.OfMoney(6_750_000m));
 
         sheet.Rows.Select(r => r.IsBold).ShouldBe(new[] { false, false, true });
     }
@@ -527,8 +566,8 @@ public class PrintablePageTests
         inner.Rows.Add(new YearSettlementRow { YearLabel = "Dòng dựng tay", NSNN = "1.000", Total = "1.000" });
         var sheet = (PrintTableSheet)new YearSettlementPageViewModel(inner).BuildPrintSheet()!;
 
-        CellAt(sheet, 0, "Năm").ShouldBe(PrintCell.OfText("Dòng dựng tay"));
-        foreach (var header in new[] { "NSNN", "Ngoại hối", "Tổng" })
+        CellAt(sheet, 0, "Năm tài chính").ShouldBe(PrintCell.OfText("Dòng dựng tay"));
+        foreach (var header in new[] { "Dự phòng NSNN", "Quỹ dự trữ ngoại hối", "Tổng cộng" })
             CellAt(sheet, 0, header).ShouldBe(PrintCell.Empty, header);
     }
 
@@ -543,9 +582,10 @@ public class PrintablePageTests
             "Giá trị HĐ", "Phụ lục", "Tạm ứng", "KLHT", "Thu hồi",
             "GN NSNN", "GN Ngoại hối", "Số dư TU", "Tổng đã GN");
         AssertMoneyColumnsAreEmpty(TongHopSheet(Fixture()),
-            "Giá trị HĐ, PL", "Tạm ứng", "TT KLHT", "Thu hồi", "TT cho nhà thầu",
-            "Tạm ứng chưa thu hồi", "GN Dự phòng NSNN", "GN Quỹ DTNH", "Tổng đã giải ngân");
-        AssertMoneyColumnsAreEmpty(QuyetToanSheet(Fixture()), "NSNN", "Ngoại hối", "Tổng");
+            "Giá trị HĐ, PLHĐ xây lắp", "Tạm ứng", "TT khối lượng hoàn thành", "Thu hồi tạm ứng", "TT tiền cho nhà thầu",
+            "Tạm ứng chưa thu hồi", "Giải ngân từ Dự phòng NSNN", "Giải ngân từ Quỹ dự trữ ngoại hối",
+            "Tổng giá trị đã giải ngân");
+        AssertMoneyColumnsAreEmpty(QuyetToanSheet(Fixture()), "Dự phòng NSNN", "Quỹ dự trữ ngoại hối", "Tổng cộng");
     }
 
     private static void AssertMoneyColumnsAreEmpty(PrintTableSheet sheet, params string[] moneyColumns)
@@ -588,9 +628,17 @@ public class PrintablePageTests
             .ShouldBe(new[] { "Tổng hợp", "Vị trí 1 — Nhà điều hành", "Quyết toán năm" });
 
         // Ở cả ba sheet tiền ra tệp là số thật, để chọn một vùng trong Excel là thấy tổng.
-        AssertNumber(workbook, "Tổng hợp", row: 2, column: 4, expected: 86_000_000);                   // Giá trị HĐ, PL
+        // Tổng hợp và Quyết toán năm: 2 dòng tiêu đề tờ + 1 dòng trống + 2 tầng tiêu đề cột → dữ liệu từ dòng 6.
+        AssertNumber(workbook, "Tổng hợp", row: 6, column: 4, expected: 86_000_000);                   // Giá trị HĐ, PLHĐ
         AssertNumber(workbook, "Vị trí 1 — Nhà điều hành", row: 2, column: 14, expected: 6_750_000);   // TỔNG CỘNG · Tổng đã GN
-        AssertNumber(workbook, "Quyết toán năm", row: 2, column: 2, expected: 5_250_000);              // năm 2026 · NSNN
+        AssertNumber(workbook, "Quyết toán năm", row: 6, column: 3, expected: 5_250_000);              // năm 2026 · NSNN
+
+        var tongHopSheet = workbook.Worksheet("Tổng hợp");
+        tongHopSheet.Cell(1, 1).GetString().ShouldBe("NGUỒN KINH PHÍ ĐẦU TƯ XÂY DỰNG");
+        tongHopSheet.Cell(4, 6).GetString().ShouldBe("Thanh toán khối lượng hoàn thành");        // tầng trên, gộp F4:H4
+        tongHopSheet.Range(4, 6, 4, 8).IsMerged().ShouldBeTrue();
+        tongHopSheet.Cell(5, 6).GetString().ShouldBe("TT khối lượng hoàn thành");
+        tongHopSheet.Range(4, 1, 5, 1).IsMerged().ShouldBeTrue();                                // "Số TT" gộp dọc hai tầng
     }
 
     private static void AssertNumber(XLWorkbook workbook, string sheet, int row, int column, double expected)

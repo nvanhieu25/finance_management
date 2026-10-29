@@ -13,14 +13,28 @@ namespace ConstructionFinance.Desktop.ViewModels.Finance.Forms;
 /// nằm trong form, nên SelectionSummary luôn hiện số đang chọn.
 public partial class FormDotPickerViewModel : ViewModelBase, IHasDialogTitle, IHasPrimaryButtonText
 {
-    private readonly Fund? _fundFilter;
+    private Fund? _fundFilter;
 
     // Danh tính lựa chọn theo Token của từng dòng (xem FormDotItemViewModel.Token).
     private readonly HashSet<object> _selectedTokens = new();
 
     private List<FormDotItemViewModel> _allItems = new();
 
+    // Lần Refresh gần nhất, để đổi nguồn thì lọc lại được mà không cần workbook gọi lại.
+    private IReadOnlyList<FormDotRow> _rows = Array.Empty<FormDotRow>();
+    private IReadOnlyList<LedgerRowViewModel> _sources = Array.Empty<LedgerRowViewModel>();
+
     public FormDotPickerViewModel(Fund? fundFilter) => _fundFilter = fundFilter;
+
+    public Fund? FundFilter => _fundFilter;
+
+    /// Đổi nguồn (Thông tri). Đợt của nguồn cũ rời khỏi lựa chọn — tờ chỉ nói về một nguồn.
+    public void SetFundFilter(Fund? fund)
+    {
+        if (_fundFilter == fund) return;
+        _fundFilter = fund;
+        Refresh(_rows, _sources);
+    }
 
     /// Tiêu đề hộp thoại (ghi theo biểu mẫu: "Chọn đợt — Thông tri").
     public string Title { get; init; } = "Chọn đợt";
@@ -59,6 +73,8 @@ public partial class FormDotPickerViewModel : ViewModelBase, IHasDialogTitle, IH
     /// bám theo khóa thay vì theo đối tượng dòng.
     public void Refresh(IReadOnlyList<FormDotRow> rows, IReadOnlyList<LedgerRowViewModel> sources)
     {
+        _rows = rows;
+        _sources = sources;
         var usable = sources.Count == rows.Count ? sources : Array.Empty<LedgerRowViewModel>();
 
         var items = new List<FormDotItemViewModel>();

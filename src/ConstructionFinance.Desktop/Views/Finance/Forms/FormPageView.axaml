@@ -2,29 +2,42 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:ConstructionFinance.Desktop.ViewModels.Finance.Forms"
              xmlns:v="using:ConstructionFinance.Desktop.Views.Finance.Forms"
+             xmlns:f="using:ConstructionFinance.Desktop.Views.Finance"
              x:Class="ConstructionFinance.Desktop.Views.Finance.Forms.FormPageView"
              x:DataType="vm:FormPageViewModel">
     <DockPanel>
         <Border DockPanel.Dock="Top" Classes="toolbarStrip" Margin="0,0,0,6">
-            <StackPanel Orientation="Horizontal">
-                <Button Classes="toolbar" Command="{Binding ChooseDotsCommand}"
-                        Content="{Binding ChooseDotsText}" Margin="0,0,8,0"/>
-                <Button Classes="toolbar accent" Command="{Binding ExportCommand}"
-                        Content="Xuất Excel" Margin="0,0,12,0"/>
-                <Button x:Name="ResetLayoutButton" Classes="toolbar" Command="{Binding ResetLayoutCommand}"
-                        Content="Đặt lại cỡ ô" Margin="0,0,12,0"
-                        ToolTip.Tip="Kéo biên cột/hàng để đổi cỡ ô; nút này đưa về đúng cỡ của Mẫu"/>
-                <Button x:Name="ZoomOutButton" Classes="toolbar" Content="−" Margin="0,0,2,0"
-                        ToolTip.Tip="Thu nhỏ (Ctrl + lăn chuột)"/>
-                <Button x:Name="ZoomResetButton" Classes="toolbar" Content="100%" MinWidth="56" Margin="0,0,2,0"
-                        ToolTip.Tip="Về cỡ gốc của Mẫu"/>
-                <Button x:Name="ZoomInButton" Classes="toolbar" Content="+" Margin="0,0,12,0"
-                        ToolTip.Tip="Phóng to (Ctrl + lăn chuột)"/>
-                <TextBlock Text="{Binding StatusText}" Classes="muted" VerticalAlignment="Center"
-                           IsVisible="{Binding !HasError}"/>
-                <TextBlock Text="{Binding StatusText}" Foreground="#B00020" FontWeight="SemiBold"
-                           VerticalAlignment="Center" IsVisible="{Binding HasError}"/>
-            </StackPanel>
+            <!-- Trái: tờ này nói về cái gì (nguồn, đợt). Phải: làm gì với tờ (cỡ ô, phóng to, xuất). -->
+            <Grid ColumnDefinitions="Auto,*,Auto">
+                <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                    <StackPanel Orientation="Horizontal" Spacing="6" IsVisible="{Binding CanChooseFund}">
+                        <TextBlock Text="Kinh phí:" Classes="formLabel" VerticalAlignment="Center"/>
+                        <ComboBox x:Name="FundBox" MinWidth="120"
+                                  ItemsSource="{x:Static f:FundOptions.Names}"
+                                  SelectedIndex="{Binding FundIndex}"
+                                  ToolTip.Tip="Thông tri lấy các đợt của nguồn này"/>
+                    </StackPanel>
+                    <Button Classes="toolbar" Command="{Binding ChooseDotsCommand}"
+                            Content="{Binding ChooseDotsText}"/>
+                    <TextBlock Text="{Binding StatusText}" Classes="muted" VerticalAlignment="Center"
+                               Margin="4,0,0,0" IsVisible="{Binding !HasError}"/>
+                    <TextBlock Text="{Binding StatusText}" Foreground="#B00020" FontWeight="SemiBold"
+                               VerticalAlignment="Center" Margin="4,0,0,0" IsVisible="{Binding HasError}"/>
+                </StackPanel>
+
+                <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="2" VerticalAlignment="Center">
+                    <Button x:Name="ResetLayoutButton" Classes="toolbar" Command="{Binding ResetLayoutCommand}"
+                            Content="Đặt lại cỡ ô" Margin="0,0,10,0"
+                            ToolTip.Tip="Kéo biên cột/hàng để đổi cỡ ô; nút này đưa về đúng cỡ của Mẫu"/>
+                    <Button x:Name="ZoomOutButton" Classes="toolbar" Content="−"
+                            ToolTip.Tip="Thu nhỏ (Ctrl + lăn chuột)"/>
+                    <Button x:Name="ZoomResetButton" Classes="toolbar" Content="100%" MinWidth="56"
+                            ToolTip.Tip="Về cỡ gốc của Mẫu"/>
+                    <Button x:Name="ZoomInButton" Classes="toolbar" Content="+" Margin="0,0,10,0"
+                            ToolTip.Tip="Phóng to (Ctrl + lăn chuột)"/>
+                    <Button Classes="toolbar accent" Command="{Binding ExportCommand}" Content="Xuất Excel"/>
+                </StackPanel>
+            </Grid>
         </Border>
 
         <ScrollViewer x:Name="SheetScroll" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto"

@@ -12,4 +12,7 @@ public record CompanyInfoDto(
     // Hai tên in trên đầu Thông tri và GĐNTT. Tham số tùy chọn ở cuối để mọi
     // lời gọi 8 tham số đang có vẫn biên dịch nguyên vẹn.
     string? DonViCapTren = null,
-    string? DonViCoSo = null);
+    string? DonViCoSo = null,
+    // Họ tên hai người ký cuối Thông tri. Cũng dùng chung mọi dự án.
+    string? NguoiLap = null,
+    string? ThuTruongDonVi = null);

@@ -20,7 +20,9 @@ public sealed class WindowsPrinterPort : IPrinterPort
     public Task PrintAsync(PrinterJob job, CancellationToken ct = default) =>
         Task.Run(() => Print(job), ct);
 
-    private static void Print(PrinterJob job)
+    /// `controller` chỉ để kiểm thử: PreviewPrintController vẽ từng trang ra ảnh qua ĐÚNG trình điều khiển
+    /// của máy in, không tốn giấy. null = in thật.
+    private static void Print(PrinterJob job, PrintController? controller = null)
     {
         // ---- RANH GIỚI try: TRÊN đây là MigraDoc, DƯỚI kia là trình điều khiển máy in. ----
         // Dàn trang NẰM NGOÀI try, cố ý. Một lỗi ở đây là lỗi của CHÚNG TA, không phải của máy
@@ -50,6 +52,7 @@ public sealed class WindowsPrinterPort : IPrinterPort
         try
         {
             using var printDocument = new PrintDocument();
+            if (controller is not null) printDocument.PrintController = controller;
             printDocument.PrinterSettings.PrinterName = job.PrinterName;
             printDocument.PrinterSettings.Copies = (short)job.Copies;   // PrinterJob đã kẹp 1..99
             // Hộp thoại cho gõ 1..99 bản. Mặc định của trình điều khiển có thể là KHÔNG ghép bộ,
@@ -60,28 +63,6 @@ public sealed class WindowsPrinterPort : IPrinterPort
             // dùng chung, nhân viên không tìm được lệnh của mình, và nhật ký in ghi "document" cho
             // tất cả. Tên dự án là thứ phân biệt được.
             printDocument.DocumentName = job.DocumentName;
-
-            // ---- GỐC TOẠ ĐỘ TRANG ----
-            // Mặc định OriginAtMargins = false đặt gốc của e.Graphics ở góc trên-trái vùng IN ĐƯỢC,
-            // tức đã thụt vào so với góc TỜ GIẤY đúng bằng lề cứng của máy in (4-5mm với máy laser).
-            // MigraDoc dàn trang từ góc tờ giấy, nên cả trang in ra bị dịch xuống và sang phải
-            // chừng ấy. Không chỉ là lệch cho xấu: FooterDistance = 0,18" = 4,57mm từ mép dưới tờ
-            // giấy, cộng thêm 4,5mm dịch xuống là chân trang nằm HẲN trong dải không in được —
-            // tên dự án và "Trang x/y" mất ở mọi trang của cả sáu tài liệu.
-            //
-            // OriginAtMargins = true khiến .NET dịch gốc đi −hardMargin rồi dịch tiếp theo
-            // DefaultPageSettings.Margins; cho lề đó bằng 0 thì còn lại ĐÚNG gốc góc-tờ-giấy mà
-            // MigraDoc giả định, trong khi MigraDoc vẫn tự áp lề của nó. Cho lề 0 là an toàn: GDI
-            // vẫn cắt theo vùng in được dù lề khai bao nhiêu.
-            //
-            // PHẦN CÒN LẠI CHƯA CHẮC, nói thẳng ra đây: .NET tính hai bước dịch ấy bằng đơn vị
-            // 1/100 inch (GraphicsUnit.Display của một DC máy in). Nếu PDFsharp đổi PageUnit của
-            // Graphics sang Point thì con số dịch bị đọc lại ở 1/72 inch mỗi đơn vị, tức lệch đi
-            // theo đúng tỉ số 72/100, và còn dư cỡ 1-2mm thay vì 4,5mm — chưa ai chạy thử nên chưa
-            // biết dư về phía nào. Dù về phía nào thì cũng KHÔNG xấu hơn hiện trạng: dư 1-2mm vẫn
-            // để chân trang ngoài dải không in được, còn không bù gì thì chắc chắn mất chân trang.
-            printDocument.OriginAtMargins = true;
-            printDocument.DefaultPageSettings.Margins = new Margins(0, 0, 0, 0);
 
             // Khổ A4 tra MỘT LẦN, ngoài handler. Mỗi lần đọc PrinterSettings.PaperSizes là một
             // vòng hỏi trình điều khiển; để trong QueryPageSettings thì lệnh 50 trang hỏi 50 lần
@@ -113,13 +94,22 @@ public sealed class WindowsPrinterPort : IPrinterPort
                 var graphics = args.Graphics
                     ?? throw new InvalidOperationException("Hệ thống không cấp mặt vẽ cho trang in.");
 
-                // args.PageBounds tính bằng 1/100 inch, còn XSize KHÔNG mang đơn vị theo mình —
-                // overload hai tham số coi nó là point. Chia 100 rồi nói rõ XGraphicsUnit.Inch để
-                // không còn phải đoán: đây đúng là bề rộng/chiều cao trang tính bằng inch.
-                using var gfx = XGraphics.FromGraphics(
-                    graphics,
-                    new XSize(args.PageBounds.Width / 100.0, args.PageBounds.Height / 100.0),
-                    XGraphicsUnit.Inch);
+                // Đây là cách in của chính mẫu MigraDoc (MigraDocPrintDocument). Bản trước khai
+                // XGraphicsUnit.Inch, mà MigraDoc vẫn vẽ toạ độ bằng point: mọi thứ phóng to ~72 lần
+                // và rơi hết ra ngoài tờ giấy — máy in thật in ra tờ TRẮNG TRƠN (người dùng báo
+                // 2026-10-29 trên Brother HL-L2360D).
+                //
+                // Gốc của args.Graphics là góc VÙNG IN ĐƯỢC, thụt vào đúng bằng lề cứng của máy in;
+                // MigraDoc dàn từ góc TỜ GIẤY, nên lùi gốc về đó. Đơn vị của DC máy in là 1/100 inch,
+                // cùng đơn vị với HardMarginX/Y. GDI vẫn tự cắt phần ngoài vùng in được.
+                graphics.TranslateTransform(-args.PageSettings.HardMarginX, -args.PageSettings.HardMarginY);
+                // Rồi đổi 1/100 inch → point để MigraDoc vẽ đúng cỡ.
+                const float pointsToDisplay = 100f / 72f;
+                graphics.ScaleTransform(pointsToDisplay, pointsToDisplay);
+
+                // PageBounds (1/100 inch, đã đổi chiều theo hướng giấy) → point.
+                var size = new XSize(args.PageBounds.Width / 100.0 * 72, args.PageBounds.Height / 100.0 * 72);
+                using var gfx = XGraphics.FromGraphics(graphics, size);
                 renderer.RenderPage(gfx, page);
 
                 args.HasMorePages = page < formatted.PageCount;

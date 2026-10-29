@@ -167,6 +167,8 @@ public sealed class MigraDocBuilder : IMigraDocBuilder
 
         var scale = ExcelFitScale.ScaleFor(sheet.Columns.Select(column => column.WidthChars), sheet.Page.Orientation);
 
+        WriteTitles(section, sheet, scale);
+
         var table = section.AddTable();
         table.Format.Font.Size = Unit.FromPoint(FormExcelExporter.FontSize * scale);
         table.Borders.Width = Unit.FromPoint(GridBorderPoints);
@@ -177,27 +179,60 @@ public sealed class MigraDocBuilder : IMigraDocBuilder
             added.Format.Alignment = ToMigraDoc(column.Align);
         }
 
-        WriteHeaderRow(table, sheet.Columns);
+        WriteHeaderRows(table, sheet);
 
         for (var index = 0; index < sheet.Rows.Count; index++)
             WriteRow(table, sheet, index, scale);
     }
 
-    private static void WriteHeaderRow(Table table, IReadOnlyList<PrintColumn> columns)
+    /// Dòng tiêu đề tờ phía trên bảng, như đường .xlsx: đậm, căn giữa, dòng đầu to hơn một cỡ, cách bảng một dòng.
+    private static void WriteTitles(Section section, PrintTableSheet sheet, double scale)
     {
-        var row = table.AddRow();
-        row.Format.Font.Bold = true;
+        if (sheet.Titles is not { Count: > 0 } titles) return;
+        for (var i = 0; i < titles.Count; i++)
+        {
+            var paragraph = section.AddParagraph(titles[i]);
+            paragraph.Format.Alignment = ParagraphAlignment.Center;
+            paragraph.Format.Font.Bold = true;
+            paragraph.Format.Font.Size = Unit.FromPoint((FormExcelExporter.FontSize + (i == 0 ? 1 : 0)) * scale);
+            if (i == titles.Count - 1) paragraph.Format.SpaceAfter = Unit.FromPoint(FormExcelExporter.FontSize * scale);
+        }
+    }
 
-        // HeadingFormat: MigraDoc lặp lại dòng này ở đầu MỖI trang. Đúng việc
-        // PageSetup.SetRowsToRepeatAtTop làm cho đường .xlsx.
-        row.HeadingFormat = true;
-        row.Borders.Bottom.Width = Unit.FromPoint(HeaderBorderPoints);
-        row.VerticalAlignment = VerticalAlignment.Center;
+    private static void WriteHeaderRows(Table table, PrintTableSheet sheet)
+    {
+        var columns = sheet.Columns;
+        var rows = Enumerable.Range(0, sheet.HeaderRowCount).Select(_ => table.AddRow()).ToList();
+        foreach (var row in rows)
+        {
+            row.Format.Font.Bold = true;
+            // HeadingFormat: MigraDoc lặp lại dòng này ở đầu MỖI trang. Đúng việc
+            // PageSetup.SetRowsToRepeatAtTop làm cho đường .xlsx.
+            row.HeadingFormat = true;
+            row.VerticalAlignment = VerticalAlignment.Center;
+        }
+        rows[^1].Borders.Bottom.Width = Unit.FromPoint(HeaderBorderPoints);
+
+        var grouped = new HashSet<int>();
+        if (rows.Count == 2)
+            foreach (var (first, count, text) in sheet.GroupSpans())
+            {
+                var cell = rows[0].Cells[first]!;
+                if (count > 1) cell.MergeRight = count - 1;
+                cell.AddParagraph(text).Format.Alignment = ParagraphAlignment.Center;
+                for (var c = first; c < first + count; c++) grouped.Add(c);
+            }
 
         for (var index = 0; index < columns.Count; index++)
         {
-            var paragraph = row.Cells[index]!.AddParagraph(columns[index].Header);
-            paragraph.Format.Alignment = ParagraphAlignment.Center;
+            Cell target;
+            if (rows.Count == 1 || grouped.Contains(index)) target = rows[^1].Cells[index]!;
+            else
+            {
+                target = rows[0].Cells[index]!;
+                target.MergeDown = 1;   // cột không nhóm: gộp dọc hai tầng
+            }
+            target.AddParagraph(columns[index].Header).Format.Alignment = ParagraphAlignment.Center;
         }
     }
 

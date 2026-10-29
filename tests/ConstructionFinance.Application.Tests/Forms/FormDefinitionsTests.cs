@@ -63,6 +63,41 @@ public class FormDefinitionsTests
     }
 
     [Fact]
+    public void ThongTri_defaults_to_NSNN_and_says_so_in_the_Kinh_phi_line()
+    {
+        var sheet = FormDefinitions.ThongTri.Build(Context(Keys((0, 0, 0, 0), (0, 0, 0, 2)))).Sheet;
+
+        Cell(sheet, 6, 1).DisplayText.ShouldBe("Kinh phí: NSNN");
+        Cell(sheet, 15, 8).Segments.Single().Number.ShouldBe(10_000_000m);     // đợt ngoại hối đã tích vẫn bị bỏ
+    }
+
+    [Fact]
+    public void ThongTri_for_NgoaiHoi_takes_only_the_NgoaiHoi_dots()
+    {
+        var inputs = new FormInputSet();
+        inputs.Set(ThongTriDefinition.FundKey, ThongTriDefinition.FundStoredValue(Fund.NgoaiHoi));
+
+        var sheet = FormDefinitions.ThongTri.Build(Context(Keys((0, 0, 0, 0), (0, 0, 0, 2), (1, 0, 0, 0)), inputs)).Sheet;
+
+        FormDefinitions.ThongTri.FundFor(inputs).ShouldBe(Fund.NgoaiHoi);
+        Cell(sheet, 6, 1).DisplayText.ShouldBe("Kinh phí: Quỹ dự trữ ngoại hối");
+        Cell(sheet, 15, 8).Segments.Single().Number.ShouldBe(35_000_000m);     // 30tr + 5tr, bỏ đợt NSNN 10tr
+    }
+
+    [Fact]
+    public void ThongTri_signature_block_shows_titles_and_the_signer_names_from_settings()
+    {
+        var context = Context(Keys()) with { Org = Org with { NguoiLap = "Nguyễn Văn A", ThuTruongDonVi = "Trần Văn B" } };
+
+        var sheet = FormDefinitions.ThongTri.Build(context).Sheet;
+
+        Cell(sheet, 27, 1).DisplayText.ShouldBe("Người lập");
+        Cell(sheet, 27, 7).DisplayText.ShouldBe("Thủ trưởng đơn vị");
+        Cell(sheet, 32, 1).DisplayText.ShouldBe("Nguyễn Văn A");
+        Cell(sheet, 32, 7).DisplayText.ShouldBe("Trần Văn B");
+    }
+
+    [Fact]
     public void ThongTri_with_nothing_selected_still_resolves_the_whole_sheet()
     {
         var result = FormDefinitions.ThongTri.Build(Context(Keys()));

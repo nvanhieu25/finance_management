@@ -2,7 +2,7 @@ using ConstructionFinance.Domain.Finance;
 
 namespace ConstructionFinance.Application.Forms;
 
-/// Dựng Thông tri (Mẫu số CQ06-HD) từ các đợt NSNN người dùng đã tích chọn.
+/// Dựng Thông tri (Mẫu số CQ06-HD) từ các đợt người dùng đã tích chọn, của MỘT nguồn kinh phí.
 /// Bảng in ba cấp: dự án → vị trí → đợt, số tiền mỗi đợt là giải ngân của đợt.
 public static class ThongTriBuilder
 {
@@ -13,10 +13,11 @@ public static class ThongTriBuilder
         IReadOnlySet<FormDotKey> selected,
         ThongTriDeclaration? declaration,
         FormOrgInfo org,
-        string projectName)
+        string projectName,
+        Fund fund = Fund.NSNN)
     {
-        // Thông tri chỉ nói về kinh phí NSNN; đợt ngoại hối đi đường GĐNTT.
-        var rows = all.Where(r => selected.Contains(r.Key) && r.Fund == Fund.NSNN).ToList();
+        // Một tờ Thông tri nói về một nguồn ("Kinh phí: …"); người dùng chọn nguồn trên tab.
+        var rows = all.Where(r => selected.Contains(r.Key) && r.Fund == fund).ToList();
         var total = rows.Sum(r => r.Disbursed);
 
         var lines = new List<ThongTriLine> { new(0, projectName, total) };

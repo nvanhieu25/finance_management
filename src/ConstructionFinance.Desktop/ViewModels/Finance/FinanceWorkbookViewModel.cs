@@ -157,7 +157,7 @@ public partial class FinanceWorkbookViewModel : ViewModelBase, IPrintablePage, I
             _viTriStructureDirty = false;
 
             var info = await _companyInfo.GetAsync();
-            _orgInfo = new FormOrgInfo(info.DonViCapTren, info.DonViCoSo);
+            _orgInfo = FormOrgInfo.From(info);
 
             var projects = await _service.ListAsync();
             foreach (var project in projects) Projects.Add(project);
@@ -219,7 +219,7 @@ public partial class FinanceWorkbookViewModel : ViewModelBase, IPrintablePage, I
             // every project switch, keeps the form tabs from showing a snapshot frozen at
             // workbook-open time without having to make the whole refresh chain async.
             var info = await _companyInfo.GetAsync();
-            _orgInfo = new FormOrgInfo(info.DonViCapTren, info.DonViCoSo);
+            _orgInfo = FormOrgInfo.From(info);
 
             var tree = await _service.GetTreeAsync(project.Id);
             if (tree is null) return;
@@ -588,9 +588,15 @@ public partial class FinanceWorkbookViewModel : ViewModelBase, IPrintablePage, I
         {
             if (_orgDirty)
             {
-                // Tên đơn vị lưu ở Cài đặt: đọc-sửa-ghi bản ghi công ty, chỉ đổi hai trường này.
+                // Tên đơn vị và người ký lưu ở Cài đặt: đọc-sửa-ghi bản ghi công ty, chỉ đổi bốn trường này.
                 var info = await _companyInfo.GetAsync();
-                await _companyInfo.SaveAsync(info with { DonViCapTren = _orgInfo.DonViCapTren, DonViCoSo = _orgInfo.DonViCoSo });
+                await _companyInfo.SaveAsync(info with
+                {
+                    DonViCapTren = _orgInfo.DonViCapTren,
+                    DonViCoSo = _orgInfo.DonViCoSo,
+                    NguoiLap = _orgInfo.NguoiLap,
+                    ThuTruongDonVi = _orgInfo.ThuTruongDonVi,
+                });
                 _orgDirty = false;
             }
             await _service.ReplaceTreeAsync(toSave);

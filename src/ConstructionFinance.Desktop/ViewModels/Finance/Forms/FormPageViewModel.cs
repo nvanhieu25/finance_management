@@ -82,7 +82,29 @@ public sealed partial class FormPageViewModel : ViewModelBase, IFormSheetEditor
         _inputs = new FormInputSet(stored
             .Where(input => input.Form == Definition.Id)
             .Select(input => new KeyValuePair<string, string?>(input.Key, input.Value)));
+        Picker.SetFundFilter(Definition.FundFor(_inputs));
         Rebuild();
+        OnPropertyChanged(nameof(FundIndex));
+    }
+
+    // ===== nguồn kinh phí (chỉ Thông tri) =====
+
+    public bool CanChooseFund => Definition.UserChoosesFund;
+
+    /// Chỉ số trong FundOptions.Names (0 = NSNN, 1 = Ngoại hối) — cùng thứ tự với enum Fund.
+    public int FundIndex
+    {
+        get => (int)(Definition.FundFor(_inputs) ?? Fund.NSNN);
+        set
+        {
+            if (!CanChooseFund || value < 0 || value == FundIndex) return;
+            var fund = (Fund)value;
+            _inputs.Set(ThongTriDefinition.FundKey, ThongTriDefinition.FundStoredValue(fund));
+            Picker.SetFundFilter(fund);
+            Rebuild();
+            OnPropertyChanged();
+            InputsChanged?.Invoke(this, EventArgs.Empty);
+        }
     }
 
     public IEnumerable<FormInput> ToFormInputs() =>

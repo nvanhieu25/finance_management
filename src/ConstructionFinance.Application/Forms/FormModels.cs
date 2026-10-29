@@ -24,9 +24,13 @@ public record FormDotRow(
     decimal RecoveredAdvance,
     decimal Disbursed);
 
-/// Tên đơn vị in trên đầu Thông tri và GĐNTT. Lưu ở Cài đặt (dùng chung mọi dự án),
-/// không lưu theo dự án.
-public record FormOrgInfo(string? DonViCapTren, string? DonViCoSo);
+/// Tên đơn vị in trên đầu Thông tri và GĐNTT, và họ tên hai người ký cuối Thông tri. Lưu ở Cài đặt
+/// (dùng chung mọi dự án), không lưu theo dự án.
+public record FormOrgInfo(string? DonViCapTren, string? DonViCoSo, string? NguoiLap = null, string? ThuTruongDonVi = null)
+{
+    public static FormOrgInfo From(DTOs.CompanyInfoDto info) =>
+        new(info.DonViCapTren, info.DonViCoSo, info.NguoiLap, info.ThuTruongDonVi);
+}
 
 /// Một dòng trong bảng Thông tri. Level 0 = dự án, 1 = vị trí, 2 = đợt.
 /// Key: định danh dòng (theo chỉ số trong sổ) để chữ gõ riêng cho dòng đó (Mục lục ngân sách) lưu đúng chỗ; dòng dự án để trống.

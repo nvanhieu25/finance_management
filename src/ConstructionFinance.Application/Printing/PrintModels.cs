@@ -27,7 +27,9 @@ public sealed record PrintCell(PrintCellKind Kind, string? Text, decimal? Number
 
 /// Một cột của sheet dạng bảng. WidthChars tính theo KÝ TỰ (đơn vị của Excel),
 /// không phải pixel — cố tình không lấy từ LedgerColumnWidths của màn hình.
-public sealed record PrintColumn(string Header, double WidthChars, PrintAlign Align);
+/// Group: tiêu đề tầng trên, gộp ngang qua các cột LIỀN NHAU cùng Group (như Mẫu: "Thanh toán khối lượng
+/// hoàn thành" phủ ba cột). Có cột nào mang Group thì tiêu đề thành hai tầng; cột không Group gộp dọc cả hai tầng.
+public sealed record PrintColumn(string Header, double WidthChars, PrintAlign Align, string? Group = null);
 
 /// Nền của một dòng. Hai bậc xám để dòng TỔNG CỘNG (Light) không trùng màu với dòng Nhóm (VeryLight):
 /// TỔNG CỘNG là dòng người đọc tìm đầu tiên và cũng là dòng được lặp ở đầu mỗi trang
@@ -49,11 +51,38 @@ public abstract record PrintSheet(string SheetName, PrintPageProfile Page);
 /// nhiêu dòng đầu được lặp lại ở mỗi trang, đếm từ dòng 1 — nên RepeatRowsTop = 2 là lặp
 /// tiêu đề cộng dòng dữ liệu đầu tiên. Kiểu từng dòng dữ liệu do PrintRow.IsBold /
 /// Shade quyết định.
+///
+/// Titles (tuỳ chọn): các dòng tiêu đề in đậm, căn giữa, phía TRÊN bảng (dòng đầu to hơn), cách bảng một dòng trống.
+/// Có Titles hoặc tiêu đề hai tầng thì bảng dời xuống tương ứng; RepeatRowsTop vẫn đếm từ đầu phần tiêu đề CỘT
+/// (tiêu đề cột hai tầng tính là một), không đếm Titles.
 public sealed record PrintTableSheet(
     string SheetName,
     PrintPageProfile Page,
     IReadOnlyList<PrintColumn> Columns,
-    IReadOnlyList<PrintRow> Rows) : PrintSheet(SheetName, Page);
+    IReadOnlyList<PrintRow> Rows,
+    IReadOnlyList<string>? Titles = null) : PrintSheet(SheetName, Page)
+{
+    /// Số dòng mà Titles chiếm trên sheet, kể cả dòng trống ngăn cách.
+    public int TitleRowCount => Titles is { Count: > 0 } titles ? titles.Count + 1 : 0;
+
+    /// 2 khi có cột mang Group, ngược lại 1.
+    public int HeaderRowCount => Columns.Any(column => column.Group is not null) ? 2 : 1;
+
+    /// Các dải cột liền nhau cùng Group: (cột đầu, số cột, chữ). Cột không Group không có trong danh sách.
+    public IReadOnlyList<(int First, int Count, string Text)> GroupSpans()
+    {
+        var spans = new List<(int, int, string)>();
+        for (var i = 0; i < Columns.Count;)
+        {
+            var group = Columns[i].Group;
+            var end = i + 1;
+            while (group is not null && end < Columns.Count && Columns[end].Group == group) end++;
+            if (group is not null) spans.Add((i, end - i, group));
+            i = end;
+        }
+        return spans;
+    }
+}
 
 /// Sheet biểu mẫu dựng từ bản gốc: bộ ghi .xlsx, bộ dựng MigraDoc và màn hình cùng đọc MỘT ResolvedSheet,
 /// nên thêm biểu mẫu mới không cần thêm record nào ở đây.
