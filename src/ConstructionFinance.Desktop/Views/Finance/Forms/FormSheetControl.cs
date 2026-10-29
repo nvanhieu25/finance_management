@@ -58,6 +58,7 @@ public sealed class FormSheetControl : Border
         Background = Brushes.White;
         BorderBrush = PaperEdge;
         BorderThickness = new Thickness(1);
+        BoxShadow = BoxShadows.Parse("0 2 8 0 #140F172A, 0 8 24 0 #0F0F172A");
         Padding = new Thickness(24);
         // Bề rộng cột lẻ (8,43×7+5 = 64,01px) phải giữ đúng: làm tròn từng cột lên sẽ đẩy cả tờ lệch khỏi Mẫu vài px.
         UseLayoutRounding = false;

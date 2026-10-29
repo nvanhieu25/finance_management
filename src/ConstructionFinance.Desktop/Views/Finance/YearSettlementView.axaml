@@ -4,24 +4,31 @@
              xmlns:conv="using:ConstructionFinance.Desktop.Common"
              x:Class="ConstructionFinance.Desktop.Views.Finance.YearSettlementView"
              x:DataType="vm:YearSettlementViewModel">
-    <StackPanel Margin="0,4,0,0">
-        <TextBlock Classes="pageSubtitle" Margin="4,0,0,8"
-                   Text="Quyết toán theo năm tài chính (1/2 → 31/1)"/>
-        <DataGrid ItemsSource="{Binding Rows}" IsReadOnly="True"
-                  GridLinesVisibility="All" HeadersVisibility="All"
-                  CanUserResizeColumns="True" CanUserSortColumns="False">
-            <DataGrid.Styles>
-                <Style Selector="DataGridRow" x:DataType="vm:YearSettlementRow">
-                    <Setter Property="FontWeight"
-                            Value="{Binding IsBold, Converter={x:Static conv:BoolToFontWeightConverter.Instance}}"/>
-                </Style>
-            </DataGrid.Styles>
-            <DataGrid.Columns>
-                <DataGridTextColumn Header="Năm" Binding="{Binding YearLabel}" Width="220"/>
-                <DataGridTextColumn Header="Dự phòng NSNN" Binding="{Binding NSNN}" Width="180"/>
-                <DataGridTextColumn Header="Quỹ dự trữ ngoại hối" Binding="{Binding NgoaiHoi}" Width="200"/>
-                <DataGridTextColumn Header="Tổng" Binding="{Binding Total}" Width="180"/>
-            </DataGrid.Columns>
-        </DataGrid>
-    </StackPanel>
+    <Border Classes="tableCard">
+        <DockPanel>
+            <Border DockPanel.Dock="Top" Classes="toolbarStrip">
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <TextBlock Text="Quyết toán theo năm tài chính" Classes="sectionTitle" VerticalAlignment="Center"/>
+                    <TextBlock Text="• Chu kỳ niên độ: 01/02 → 31/01 năm kế tiếp"
+                               Classes="muted" VerticalAlignment="Center"/>
+                </StackPanel>
+            </Border>
+            <DataGrid ItemsSource="{Binding Rows}" IsReadOnly="True"
+                      GridLinesVisibility="All" HeadersVisibility="Column"
+                      CanUserResizeColumns="True" CanUserSortColumns="False">
+                <DataGrid.Styles>
+                    <Style Selector="DataGridRow" x:DataType="vm:YearSettlementRow">
+                        <Setter Property="FontWeight"
+                                Value="{Binding IsBold, Converter={x:Static conv:BoolToFontWeightConverter.Instance}}"/>
+                    </Style>
+                </DataGrid.Styles>
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="Năm tài chính" Binding="{Binding YearLabel}" Width="240"/>
+                    <DataGridTextColumn Header="Dự phòng NSNN" Binding="{Binding NSNN}" Width="200"/>
+                    <DataGridTextColumn Header="Quỹ dự trữ ngoại hối" Binding="{Binding NgoaiHoi}" Width="220"/>
+                    <DataGridTextColumn Header="Tổng giải ngân" Binding="{Binding Total}" Width="200"/>
+                </DataGrid.Columns>
+            </DataGrid>
+        </DockPanel>
+    </Border>
 </UserControl>

@@ -4,29 +4,39 @@
              xmlns:conv="using:ConstructionFinance.Desktop.Common"
              x:Class="ConstructionFinance.Desktop.Views.Finance.ProjectTongHopView"
              x:DataType="vm:ProjectTongHopViewModel">
-    <DataGrid ItemsSource="{Binding Rows}" IsReadOnly="True"
-              GridLinesVisibility="All" HeadersVisibility="All"
-              CanUserResizeColumns="True" CanUserSortColumns="False">
-        <DataGrid.Styles>
-            <Style Selector="DataGridRow" x:DataType="vm:SummaryDisplayRow">
-                <Setter Property="FontWeight"
-                        Value="{Binding IsBold, Converter={x:Static conv:BoolToFontWeightConverter.Instance}}"/>
-            </Style>
-        </DataGrid.Styles>
-        <DataGrid.Columns>
-            <DataGridTextColumn Header="TT" Binding="{Binding Ordinal}" Width="48"/>
-            <DataGridTextColumn Header="Tên vị trí" Binding="{Binding Label}" Width="200"/>
-            <DataGridTextColumn Header="Đơn vị thi công" Binding="{Binding Contractor}" Width="150"/>
-            <DataGridTextColumn Header="Giá trị HĐ, PLHĐ" Binding="{Binding ContractValue}" Width="130"/>
-            <DataGridTextColumn Header="Tạm ứng" Binding="{Binding Advance}" Width="120"/>
-            <DataGridTextColumn Header="TT KLHT" Binding="{Binding KLHT}" Width="120"/>
-            <DataGridTextColumn Header="Thu hồi" Binding="{Binding Recovered}" Width="120"/>
-            <DataGridTextColumn Header="TT cho nhà thầu" Binding="{Binding DisbursedToContractor}" Width="130"/>
-            <DataGridTextColumn Header="Tạm ứng chưa thu hồi" Binding="{Binding Unrecovered}" Width="140"/>
-            <DataGridTextColumn Header="GN Dự phòng NSNN" Binding="{Binding NSNN}" Width="140"/>
-            <DataGridTextColumn Header="GN Quỹ DTNH" Binding="{Binding NgoaiHoi}" Width="130"/>
-            <DataGridTextColumn Header="Tổng đã giải ngân" Binding="{Binding TotalDisbursed}" Width="140"/>
-            <DataGridTextColumn Header="Quyết toán năm" Binding="{Binding YearlyText}" Width="260"/>
-        </DataGrid.Columns>
-    </DataGrid>
+    <Border Classes="tableCard">
+        <DockPanel>
+            <Border DockPanel.Dock="Top" Classes="toolbarStrip">
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <TextBlock Text="Bảng tổng hợp theo Vị trí" Classes="sectionTitle" VerticalAlignment="Center"/>
+                    <TextBlock Text="• Số liệu tự động tổng hợp từ các tab Vị trí trong dự án" Classes="muted" VerticalAlignment="Center"/>
+                </StackPanel>
+            </Border>
+            <DataGrid ItemsSource="{Binding Rows}" IsReadOnly="True"
+                      GridLinesVisibility="All" HeadersVisibility="Column"
+                      CanUserResizeColumns="True" CanUserSortColumns="False">
+                <DataGrid.Styles>
+                    <Style Selector="DataGridRow" x:DataType="vm:SummaryDisplayRow">
+                        <Setter Property="FontWeight"
+                                Value="{Binding IsBold, Converter={x:Static conv:BoolToFontWeightConverter.Instance}}"/>
+                    </Style>
+                </DataGrid.Styles>
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="TT" Binding="{Binding Ordinal}" Width="52"/>
+                    <DataGridTextColumn Header="Tên vị trí" Binding="{Binding Label}" Width="210"/>
+                    <DataGridTextColumn Header="Đơn vị thi công" Binding="{Binding Contractor}" Width="160"/>
+                    <DataGridTextColumn Header="Giá trị HĐ, PLHĐ" Binding="{Binding ContractValue}" Width="135"/>
+                    <DataGridTextColumn Header="Tạm ứng" Binding="{Binding Advance}" Width="125"/>
+                    <DataGridTextColumn Header="TT KLHT" Binding="{Binding KLHT}" Width="125"/>
+                    <DataGridTextColumn Header="Thu hồi" Binding="{Binding Recovered}" Width="125"/>
+                    <DataGridTextColumn Header="TT cho nhà thầu" Binding="{Binding DisbursedToContractor}" Width="135"/>
+                    <DataGridTextColumn Header="Tạm ứng chưa thu hồi" Binding="{Binding Unrecovered}" Width="145"/>
+                    <DataGridTextColumn Header="GN Dự phòng NSNN" Binding="{Binding NSNN}" Width="145"/>
+                    <DataGridTextColumn Header="GN Quỹ DTNH" Binding="{Binding NgoaiHoi}" Width="135"/>
+                    <DataGridTextColumn Header="Tổng đã giải ngân" Binding="{Binding TotalDisbursed}" Width="145"/>
+                    <DataGridTextColumn Header="Quyết toán năm" Binding="{Binding YearlyText}" Width="260"/>
+                </DataGrid.Columns>
+            </DataGrid>
+        </DockPanel>
+    </Border>
 </UserControl>

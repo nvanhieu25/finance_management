@@ -7,67 +7,37 @@
              x:DataType="vm:VitriLedgerViewModel"
              x:Name="Root">
     <UserControl.Resources>
-        <!-- Local-only, crisp Excel-style gridline color for THIS grid — deliberately
-             stronger contrast than the app-wide GridLineBrush (#EAEEF4, near-invisible
-             against white cells), scoped here via UserControl.Resources so it does NOT
-             touch Theme.axaml. -->
+        <!-- Crisp modern slate gridline color for THIS grid — softer and cleaner than
+             the old #C8C8C8 while keeping clear cell boundaries. -->
         <ResourceDictionary>
             <ResourceDictionary.ThemeDictionaries>
                 <ResourceDictionary x:Key="Light">
-                    <SolidColorBrush x:Key="LedgerGridLineBrush" Color="#C8C8C8"/>
+                    <SolidColorBrush x:Key="LedgerGridLineBrush" Color="#E2E8F0"/>
+                    <SolidColorBrush x:Key="LedgerHeaderDividerBrush" Color="#CBD5E1"/>
+                    <SolidColorBrush x:Key="LedgerTotalBackgroundBrush" Color="#F1F5F9"/>
+                    <SolidColorBrush x:Key="LedgerGroupBackgroundBrush" Color="#EFF6FF"/>
+                    <SolidColorBrush x:Key="LedgerPackageBackgroundBrush" Color="#F8FAFC"/>
                 </ResourceDictionary>
                 <ResourceDictionary x:Key="Dark">
-                    <SolidColorBrush x:Key="LedgerGridLineBrush" Color="#5A5A5A"/>
+                    <SolidColorBrush x:Key="LedgerGridLineBrush" Color="#334155"/>
+                    <SolidColorBrush x:Key="LedgerHeaderDividerBrush" Color="#475569"/>
+                    <SolidColorBrush x:Key="LedgerTotalBackgroundBrush" Color="#1E293B"/>
+                    <SolidColorBrush x:Key="LedgerGroupBackgroundBrush" Color="#172554"/>
+                    <SolidColorBrush x:Key="LedgerPackageBackgroundBrush" Color="#0F172A"/>
                 </ResourceDictionary>
             </ResourceDictionary.ThemeDictionaries>
         </ResourceDictionary>
     </UserControl.Resources>
     <UserControl.Styles>
-        <!-- Local-only: NO border is drawn per-cell anymore, in either direction — the
-             VERTICAL (right-edge) lines are owned by Border.colDivider / the two overlay
-             Grids below, and the HORIZONTAL (bottom-edge) lines are owned by the one
-             full-width Border appended to the end of every RowKind's Grid (see the Group/
-             Package/Entry templates below) — a per-cell bottom border left a gap under the
-             borderless/unfocused Nội dung overflow cell, which is exactly what made the
-             row separators look broken/inconsistent. Still clips its own content to the
-             cell's bounds — without this, a long value in an adjoining cell (or the
-             composite Nhà thầu/TK StackPanel) can render past its column into the next. -->
         <Style Selector="Border.gridCellBorder">
             <Setter Property="ClipToBounds" Value="True"/>
         </Style>
-        <!-- The single, continuous set of column-boundary lines (fixes the "ragged"
-             look): previously EVERY cell (TextBox.gridCell / Border.gridCellBorder) drew
-             its OWN right-edge border, independently, inside each RowKind's own
-             DataTemplate — Group/Package/Entry are different templates, so their right
-             borders landed at very slightly different rendering offsets from row to row
-             and never lined up into one clean vertical line. Instead, exactly ONE overlay
-             Grid (per frozen/scrollable region — see the two usages below) is layered on
-             top of the TỔNG CỘNG row and on top of the WHOLE scrollable rows area, using
-             the SAME shared ColumnWidths-bound ColumnDefinitions as everything else, with
-             one of these Border.colDivider per column. Because there is only ONE such Grid
-             per region (not one per row), its column boundaries are, by construction, a
-             single unbroken vertical line spanning every row in that region — and because
-             it uses the identical ColumnWidths source as the header/rows, it's always
-             pixel-aligned with the header's own grip dividers too. IsHitTestVisible=False
-             on the overlay lets clicks/edits reach the cells underneath. -->
         <Style Selector="Border.colDivider">
             <Setter Property="Width" Value="1"/>
             <Setter Property="HorizontalAlignment" Value="Right"/>
             <Setter Property="VerticalAlignment" Value="Stretch"/>
             <Setter Property="Background" Value="{DynamicResource LedgerGridLineBrush}"/>
         </Style>
-        <!-- Local-only addition to the shared TextBox.gridCell style (defined in
-             Theme.axaml and also used by FinanceProjectGridView — NOT modified there,
-             this only applies within this View's own visual tree): clip long text
-             (e.g. a long Nội dung) to the cell's column instead of spilling into the
-             next column, and — critically — MinWidth=0 so the FluentAvalonia default
-             TextBox MinWidth can never fight the fixed column width and force the
-             Grid's column wider than its declared pixel value. Explicit Stretch so the
-             box exactly fills its column, never sizing to its own content. The box
-             still scrolls its own text horizontally on focus (never resizes/shifts).
-             BorderThickness=0 (no border at all, any edge) for the same "the overlay/
-             row-bottom-bar owns every line, cells draw none" reason as gridCellBorder
-             above. -->
         <Style Selector="TextBox.gridCell">
             <Setter Property="ClipToBounds" Value="True"/>
             <Setter Property="TextWrapping" Value="NoWrap"/>
@@ -75,44 +45,6 @@
             <Setter Property="HorizontalAlignment" Value="Stretch"/>
             <Setter Property="BorderThickness" Value="0"/>
         </Style>
-        <!-- Excel-style overflow for the "content" column (Nội dung / Group·Package
-             Name): UNFOCUSED, the box goes borderless/transparent, left-aligned, and
-             unclipped (ClipToBounds=False) — NOT because long text draws past its
-             column at some unclipped "natural width" (an earlier version of this
-             comment said exactly that; đo lại thì sai — TextBox tự có
-             ScrollContentPresenter riêng bên trong ControlTemplate của nó, và
-             ScrollContentPresenter đó vẫn clip mọi thứ nó vẽ vào đúng content box của
-             CHÍNH NÓ, nên bản thân CHỮ không bao giờ tràn ra khỏi biên đó). Cái
-             ClipToBounds=False này chỉ tắt việc GRID DÒNG clip phần thân ô tại biên
-             cột — khi nội dung cần rộng hơn cột (MinWidth, bound in the DataTemplate to
-             the live column width, keeps it filling the column normally when text is
-             short), bản thân CÁI Ô vẫn được phép nằm tràn sang (các) cột kế tiếp.
-             Columns to the right are declared AFTER this one in the row Grid, so an
-             occupied neighbor (TextBox/ComboBox — both opaque by default) paints over
-             the overflow; an empty placeholder Border (no Background) lets it show
-             through, exactly like Excel. FOCUSED (editing), it snaps back to a normal
-             bordered, clipped, column-Stretched box. The column's own declared Width
-             never changes either way — this is purely a per-control render trick.
-             Đừng đọc đoạn trên là lý do để "khôi phục tràn chữ" bằng cách revert
-             Padding về Margin bên dưới — đổi Margin→Padding không hề tắt tính năng
-             tràn chữ, chỉ đổi cách khai mức thụt đầu dòng.
-             Mức thụt đầu dòng theo cấp đặt bằng Padding TRÁI của chính ô (không phải
-             Margin): Margin cộng NGOÀI bề rộng mong muốn nên nó nở cả cột Grid ra
-             thêm đúng bằng mức thụt, khiến ba loại dòng có ba hệ toạ độ cột khác nhau
-             và lệch hẳn với header lẫn lớp kẻ dọc.
-             Ba con số Padding trái 10 / 26 / 42 (Nhóm/Gói/Đợt) = mức thụt CŨ theo
-             Margin (4 / 20 / 36) CỘNG 6px Padding trái mà style dùng chung
-             TextBox.gridCell vốn áp cho MỌI ô (Theme.axaml:192, Padding="6,4"):
-             Padding khai trực tiếp trên chính TextBox này là giá trị cục bộ (local
-             value), nó THAY THẾ HẲN Padding="6,4" của style chứ không cộng dồn với nó,
-             nên phải tự cộng lại đúng 6px đó vào mức thụt cũ để chữ vẫn bắt đầu ở đúng
-             vị trí như trước khi sửa — phần còn lại của mỗi giá trị ("…,4,6,4") giữ
-             nguyên top/bottom=4 và phải=6 mà gridCell vốn đã đặt.
-             Hệ quả quan sát được sau khi đổi Margin → Padding: một dòng Đợt giờ chỉ
-             còn lộ khoảng 292px chữ Nội dung tràn sang ô bên phải, thay vì 328px như
-             trước, vì bản thân Ô không còn nằm lệch 36px sang phải so với cột của nó
-             nữa — mức thụt giờ nằm TRONG lòng ô (Padding), không còn dịch cả ô sang
-             phải (Margin) như trước. -->
         <Style Selector="TextBox.overflowCell">
             <Setter Property="HorizontalAlignment" Value="Left"/>
             <Setter Property="ClipToBounds" Value="False"/>
@@ -125,18 +57,9 @@
             <Setter Property="Background" Value="{DynamicResource CardBackgroundBrush}"/>
             <Setter Property="BorderThickness" Value="0"/>
         </Style>
-        <!-- Wrap-toggle ("Xuống dòng trong ô"): wraps within the column instead of
-             overflowing sideways — wrapping still respects the column's own width
-             during measure regardless of Left/Stretch alignment, so this alone is
-             enough to turn overflow off; paired with the row Height switching to
-             Auto (see the *Row/*Row.wrap styles below) so the row grows to fit. -->
         <Style Selector="TextBox.overflowCell.wrap">
             <Setter Property="TextWrapping" Value="Wrap"/>
         </Style>
-        <!-- Normalize the Fund ComboBox cell to the same padding/height rhythm as the
-             TextBox cells beside it — its own FluentAvalonia theme padding otherwise
-             makes it look taller/shorter and inconsistently inset — and, same reasoning
-             as TextBox.gridCell above, MinWidth=0 so it can never widen its column. -->
         <Style Selector="ComboBox.gridCell">
             <Setter Property="Padding" Value="6,4"/>
             <Setter Property="FontSize" Value="13"/>
@@ -147,17 +70,12 @@
             <Setter Property="MinWidth" Value="0"/>
             <Setter Property="ClipToBounds" Value="True"/>
         </Style>
-        <!-- Row heights: fixed single-line by default; switch to Auto (+ a MinHeight
-             floor) when Xuống dòng trong ô is on, so a wrapped multi-line cell can grow
-             the row instead of being clipped. A plain XAML attribute on the Grid would
-             always beat these Style setters, so the row Grids below carry NO inline
-             Height — only these Classes-driven ones. -->
         <Style Selector="Grid.groupRow">
-            <Setter Property="Height" Value="34"/>
+            <Setter Property="Height" Value="36"/>
         </Style>
         <Style Selector="Grid.groupRow.wrap">
             <Setter Property="Height" Value="NaN"/>
-            <Setter Property="MinHeight" Value="34"/>
+            <Setter Property="MinHeight" Value="36"/>
         </Style>
         <Style Selector="Grid.packageRow">
             <Setter Property="Height" Value="52"/>
@@ -173,26 +91,6 @@
             <Setter Property="Height" Value="NaN"/>
             <Setter Property="MinHeight" Value="34"/>
         </Style>
-        <!-- Column-resize grips in the header (Excel-style drag-to-resize, Part A).
-             DragDelta is wired up in code-behind (VitriLedgerView.axaml.cs) against each
-             Thumb's Tag (the 0..13 column index), which calls ColumnWidths.Resize(index, dx)
-             — none of that changed here, only how the grip LOOKS. The Thumb's own Bounds
-             are 8px wide (the grab/hit area — an explicit Background="Transparent" on the
-             template root keeps the whole 8px hit-testable, not just the 1px line) but its
-             ControlTemplate draws a PERSISTENT 1px divider line (LedgerGridLineBrush — the
-             same color already used for every cell's gridline) at its RIGHT edge — same as
-             Border.colDivider's own Width="1" HorizontalAlignment="Right" — so the visible
-             line's right edge sits EXACTLY on the column boundary, matching the TỔNG CỘNG/
-             body overlay dividers pixel-for-pixel. (This used to be HorizontalAlignment=
-             "Center" within the 8px grab box, which put the visible line ~3-4px to the LEFT
-             of the true boundary — an 8px-wide box centered around a 1px line sits (8-1)/2
-             = 3.5px in from each edge, so the header's dividers rendered noticeably left of
-             the TỔNG CỘNG/body ones even though the underlying ColumnWidths were identical.
-             That mismatch, not any padding/margin/scrollbar difference, was the "header
-             columns don't line up with the body" bug.) On pointer-over, the line thickens
-             to 2px (growing further left, since it's still right-anchored) and turns the
-             brand accent color, on top of the Cursor already switching to the west-east
-             resize arrow. -->
         <Style Selector="Thumb.colGrip">
             <Setter Property="Width" Value="8"/>
             <Setter Property="MinWidth" Value="8"/>
@@ -203,7 +101,7 @@
                 <ControlTemplate>
                     <Grid Background="Transparent">
                         <Border x:Name="GripLine" Width="1" HorizontalAlignment="Right"
-                                Background="{DynamicResource LedgerGridLineBrush}"/>
+                                Background="{DynamicResource LedgerHeaderDividerBrush}"/>
                     </Grid>
                 </ControlTemplate>
             </Setter>
@@ -212,200 +110,419 @@
             <Setter Property="Width" Value="2"/>
             <Setter Property="Background" Value="{DynamicResource BrandPrimaryBrush}"/>
         </Style>
-        <!-- Selected-row highlight (7B review, Important #1): the user had no visible way
-             to tell a row was selected. A full-width, low-opacity overlay Border — same
-             "one Border spanning Grid.ColumnSpan=14" technique as the horizontal row
-             separator above — instead of a Background Setter, because Group rows already
-             carry their own hardcoded Background (AccentSoftBrush) as a local value, which
-             would win over any Style-driven Background and hide a selected/unselected
-             difference; an overlay paints on top regardless of the row's own background. -->
         <Style Selector="Border.rowSelectedOverlay">
             <Setter Property="Background" Value="{DynamicResource BrandPrimaryBrush}"/>
-            <Setter Property="Opacity" Value="0.12"/>
+            <Setter Property="Opacity" Value="0.09"/>
             <Setter Property="IsHitTestVisible" Value="False"/>
         </Style>
     </UserControl.Styles>
 
     <DockPanel>
-        <!-- Page header -->
-        <StackPanel DockPanel.Dock="Top" Spacing="2" Margin="0,0,0,12">
-            <TextBlock Classes="pageTitle" Text="Sổ theo Vị trí"/>
-            <TextBlock Classes="pageSubtitle" Text="Nhóm chi phí › Gói thầu › Đợt — số tổng hợp tính sống"/>
-        </StackPanel>
-
-        <!-- Vị trí header fields -->
-        <Border DockPanel.Dock="Top" Classes="card" Margin="0,0,0,12">
-            <Grid ColumnDefinitions="2*,*">
-                <StackPanel Grid.Column="0" Spacing="3" Margin="0,0,6,0">
-                    <TextBlock Text="Tên vị trí" Classes="formLabel"/>
-                    <TextBox Text="{Binding Name}"/>
-                </StackPanel>
-                <StackPanel Grid.Column="1" Spacing="3" Margin="6,0,0,0">
-                    <TextBlock Text="Nguồn vốn" Classes="formLabel"/>
-                    <TextBox Text="{Binding NguonVon}"/>
-                </StackPanel>
-            </Grid>
-        </Border>
-
-        <!-- Row toolbar -->
-        <Border DockPanel.Dock="Top" Classes="toolbarStrip" Margin="0,0,0,0">
-            <StackPanel Orientation="Horizontal" Spacing="8">
-                <Button Classes="toolbar" Command="{Binding AddGroupCommand}">
-                    <StackPanel Orientation="Horizontal" Spacing="6">
-                        <ui:SymbolIcon Symbol="{x:Static ui:Symbol.Add}"/>
-                        <TextBlock Text="Thêm nhóm"/>
-                    </StackPanel>
-                </Button>
-                <Button Classes="toolbar" Command="{Binding AddPackageCommand}" CommandParameter="{Binding SelectedRow}"
-                        ToolTip.Tip="Chọn 1 nhóm/gói/đợt rồi bấm để thêm gói vào đúng nhóm đó, hoặc bấm thẳng nếu Vị trí chỉ có 1 nhóm. Cũng có thể dùng nút ＋ gói trên từng dòng nhóm.">
-                    <StackPanel Orientation="Horizontal" Spacing="6">
-                        <ui:SymbolIcon Symbol="{x:Static ui:Symbol.Add}"/>
-                        <TextBlock Text="Thêm gói"/>
-                    </StackPanel>
-                </Button>
-                <Button Classes="toolbar" Command="{Binding AddEntryCommand}" CommandParameter="{Binding SelectedRow}"
-                        ToolTip.Tip="Chọn 1 gói/đợt rồi bấm để thêm đợt vào đúng gói đó, hoặc bấm thẳng nếu Vị trí chỉ có 1 gói. Cũng có thể dùng nút ＋ đợt trên từng dòng gói.">
-                    <StackPanel Orientation="Horizontal" Spacing="6">
-                        <ui:SymbolIcon Symbol="{x:Static ui:Symbol.Add}"/>
-                        <TextBlock Text="Thêm đợt"/>
-                    </StackPanel>
-                </Button>
-                <Button Classes="toolbar danger" Command="{Binding DeleteSelectedCommand}">
-                    <StackPanel Orientation="Horizontal" Spacing="6">
-                        <ui:SymbolIcon Symbol="{x:Static ui:Symbol.Delete}"/>
-                        <TextBlock Text="Xóa dòng đang chọn"/>
-                    </StackPanel>
-                </Button>
-                <ToggleButton Classes="toolbar" IsChecked="{Binding WrapText}"
-                              ToolTip.Tip="Bật: văn bản dài xuống dòng trong ô (dòng tự giãn cao). Tắt: văn bản dài tràn sang ô trống bên phải như Excel.">
-                    <StackPanel Orientation="Horizontal" Spacing="6">
-                        <ui:SymbolIcon Symbol="{x:Static ui:Symbol.AlignLeft}"/>
-                        <TextBlock Text="Xuống dòng trong ô"/>
-                    </StackPanel>
-                </ToggleButton>
-                <TextBlock Text="Mẹo: chọn 1 dòng đợt rồi Ctrl+V để dán khối từ Excel. Kéo mép cột trong tiêu đề để đổi độ rộng."
-                           Classes="muted" VerticalAlignment="Center" Margin="8,0,0,0"/>
-            </StackPanel>
-        </Border>
-
-        <!-- The grid: frozen header + frozen TỔNG CỘNG row (top), scrollable rows below.
-             All 14 columns are fixed-pixel widths bound to ONE shared ColumnWidths model
-             (VitriLedgerViewModel.ColumnWidths) — repeated identically in the header Grid,
-             the TỔNG CỘNG Grid, and every RowKind template below, so they stay aligned and
-             resize together the instant a header grip is dragged (Part A). Columns are
-             STILL never Auto/*/SharedSizeGroup — only the shared model's pixel VALUES
-             change (via a drag), never anything content-driven, so a long "Nội dung" or a
-             huge money value still can never grow/shift a column on its own; only the
-             user's drag can. MinWidth on the DockPanel is just the initial-default floor;
-             widening a column via drag naturally grows the table past it. The whole table
-             stays in ONE outer horizontal ScrollViewer, so a wider table scrolls, and the
-             header/TỔNG CỘNG bars scroll in sync with the body (only the rows ScrollViewer
-             scrolls vertically). -->
+        <!-- Unified Table Card: Toolbar + Location metadata + Frozen Header + Scrollable Grid -->
         <Border Classes="tableCard" x:Name="GridRoot" Focusable="True">
-            <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled" Padding="0">
-                <DockPanel MinWidth="1880">
-                    <!-- Frozen column header -->
-                    <Border DockPanel.Dock="Top" Background="{DynamicResource GridHeaderBrush}"
-                            BorderBrush="{DynamicResource LedgerGridLineBrush}" BorderThickness="0,0,0,1">
-                        <!-- HorizontalAlignment=Left: không có nó, Grid này (mặc định Stretch) sẽ
-                             nở ra bằng bề rộng khung nhìn khi khung nhìn rộng hơn 1880px danh
-                             nghĩa của bảng, và Avalonia rải phần dư đó cho từng cột (mỗi cột có
-                             thể +1px) — trong khi Grid của mỗi DÒNG bị ItemContainerTheme ghim
-                             HorizontalAlignment=Left nên luôn giữ đúng 1880px. Kết quả là biên
-                             cột của header trôi dần sang phải so với biên cột thật của các dòng. -->
-                        <Grid x:Name="HeaderColumnsGrid" ClipToBounds="True" HorizontalAlignment="Left">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="{Binding ColumnWidths.NgayWidth}"/>
-                                <ColumnDefinition Width="{Binding ColumnWidths.NoiDung}"/>
-                                <ColumnDefinition Width="{Binding ColumnWidths.NhaThauTk}"/>
-                                <ColumnDefinition Width="{Binding ColumnWidths.GiaTriHd}"/>
-                                <ColumnDefinition Width="{Binding ColumnWidths.PhuLuc}"/>
-                                <ColumnDefinition Width="{Binding ColumnWidths.SoCt}"/>
-                                <ColumnDefinition Width="{Binding ColumnWidths.TamUng}"/>
-                                <ColumnDefinition Width="{Binding ColumnWidths.Klht}"/>
-                                <ColumnDefinition Width="{Binding ColumnWidths.ThuHoi}"/>
-                                <ColumnDefinition Width="{Binding ColumnWidths.Nguon}"/>
-                                <ColumnDefinition Width="{Binding ColumnWidths.GnNsnn}"/>
-                                <ColumnDefinition Width="{Binding ColumnWidths.GnNgoaiHoi}"/>
-                                <ColumnDefinition Width="{Binding ColumnWidths.SoDuTu}"/>
-                                <ColumnDefinition Width="{Binding ColumnWidths.TongDaGn}"/>
-                            </Grid.ColumnDefinitions>
-                            <Grid Grid.Column="0"><TextBlock Text="Ngày" Classes="gridHeaderCell"/><Thumb Tag="0" Classes="colGrip"/></Grid>
-                            <Grid Grid.Column="1"><TextBlock Text="Nội dung" Classes="gridHeaderCell"/><Thumb Tag="1" Classes="colGrip"/></Grid>
-                            <Grid Grid.Column="2"><TextBlock Text="Nhà thầu / TK" Classes="gridHeaderCell"/><Thumb Tag="2" Classes="colGrip"/></Grid>
-                            <Grid Grid.Column="3"><TextBlock Text="Giá trị HĐ" Classes="gridHeaderCell" TextAlignment="Right"/><Thumb Tag="3" Classes="colGrip"/></Grid>
-                            <Grid Grid.Column="4"><TextBlock Text="Phụ lục" Classes="gridHeaderCell" TextAlignment="Right"/><Thumb Tag="4" Classes="colGrip"/></Grid>
-                            <Grid Grid.Column="5"><TextBlock Text="Số CT" Classes="gridHeaderCell"/><Thumb Tag="5" Classes="colGrip"/></Grid>
-                            <Grid Grid.Column="6"><TextBlock Text="Tạm ứng" Classes="gridHeaderCell" TextAlignment="Right"/><Thumb Tag="6" Classes="colGrip"/></Grid>
-                            <Grid Grid.Column="7"><TextBlock Text="KLHT" Classes="gridHeaderCell" TextAlignment="Right"/><Thumb Tag="7" Classes="colGrip"/></Grid>
-                            <Grid Grid.Column="8"><TextBlock Text="Thu hồi" Classes="gridHeaderCell" TextAlignment="Right"/><Thumb Tag="8" Classes="colGrip"/></Grid>
-                            <Grid Grid.Column="9"><TextBlock Text="Nguồn" Classes="gridHeaderCell"/><Thumb Tag="9" Classes="colGrip"/></Grid>
-                            <Grid Grid.Column="10"><TextBlock Text="GN NSNN" Classes="gridHeaderCell" TextAlignment="Right"/><Thumb Tag="10" Classes="colGrip"/></Grid>
-                            <Grid Grid.Column="11"><TextBlock Text="GN Ngoại hối" Classes="gridHeaderCell" TextAlignment="Right"/><Thumb Tag="11" Classes="colGrip"/></Grid>
-                            <Grid Grid.Column="12"><TextBlock Text="Số dư TU" Classes="gridHeaderCell" TextAlignment="Right"/><Thumb Tag="12" Classes="colGrip"/></Grid>
-                            <Grid Grid.Column="13"><TextBlock Text="Tổng đã GN" Classes="gridHeaderCell" TextAlignment="Right"/><Thumb Tag="13" Classes="colGrip"/></Grid>
-                        </Grid>
-                    </Border>
+            <DockPanel>
+                <!-- Compact unified toolbar: Location Name + Nguồn vốn on the left, Row actions on the right -->
+                <Border DockPanel.Dock="Top" Classes="toolbarStrip">
+                    <Grid ColumnDefinitions="Auto,220,Auto,160,*,Auto">
+                        <TextBlock Grid.Column="0" Text="Vị trí:" Classes="formLabel" Margin="0,0,8,0"/>
+                        <TextBox Grid.Column="1" Text="{Binding Name}" FontWeight="SemiBold" Watermark="Tên vị trí..."/>
 
-                    <!-- Frozen TỔNG CỘNG row -->
-                    <Border DockPanel.Dock="Top" Background="{DynamicResource GridHeaderBrush}"
-                            BorderBrush="{DynamicResource LedgerGridLineBrush}" BorderThickness="0,0,0,1"
-                            DataContext="{Binding TotalRow}">
-                        <Grid ClipToBounds="True">
-                            <!-- HorizontalAlignment=Left: cùng lý do như HeaderColumnsGrid ở trên —
-                                 không có nó, Grid TỔNG CỘNG này (mặc định Stretch) nở ra bằng bề
-                                 rộng khung nhìn khi khung nhìn rộng hơn 1880px, phần dư bị Avalonia
-                                 rải cho từng cột, còn Grid của mỗi DÒNG bị ItemContainerTheme ghim
-                                 Left nên luôn đúng 1880px — biên cột TỔNG CỘNG trôi khỏi biên cột
-                                 thật của các dòng bên dưới. -->
-                            <Grid x:DataType="vm:LedgerRowViewModel" HorizontalAlignment="Left">
+                        <TextBlock Grid.Column="2" Text="Nguồn vốn:" Classes="formLabel" Margin="14,0,8,0"/>
+                        <TextBox Grid.Column="3" Text="{Binding NguonVon}" Watermark="VD: NSNN, Quỹ DTNH..."/>
+
+                        <StackPanel Grid.Column="5" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                            <Button Classes="toolbar accent" Command="{Binding AddGroupCommand}"
+                                    ToolTip.Tip="Thêm nhóm chi phí mới vào Vị trí này">
+                                <StackPanel Orientation="Horizontal" Spacing="5">
+                                    <ui:SymbolIcon Symbol="{x:Static ui:Symbol.Add}" FontSize="13"/>
+                                    <TextBlock Text="Thêm nhóm"/>
+                                </StackPanel>
+                            </Button>
+                            <Button Classes="toolbar" Command="{Binding AddPackageCommand}" CommandParameter="{Binding SelectedRow}"
+                                    ToolTip.Tip="Chọn 1 nhóm/gói/đợt rồi bấm để thêm gói vào đúng nhóm đó, hoặc dùng nút '+ gói' ngay trên dòng nhóm.">
+                                <StackPanel Orientation="Horizontal" Spacing="5">
+                                    <ui:SymbolIcon Symbol="{x:Static ui:Symbol.Add}" FontSize="13"/>
+                                    <TextBlock Text="Thêm gói"/>
+                                </StackPanel>
+                            </Button>
+                            <Button Classes="toolbar" Command="{Binding AddEntryCommand}" CommandParameter="{Binding SelectedRow}"
+                                    ToolTip.Tip="Chọn 1 gói/đợt rồi bấm để thêm đợt vào đúng gói đó, hoặc dùng nút '+ đợt' ngay trên dòng gói.">
+                                <StackPanel Orientation="Horizontal" Spacing="5">
+                                    <ui:SymbolIcon Symbol="{x:Static ui:Symbol.Add}" FontSize="13"/>
+                                    <TextBlock Text="Thêm đợt"/>
+                                </StackPanel>
+                            </Button>
+
+                            <Border Width="1" Height="20" Background="#E2E8F0" Margin="2,0"/>
+
+                            <ToggleButton Classes="toolbar" IsChecked="{Binding WrapText}"
+                                          ToolTip.Tip="Bật: văn bản dài tự xuống dòng trong ô. Tắt: tràn sang ô trống bên phải như Excel.">
+                                <StackPanel Orientation="Horizontal" Spacing="5">
+                                    <ui:SymbolIcon Symbol="{x:Static ui:Symbol.AlignLeft}" FontSize="13"/>
+                                    <TextBlock Text="Xuống dòng"/>
+                                </StackPanel>
+                            </ToggleButton>
+
+                            <Button Classes="toolbar danger" Command="{Binding DeleteSelectedCommand}"
+                                    ToolTip.Tip="Xóa dòng Nhóm / Gói / Đợt đang chọn">
+                                <StackPanel Orientation="Horizontal" Spacing="5">
+                                    <ui:SymbolIcon Symbol="{x:Static ui:Symbol.Delete}" FontSize="13"/>
+                                    <TextBlock Text="Xóa dòng"/>
+                                </StackPanel>
+                            </Button>
+
+                            <Border Background="#F1F5F9" CornerRadius="6" Padding="8,5" VerticalAlignment="Center"
+                                    ToolTip.Tip="Mẹo thao tác nhanh:&#x0a;• Chọn 1 dòng đợt rồi bấm Ctrl+V để dán khối dữ liệu từ Excel.&#x0a;• Kéo mép cột trên thanh tiêu đề để thay đổi độ rộng cột.&#x0a;• Dùng phím mũi tên / Enter / Tab để di chuyển giữa các ô.">
+                                <StackPanel Orientation="Horizontal" Spacing="4">
+                                    <ui:SymbolIcon Symbol="{x:Static ui:Symbol.Help}" FontSize="13" Foreground="#64748B"/>
+                                    <TextBlock Text="Mẹo" FontSize="11.5" FontWeight="Medium" Foreground="#64748B"/>
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+                    </Grid>
+                </Border>
+
+                <!-- The grid: frozen header + frozen TỔNG CỘNG row (top), scrollable rows below. -->
+                <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled" Padding="0">
+                    <DockPanel MinWidth="1880">
+                        <!-- Frozen column header -->
+                        <Border DockPanel.Dock="Top" Background="{DynamicResource GridHeaderBrush}"
+                                BorderBrush="{DynamicResource LedgerHeaderDividerBrush}" BorderThickness="0,0,0,1">
+                            <Grid x:Name="HeaderColumnsGrid" ClipToBounds="True" HorizontalAlignment="Left">
                                 <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.NgayWidth}"/>
-                                    <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.NoiDung}"/>
-                                    <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.NhaThauTk}"/>
-                                    <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.GiaTriHd}"/>
-                                    <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.PhuLuc}"/>
-                                    <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.SoCt}"/>
-                                    <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.TamUng}"/>
-                                    <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.Klht}"/>
-                                    <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.ThuHoi}"/>
-                                    <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.Nguon}"/>
-                                    <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.GnNsnn}"/>
-                                    <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.GnNgoaiHoi}"/>
-                                    <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.SoDuTu}"/>
-                                    <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.TongDaGn}"/>
+                                    <ColumnDefinition Width="{Binding ColumnWidths.NgayWidth}"/>
+                                    <ColumnDefinition Width="{Binding ColumnWidths.NoiDung}"/>
+                                    <ColumnDefinition Width="{Binding ColumnWidths.NhaThauTk}"/>
+                                    <ColumnDefinition Width="{Binding ColumnWidths.GiaTriHd}"/>
+                                    <ColumnDefinition Width="{Binding ColumnWidths.PhuLuc}"/>
+                                    <ColumnDefinition Width="{Binding ColumnWidths.SoCt}"/>
+                                    <ColumnDefinition Width="{Binding ColumnWidths.TamUng}"/>
+                                    <ColumnDefinition Width="{Binding ColumnWidths.Klht}"/>
+                                    <ColumnDefinition Width="{Binding ColumnWidths.ThuHoi}"/>
+                                    <ColumnDefinition Width="{Binding ColumnWidths.Nguon}"/>
+                                    <ColumnDefinition Width="{Binding ColumnWidths.GnNsnn}"/>
+                                    <ColumnDefinition Width="{Binding ColumnWidths.GnNgoaiHoi}"/>
+                                    <ColumnDefinition Width="{Binding ColumnWidths.SoDuTu}"/>
+                                    <ColumnDefinition Width="{Binding ColumnWidths.TongDaGn}"/>
                                 </Grid.ColumnDefinitions>
-                                <TextBlock Grid.Column="1" Text="{x:Static vm:VitriLedgerViewModel.TotalLabel}" Classes="gridTotalCell"/>
-                                <TextBlock Grid.Column="10" Text="{Binding DisbursedNsnnText}" Classes="gridTotalCell" TextAlignment="Right"/>
-                                <TextBlock Grid.Column="11" Text="{Binding DisbursedNgoaiHoiText}" Classes="gridTotalCell" TextAlignment="Right"/>
-                                <TextBlock Grid.Column="12" Text="{Binding UnrecoveredAdvanceText}" Classes="gridTotalCell" TextAlignment="Right"/>
-                                <TextBlock Grid.Column="13" Text="{Binding TotalDisbursedText}" Classes="gridTotalCell" TextAlignment="Right"/>
+                                <Grid Grid.Column="0"><TextBlock Text="Ngày" Classes="gridHeaderCell"/><Thumb Tag="0" Classes="colGrip"/></Grid>
+                                <Grid Grid.Column="1"><TextBlock Text="Nội dung" Classes="gridHeaderCell"/><Thumb Tag="1" Classes="colGrip"/></Grid>
+                                <Grid Grid.Column="2"><TextBlock Text="Nhà thầu / TK" Classes="gridHeaderCell"/><Thumb Tag="2" Classes="colGrip"/></Grid>
+                                <Grid Grid.Column="3"><TextBlock Text="Giá trị HĐ" Classes="gridHeaderCell" TextAlignment="Right"/><Thumb Tag="3" Classes="colGrip"/></Grid>
+                                <Grid Grid.Column="4"><TextBlock Text="Phụ lục" Classes="gridHeaderCell" TextAlignment="Right"/><Thumb Tag="4" Classes="colGrip"/></Grid>
+                                <Grid Grid.Column="5"><TextBlock Text="Số CT" Classes="gridHeaderCell"/><Thumb Tag="5" Classes="colGrip"/></Grid>
+                                <Grid Grid.Column="6"><TextBlock Text="Tạm ứng" Classes="gridHeaderCell" TextAlignment="Right"/><Thumb Tag="6" Classes="colGrip"/></Grid>
+                                <Grid Grid.Column="7"><TextBlock Text="KLHT" Classes="gridHeaderCell" TextAlignment="Right"/><Thumb Tag="7" Classes="colGrip"/></Grid>
+                                <Grid Grid.Column="8"><TextBlock Text="Thu hồi" Classes="gridHeaderCell" TextAlignment="Right"/><Thumb Tag="8" Classes="colGrip"/></Grid>
+                                <Grid Grid.Column="9"><TextBlock Text="Nguồn" Classes="gridHeaderCell"/><Thumb Tag="9" Classes="colGrip"/></Grid>
+                                <Grid Grid.Column="10"><TextBlock Text="GN NSNN" Classes="gridHeaderCell" TextAlignment="Right"/><Thumb Tag="10" Classes="colGrip"/></Grid>
+                                <Grid Grid.Column="11"><TextBlock Text="GN Ngoại hối" Classes="gridHeaderCell" TextAlignment="Right"/><Thumb Tag="11" Classes="colGrip"/></Grid>
+                                <Grid Grid.Column="12"><TextBlock Text="Số dư TU" Classes="gridHeaderCell" TextAlignment="Right"/><Thumb Tag="12" Classes="colGrip"/></Grid>
+                                <Grid Grid.Column="13"><TextBlock Text="Tổng đã GN" Classes="gridHeaderCell" TextAlignment="Right"/><Thumb Tag="13" Classes="colGrip"/></Grid>
                             </Grid>
-                            <!-- Continuous column-boundary overlay for the TỔNG CỘNG row — same
-                                 ColumnWidths source, same technique as the rows overlay below, so
-                                 the "unbroken line from TỔNG CỘNG down through the last row" holds. -->
-                            <!-- HorizontalAlignment=Left: cùng lý do như hai Grid ở trên — không
-                                 có nó, overlay kẻ dọc này (mặc định Stretch) nở ra bằng bề rộng
-                                 khung nhìn khi khung nhìn rộng hơn 1880px, phần dư bị Avalonia rải
-                                 cho từng cột, còn Grid của mỗi DÒNG bị ItemContainerTheme ghim Left
-                                 nên luôn đúng 1880px — vạch kẻ dọc trôi khỏi biên cột thật, người
-                                 dùng nhắm vào vạch lại bấm trúng ô bên cạnh. -->
-                            <Grid IsHitTestVisible="False" HorizontalAlignment="Left">
+                        </Border>
+
+                        <!-- Frozen TỔNG CỘNG row -->
+                        <Border DockPanel.Dock="Top" Background="{DynamicResource LedgerTotalBackgroundBrush}"
+                                BorderBrush="{DynamicResource LedgerHeaderDividerBrush}" BorderThickness="0,0,0,2"
+                                DataContext="{Binding TotalRow}">
+                            <Grid ClipToBounds="True">
+                                <Grid x:DataType="vm:LedgerRowViewModel" HorizontalAlignment="Left">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.NgayWidth}"/>
+                                        <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.NoiDung}"/>
+                                        <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.NhaThauTk}"/>
+                                        <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.GiaTriHd}"/>
+                                        <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.PhuLuc}"/>
+                                        <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.SoCt}"/>
+                                        <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.TamUng}"/>
+                                        <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.Klht}"/>
+                                        <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.ThuHoi}"/>
+                                        <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.Nguon}"/>
+                                        <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.GnNsnn}"/>
+                                        <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.GnNgoaiHoi}"/>
+                                        <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.SoDuTu}"/>
+                                        <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.TongDaGn}"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="1" Text="{x:Static vm:VitriLedgerViewModel.TotalLabel}" Classes="gridTotalCell"/>
+                                    <TextBlock Grid.Column="10" Text="{Binding DisbursedNsnnText}" Classes="gridTotalCell" TextAlignment="Right"/>
+                                    <TextBlock Grid.Column="11" Text="{Binding DisbursedNgoaiHoiText}" Classes="gridTotalCell" TextAlignment="Right"/>
+                                    <TextBlock Grid.Column="12" Text="{Binding UnrecoveredAdvanceText}" Classes="gridTotalCell" TextAlignment="Right"/>
+                                    <TextBlock Grid.Column="13" Text="{Binding TotalDisbursedText}" Classes="gridTotalCell" TextAlignment="Right"
+                                               Foreground="{DynamicResource BrandPrimaryBrush}"/>
+                                </Grid>
+                                <Grid IsHitTestVisible="False" HorizontalAlignment="Left">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.NgayWidth}"/>
+                                        <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.NoiDung}"/>
+                                        <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.NhaThauTk}"/>
+                                        <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.GiaTriHd}"/>
+                                        <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.PhuLuc}"/>
+                                        <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.SoCt}"/>
+                                        <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.TamUng}"/>
+                                        <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.Klht}"/>
+                                        <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.ThuHoi}"/>
+                                        <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.Nguon}"/>
+                                        <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.GnNsnn}"/>
+                                        <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.GnNgoaiHoi}"/>
+                                        <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.SoDuTu}"/>
+                                        <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.TongDaGn}"/>
+                                    </Grid.ColumnDefinitions>
+                                    <Border Grid.Column="0" Classes="colDivider"/>
+                                    <Border Grid.Column="1" Classes="colDivider"/>
+                                    <Border Grid.Column="2" Classes="colDivider"/>
+                                    <Border Grid.Column="3" Classes="colDivider"/>
+                                    <Border Grid.Column="4" Classes="colDivider"/>
+                                    <Border Grid.Column="5" Classes="colDivider"/>
+                                    <Border Grid.Column="6" Classes="colDivider"/>
+                                    <Border Grid.Column="7" Classes="colDivider"/>
+                                    <Border Grid.Column="8" Classes="colDivider"/>
+                                    <Border Grid.Column="9" Classes="colDivider"/>
+                                    <Border Grid.Column="10" Classes="colDivider"/>
+                                    <Border Grid.Column="11" Classes="colDivider"/>
+                                    <Border Grid.Column="12" Classes="colDivider"/>
+                                    <Border Grid.Column="13" Classes="colDivider"/>
+                                </Grid>
+                            </Grid>
+                        </Border>
+
+                        <!-- Scrollable rows -->
+                        <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto" Padding="0">
+                          <Grid>
+                            <ItemsControl x:Name="RowsHost" ItemsSource="{Binding Rows}">
+                                <ItemsControl.ItemContainerTheme>
+                                    <ControlTheme TargetType="ContentPresenter">
+                                        <Setter Property="Padding" Value="0"/>
+                                        <Setter Property="Margin" Value="0"/>
+                                        <Setter Property="HorizontalContentAlignment" Value="Left"/>
+                                        <Setter Property="HorizontalAlignment" Value="Left"/>
+                                    </ControlTheme>
+                                </ItemsControl.ItemContainerTheme>
+                                <ItemsControl.ItemTemplate>
+                                    <local:LedgerRowTemplateSelector>
+
+                                        <!-- Total (inline placeholder — real display is the frozen bar above) -->
+                                        <local:LedgerRowTemplateSelector.Total>
+                                            <DataTemplate x:DataType="vm:LedgerRowViewModel">
+                                                <Grid Height="0"/>
+                                            </DataTemplate>
+                                        </local:LedgerRowTemplateSelector.Total>
+
+                                        <!-- Group: bold Name + computed subtotals -->
+                                        <local:LedgerRowTemplateSelector.Group>
+                                            <DataTemplate x:DataType="vm:LedgerRowViewModel">
+                                                <Grid Classes="gridRow groupRow"
+                                                      Classes.wrap="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).WrapText}"
+                                                      ClipToBounds="True" Background="{DynamicResource LedgerGroupBackgroundBrush}">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.NgayWidth}"/>
+                                                        <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.NoiDung}"/>
+                                                        <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.NhaThauTk}"/>
+                                                        <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.GiaTriHd}"/>
+                                                        <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.PhuLuc}"/>
+                                                        <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.SoCt}"/>
+                                                        <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.TamUng}"/>
+                                                        <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.Klht}"/>
+                                                        <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.ThuHoi}"/>
+                                                        <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.Nguon}"/>
+                                                        <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.GnNsnn}"/>
+                                                        <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.GnNgoaiHoi}"/>
+                                                        <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.SoDuTu}"/>
+                                                        <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.TongDaGn}"/>
+                                                    </Grid.ColumnDefinitions>
+                                                    <Border Grid.Column="0" Classes="gridCellBorder" Padding="6,0">
+                                                        <Button Classes="inlineAction"
+                                                                HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+                                                                VerticalAlignment="Center"
+                                                                Content="＋ Gói" ToolTip.Tip="Thêm gói thầu vào nhóm này"
+                                                                Command="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).AddPackageCommand}"
+                                                                CommandParameter="{Binding}"/>
+                                                    </Border>
+                                                    <TextBox Grid.Column="1" Classes="gridCell overflowCell" FontWeight="Bold"
+                                                             Foreground="#1E3A8A"
+                                                             Classes.wrap="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).WrapText}"
+                                                             MinWidth="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.NoiDung.Value}"
+                                                             Padding="10,4,6,4" Text="{Binding Name}"/>
+                                                    <Border Grid.Column="2" Classes="gridCellBorder"/>
+                                                    <Border Grid.Column="3" Classes="gridCellBorder"/>
+                                                    <Border Grid.Column="4" Classes="gridCellBorder"/>
+                                                    <Border Grid.Column="5" Classes="gridCellBorder"/>
+                                                    <Border Grid.Column="6" Classes="gridCellBorder"/>
+                                                    <Border Grid.Column="7" Classes="gridCellBorder"/>
+                                                    <Border Grid.Column="8" Classes="gridCellBorder"/>
+                                                    <Border Grid.Column="9" Classes="gridCellBorder"/>
+                                                    <Border Grid.Column="10" Classes="gridCellBorder">
+                                                        <TextBlock Classes="gridCellRO num" FontWeight="Bold" Foreground="#1E3A8A" Text="{Binding DisbursedNsnnText}"/>
+                                                    </Border>
+                                                    <Border Grid.Column="11" Classes="gridCellBorder">
+                                                        <TextBlock Classes="gridCellRO num" FontWeight="Bold" Foreground="#1E3A8A" Text="{Binding DisbursedNgoaiHoiText}"/>
+                                                    </Border>
+                                                    <Border Grid.Column="12" Classes="gridCellBorder">
+                                                        <TextBlock Classes="gridCellRO num" FontWeight="Bold" Foreground="#1E3A8A" Text="{Binding UnrecoveredAdvanceText}"/>
+                                                    </Border>
+                                                    <Border Grid.Column="13" Classes="gridCellBorder">
+                                                        <TextBlock Classes="gridCellRO num" FontWeight="Bold" Foreground="#1E3A8A" Text="{Binding TotalDisbursedText}"/>
+                                                    </Border>
+                                                    <Border Grid.Column="0" Grid.ColumnSpan="14" VerticalAlignment="Bottom" Height="1"
+                                                            Background="{DynamicResource LedgerGridLineBrush}" IsHitTestVisible="False"/>
+                                                    <Border Grid.Column="0" Grid.ColumnSpan="14" Classes="rowSelectedOverlay"
+                                                            IsVisible="{Binding IsSelected}"/>
+                                                </Grid>
+                                            </DataTemplate>
+                                        </local:LedgerRowTemplateSelector.Group>
+
+                                        <!-- Package: Name + Nhà thầu/TK + contract fields + computed subtotals -->
+                                        <local:LedgerRowTemplateSelector.Package>
+                                            <DataTemplate x:DataType="vm:LedgerRowViewModel">
+                                                <Grid Classes="gridRow packageRow"
+                                                      Classes.wrap="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).WrapText}"
+                                                      ClipToBounds="True" Background="{DynamicResource LedgerPackageBackgroundBrush}">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.NgayWidth}"/>
+                                                        <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.NoiDung}"/>
+                                                        <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.NhaThauTk}"/>
+                                                        <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.GiaTriHd}"/>
+                                                        <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.PhuLuc}"/>
+                                                        <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.SoCt}"/>
+                                                        <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.TamUng}"/>
+                                                        <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.Klht}"/>
+                                                        <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.ThuHoi}"/>
+                                                        <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.Nguon}"/>
+                                                        <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.GnNsnn}"/>
+                                                        <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.GnNgoaiHoi}"/>
+                                                        <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.SoDuTu}"/>
+                                                        <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.TongDaGn}"/>
+                                                    </Grid.ColumnDefinitions>
+                                                    <Border Grid.Column="0" Classes="gridCellBorder" Padding="6,0">
+                                                        <Button Classes="inlineAction"
+                                                                HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+                                                                VerticalAlignment="Center"
+                                                                Content="＋ Đợt" ToolTip.Tip="Thêm đợt thanh toán vào gói thầu này"
+                                                                Command="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).AddEntryCommand}"
+                                                                CommandParameter="{Binding}"/>
+                                                    </Border>
+                                                    <TextBox Grid.Column="1" Classes="gridCell overflowCell" FontWeight="SemiBold"
+                                                             Classes.wrap="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).WrapText}"
+                                                             MinWidth="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.NoiDung.Value}"
+                                                             Padding="26,4,6,4" Text="{Binding Name}"/>
+                                                    <Border Grid.Column="2" Classes="gridCellBorder">
+                                                        <StackPanel Spacing="1" Margin="6,3" ClipToBounds="True">
+                                                            <TextBox BorderThickness="0" Padding="0" FontSize="12" FontWeight="Medium"
+                                                                     Background="Transparent"
+                                                                     ClipToBounds="True" TextWrapping="NoWrap"
+                                                                     MinWidth="0" HorizontalAlignment="Stretch"
+                                                                     Watermark="Nhà thầu..." Text="{Binding ContractorName}"/>
+                                                            <TextBox BorderThickness="0" Padding="0" FontSize="11"
+                                                                     Background="Transparent"
+                                                                     ClipToBounds="True" TextWrapping="NoWrap"
+                                                                     MinWidth="0" HorizontalAlignment="Stretch"
+                                                                     Foreground="{DynamicResource TextMutedBrush}"
+                                                                     Watermark="Số tài khoản..." Text="{Binding BankAccount}"/>
+                                                        </StackPanel>
+                                                    </Border>
+                                                    <TextBox Grid.Column="3" Classes="gridCell num" FontWeight="Medium" Text="{Binding ContractValueText}"
+                                                             Tag="ContractValueText" LostFocus="OnFacadeCellLostFocus"/>
+                                                    <TextBox Grid.Column="4" Classes="gridCell num" FontWeight="Medium" Text="{Binding ContractAnnexText}"
+                                                             Tag="ContractAnnexText" LostFocus="OnFacadeCellLostFocus"/>
+                                                    <Border Grid.Column="5" Classes="gridCellBorder"/>
+                                                    <Border Grid.Column="6" Classes="gridCellBorder"/>
+                                                    <Border Grid.Column="7" Classes="gridCellBorder"/>
+                                                    <Border Grid.Column="8" Classes="gridCellBorder"/>
+                                                    <Border Grid.Column="9" Classes="gridCellBorder"/>
+                                                    <Border Grid.Column="10" Classes="gridCellBorder">
+                                                        <TextBlock Classes="gridCellRO num" FontWeight="SemiBold" Text="{Binding DisbursedNsnnText}"/>
+                                                    </Border>
+                                                    <Border Grid.Column="11" Classes="gridCellBorder">
+                                                        <TextBlock Classes="gridCellRO num" FontWeight="SemiBold" Text="{Binding DisbursedNgoaiHoiText}"/>
+                                                    </Border>
+                                                    <Border Grid.Column="12" Classes="gridCellBorder">
+                                                        <TextBlock Classes="gridCellRO num" FontWeight="SemiBold" Text="{Binding UnrecoveredAdvanceText}"/>
+                                                    </Border>
+                                                    <Border Grid.Column="13" Classes="gridCellBorder">
+                                                        <TextBlock Classes="gridCellRO num" FontWeight="SemiBold" Text="{Binding TotalDisbursedText}"/>
+                                                    </Border>
+                                                    <Border Grid.Column="0" Grid.ColumnSpan="14" VerticalAlignment="Bottom" Height="1"
+                                                            Background="{DynamicResource LedgerGridLineBrush}" IsHitTestVisible="False"/>
+                                                    <Border Grid.Column="0" Grid.ColumnSpan="14" Classes="rowSelectedOverlay"
+                                                            IsVisible="{Binding IsSelected}"/>
+                                                </Grid>
+                                            </DataTemplate>
+                                        </local:LedgerRowTemplateSelector.Package>
+
+                                        <!-- Entry: editable transaction cells + Fund dropdown -->
+                                        <local:LedgerRowTemplateSelector.Entry>
+                                            <DataTemplate x:DataType="vm:LedgerRowViewModel">
+                                                <Grid Classes="gridRow entryRow"
+                                                      Classes.wrap="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).WrapText}"
+                                                      ClipToBounds="True" Background="Transparent">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.NgayWidth}"/>
+                                                        <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.NoiDung}"/>
+                                                        <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.NhaThauTk}"/>
+                                                        <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.GiaTriHd}"/>
+                                                        <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.PhuLuc}"/>
+                                                        <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.SoCt}"/>
+                                                        <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.TamUng}"/>
+                                                        <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.Klht}"/>
+                                                        <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.ThuHoi}"/>
+                                                        <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.Nguon}"/>
+                                                        <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.GnNsnn}"/>
+                                                        <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.GnNgoaiHoi}"/>
+                                                        <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.SoDuTu}"/>
+                                                        <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.TongDaGn}"/>
+                                                    </Grid.ColumnDefinitions>
+                                                    <TextBox Grid.Column="0" Classes="gridCell" Text="{Binding DateText}"
+                                                             Tag="DateText" LostFocus="OnFacadeCellLostFocus"/>
+                                                    <TextBox Grid.Column="1" Classes="gridCell overflowCell"
+                                                             Classes.wrap="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).WrapText}"
+                                                             MinWidth="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.NoiDung.Value}"
+                                                             Padding="42,4,6,4" Text="{Binding Content}"/>
+                                                    <Border Grid.Column="2" Classes="gridCellBorder"/>
+                                                    <Border Grid.Column="3" Classes="gridCellBorder"/>
+                                                    <Border Grid.Column="4" Classes="gridCellBorder"/>
+                                                    <TextBox Grid.Column="5" Classes="gridCell" Text="{Binding DocumentNo}"/>
+                                                    <TextBox Grid.Column="6" Classes="gridCell num" Text="{Binding AdvanceText}"
+                                                             Tag="AdvanceText" LostFocus="OnFacadeCellLostFocus"/>
+                                                    <TextBox Grid.Column="7" Classes="gridCell num" Text="{Binding KlhtText}"
+                                                             Tag="KlhtText" LostFocus="OnFacadeCellLostFocus"/>
+                                                    <TextBox Grid.Column="8" Classes="gridCell num" Text="{Binding RecoveredText}"
+                                                             Tag="RecoveredText" LostFocus="OnFacadeCellLostFocus"/>
+                                                    <Border Grid.Column="9" Classes="gridCellBorder">
+                                                        <ComboBox Classes="gridCell" HorizontalAlignment="Stretch" BorderThickness="0"
+                                                                  ItemsSource="{x:Static local:FundOptions.Names}"
+                                                                  SelectedItem="{Binding FundText}"/>
+                                                    </Border>
+                                                    <Border Grid.Column="10" Classes="gridCellBorder"/>
+                                                    <Border Grid.Column="11" Classes="gridCellBorder"/>
+                                                    <Border Grid.Column="12" Classes="gridCellBorder"/>
+                                                    <Border Grid.Column="13" Classes="gridCellBorder"/>
+                                                    <Border Grid.Column="0" Grid.ColumnSpan="14" VerticalAlignment="Bottom" Height="1"
+                                                            Background="{DynamicResource LedgerGridLineBrush}" IsHitTestVisible="False"/>
+                                                    <Border Grid.Column="0" Grid.ColumnSpan="14" Classes="rowSelectedOverlay"
+                                                            IsVisible="{Binding IsSelected}"/>
+                                                </Grid>
+                                            </DataTemplate>
+                                        </local:LedgerRowTemplateSelector.Entry>
+
+                                    </local:LedgerRowTemplateSelector>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                            <Grid IsHitTestVisible="False" VerticalAlignment="Stretch" HorizontalAlignment="Left">
                                 <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.NgayWidth}"/>
-                                    <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.NoiDung}"/>
-                                    <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.NhaThauTk}"/>
-                                    <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.GiaTriHd}"/>
-                                    <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.PhuLuc}"/>
-                                    <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.SoCt}"/>
-                                    <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.TamUng}"/>
-                                    <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.Klht}"/>
-                                    <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.ThuHoi}"/>
-                                    <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.Nguon}"/>
-                                    <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.GnNsnn}"/>
-                                    <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.GnNgoaiHoi}"/>
-                                    <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.SoDuTu}"/>
-                                    <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.TongDaGn}"/>
+                                    <ColumnDefinition Width="{Binding ColumnWidths.NgayWidth}"/>
+                                    <ColumnDefinition Width="{Binding ColumnWidths.NoiDung}"/>
+                                    <ColumnDefinition Width="{Binding ColumnWidths.NhaThauTk}"/>
+                                    <ColumnDefinition Width="{Binding ColumnWidths.GiaTriHd}"/>
+                                    <ColumnDefinition Width="{Binding ColumnWidths.PhuLuc}"/>
+                                    <ColumnDefinition Width="{Binding ColumnWidths.SoCt}"/>
+                                    <ColumnDefinition Width="{Binding ColumnWidths.TamUng}"/>
+                                    <ColumnDefinition Width="{Binding ColumnWidths.Klht}"/>
+                                    <ColumnDefinition Width="{Binding ColumnWidths.ThuHoi}"/>
+                                    <ColumnDefinition Width="{Binding ColumnWidths.Nguon}"/>
+                                    <ColumnDefinition Width="{Binding ColumnWidths.GnNsnn}"/>
+                                    <ColumnDefinition Width="{Binding ColumnWidths.GnNgoaiHoi}"/>
+                                    <ColumnDefinition Width="{Binding ColumnWidths.SoDuTu}"/>
+                                    <ColumnDefinition Width="{Binding ColumnWidths.TongDaGn}"/>
                                 </Grid.ColumnDefinitions>
                                 <Border Grid.Column="0" Classes="colDivider"/>
                                 <Border Grid.Column="1" Classes="colDivider"/>
@@ -422,305 +539,11 @@
                                 <Border Grid.Column="12" Classes="colDivider"/>
                                 <Border Grid.Column="13" Classes="colDivider"/>
                             </Grid>
-                        </Grid>
-                    </Border>
-
-                    <!-- Scrollable rows: Total/Group/Package/Entry, templated by Kind.
-                         Rows[0] IS the Total row (already frozen above) — its inline
-                         template below is a zero-height placeholder so it isn't shown twice.
-                         Only vertical scrolling here — horizontal is the outer ScrollViewer,
-                         shared with the frozen header/TỔNG CỘNG bars above. -->
-                    <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto" Padding="0">
-                      <Grid>
-                        <ItemsControl x:Name="RowsHost" ItemsSource="{Binding Rows}">
-                            <!-- Chuẩn hoá padding/margin/canh lề của CONTAINER mỗi dòng, để Grid
-                                 của dòng bắt đầu đúng cùng một toạ độ x với header/TỔNG CỘNG.
-                                 BẮT BUỘC đặt ở ItemContainerTheme chứ KHÔNG phải một Style
-                                 "ItemsControl#RowsHost ContentPresenter": selector hậu duệ đó
-                                 khớp cả những ContentPresenter nằm TRONG ControlTemplate của
-                                 từng TextBox/ComboBox ô, và HorizontalAlignment=Left làm nền
-                                 (cũng là vùng hit-test) của ô co lại bằng bề rộng chữ — ô trống
-                                 chỉ còn 12px bấm được, phần cột còn lại rơi xuyên xuống Grid.
-                                 ItemContainerTheme chỉ áp cho container do ItemsControl sinh ra. -->
-                            <ItemsControl.ItemContainerTheme>
-                                <ControlTheme TargetType="ContentPresenter">
-                                    <Setter Property="Padding" Value="0"/>
-                                    <Setter Property="Margin" Value="0"/>
-                                    <Setter Property="HorizontalContentAlignment" Value="Left"/>
-                                    <Setter Property="HorizontalAlignment" Value="Left"/>
-                                </ControlTheme>
-                            </ItemsControl.ItemContainerTheme>
-                            <ItemsControl.ItemTemplate>
-                                <local:LedgerRowTemplateSelector>
-
-                                    <!-- Total (inline placeholder — real display is the frozen bar above) -->
-                                    <local:LedgerRowTemplateSelector.Total>
-                                        <DataTemplate x:DataType="vm:LedgerRowViewModel">
-                                            <Grid Height="0"/>
-                                        </DataTemplate>
-                                    </local:LedgerRowTemplateSelector.Total>
-
-                                    <!-- Group: bold Name + computed subtotals -->
-                                    <local:LedgerRowTemplateSelector.Group>
-                                        <DataTemplate x:DataType="vm:LedgerRowViewModel">
-                                            <Grid Classes="gridRow groupRow"
-                                                  Classes.wrap="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).WrapText}"
-                                                  ClipToBounds="True" Background="{DynamicResource AccentSoftBrush}">
-                                                <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.NgayWidth}"/>
-                                                    <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.NoiDung}"/>
-                                                    <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.NhaThauTk}"/>
-                                                    <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.GiaTriHd}"/>
-                                                    <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.PhuLuc}"/>
-                                                    <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.SoCt}"/>
-                                                    <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.TamUng}"/>
-                                                    <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.Klht}"/>
-                                                    <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.ThuHoi}"/>
-                                                    <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.Nguon}"/>
-                                                    <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.GnNsnn}"/>
-                                                    <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.GnNgoaiHoi}"/>
-                                                    <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.SoDuTu}"/>
-                                                    <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.TongDaGn}"/>
-                                                </Grid.ColumnDefinitions>
-                                                <!-- Inline discoverable affordance: add a Gói directly under THIS group
-                                                     without needing to pre-select anything on the toolbar. -->
-                                                <Border Grid.Column="0" Classes="gridCellBorder">
-                                                    <Button Classes="toolbar" Padding="4,2" FontSize="11" MinWidth="0"
-                                                            HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
-                                                            Content="＋ gói" ToolTip.Tip="Thêm gói thầu vào nhóm này"
-                                                            Command="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).AddPackageCommand}"
-                                                            CommandParameter="{Binding}"/>
-                                                </Border>
-                                                <TextBox Grid.Column="1" Classes="gridCell overflowCell" FontWeight="Bold"
-                                                         Classes.wrap="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).WrapText}"
-                                                         MinWidth="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.NoiDung.Value}"
-                                                         Padding="10,4,6,4" Text="{Binding Name}"/>
-                                                <Border Grid.Column="2" Classes="gridCellBorder"/>
-                                                <Border Grid.Column="3" Classes="gridCellBorder"/>
-                                                <Border Grid.Column="4" Classes="gridCellBorder"/>
-                                                <Border Grid.Column="5" Classes="gridCellBorder"/>
-                                                <Border Grid.Column="6" Classes="gridCellBorder"/>
-                                                <Border Grid.Column="7" Classes="gridCellBorder"/>
-                                                <Border Grid.Column="8" Classes="gridCellBorder"/>
-                                                <Border Grid.Column="9" Classes="gridCellBorder"/>
-                                                <Border Grid.Column="10" Classes="gridCellBorder">
-                                                    <TextBlock Classes="gridCellRO num" FontWeight="Bold" Text="{Binding DisbursedNsnnText}"/>
-                                                </Border>
-                                                <Border Grid.Column="11" Classes="gridCellBorder">
-                                                    <TextBlock Classes="gridCellRO num" FontWeight="Bold" Text="{Binding DisbursedNgoaiHoiText}"/>
-                                                </Border>
-                                                <Border Grid.Column="12" Classes="gridCellBorder">
-                                                    <TextBlock Classes="gridCellRO num" FontWeight="Bold" Text="{Binding UnrecoveredAdvanceText}"/>
-                                                </Border>
-                                                <Border Grid.Column="13" Classes="gridCellBorder">
-                                                    <TextBlock Classes="gridCellRO num" FontWeight="Bold" Text="{Binding TotalDisbursedText}"/>
-                                                </Border>
-                                                <!-- Full-width horizontal row separator (replaces the old per-cell
-                                                     bottom borders, which left a gap under the borderless/unfocused
-                                                     Nội dung overflow cell and looked broken) — one continuous 1px
-                                                     bar under the ENTIRE row, same technique as the vertical overlay. -->
-                                                <Border Grid.Column="0" Grid.ColumnSpan="14" VerticalAlignment="Bottom" Height="1"
-                                                        Background="{DynamicResource LedgerGridLineBrush}" IsHitTestVisible="False"/>
-                                                <Border Grid.Column="0" Grid.ColumnSpan="14" Classes="rowSelectedOverlay"
-                                                        IsVisible="{Binding IsSelected}"/>
-                                            </Grid>
-                                        </DataTemplate>
-                                    </local:LedgerRowTemplateSelector.Group>
-
-                                    <!-- Package: Name + Nhà thầu/TK + contract fields + computed subtotals -->
-                                    <local:LedgerRowTemplateSelector.Package>
-                                        <DataTemplate x:DataType="vm:LedgerRowViewModel">
-                                            <!-- Background="Transparent" (invisible, but paints something) so a
-                                                 click on one of this row's empty gridCellBorder placeholder cells
-                                                 (no Background of its own) still hits THIS Grid instead of
-                                                 falling through to whatever is behind the row — needed for the
-                                                 row-selection PointerPressed handler in the code-behind. -->
-                                            <Grid Classes="gridRow packageRow"
-                                                  Classes.wrap="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).WrapText}"
-                                                  ClipToBounds="True" Background="Transparent">
-                                                <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.NgayWidth}"/>
-                                                    <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.NoiDung}"/>
-                                                    <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.NhaThauTk}"/>
-                                                    <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.GiaTriHd}"/>
-                                                    <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.PhuLuc}"/>
-                                                    <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.SoCt}"/>
-                                                    <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.TamUng}"/>
-                                                    <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.Klht}"/>
-                                                    <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.ThuHoi}"/>
-                                                    <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.Nguon}"/>
-                                                    <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.GnNsnn}"/>
-                                                    <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.GnNgoaiHoi}"/>
-                                                    <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.SoDuTu}"/>
-                                                    <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.TongDaGn}"/>
-                                                </Grid.ColumnDefinitions>
-                                                <!-- Inline discoverable affordance: add an Đợt directly under THIS
-                                                     package without needing to pre-select anything on the toolbar. -->
-                                                <Border Grid.Column="0" Classes="gridCellBorder">
-                                                    <Button Classes="toolbar" Padding="4,2" FontSize="11" MinWidth="0"
-                                                            HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
-                                                            Content="＋ đợt" ToolTip.Tip="Thêm đợt vào gói này"
-                                                            Command="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).AddEntryCommand}"
-                                                            CommandParameter="{Binding}"/>
-                                                </Border>
-                                                <TextBox Grid.Column="1" Classes="gridCell overflowCell" FontWeight="SemiBold"
-                                                         Classes.wrap="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).WrapText}"
-                                                         MinWidth="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.NoiDung.Value}"
-                                                         Padding="26,4,6,4" Text="{Binding Name}"/>
-                                                <Border Grid.Column="2" Classes="gridCellBorder">
-                                                    <StackPanel Spacing="0" Margin="6,2" ClipToBounds="True">
-                                                        <TextBox BorderThickness="0" Padding="0" FontSize="12"
-                                                                 ClipToBounds="True" TextWrapping="NoWrap"
-                                                                 MinWidth="0" HorizontalAlignment="Stretch"
-                                                                 Watermark="Nhà thầu" Text="{Binding ContractorName}"/>
-                                                        <TextBox BorderThickness="0" Padding="0" FontSize="11"
-                                                                 ClipToBounds="True" TextWrapping="NoWrap"
-                                                                 MinWidth="0" HorizontalAlignment="Stretch"
-                                                                 Foreground="{DynamicResource TextMutedBrush}"
-                                                                 Watermark="Số TK" Text="{Binding BankAccount}"/>
-                                                    </StackPanel>
-                                                </Border>
-                                                <TextBox Grid.Column="3" Classes="gridCell num" Text="{Binding ContractValueText}"
-                                                         Tag="ContractValueText" LostFocus="OnFacadeCellLostFocus"/>
-                                                <TextBox Grid.Column="4" Classes="gridCell num" Text="{Binding ContractAnnexText}"
-                                                         Tag="ContractAnnexText" LostFocus="OnFacadeCellLostFocus"/>
-                                                <Border Grid.Column="5" Classes="gridCellBorder"/>
-                                                <Border Grid.Column="6" Classes="gridCellBorder"/>
-                                                <Border Grid.Column="7" Classes="gridCellBorder"/>
-                                                <Border Grid.Column="8" Classes="gridCellBorder"/>
-                                                <Border Grid.Column="9" Classes="gridCellBorder"/>
-                                                <Border Grid.Column="10" Classes="gridCellBorder">
-                                                    <TextBlock Classes="gridCellRO num" FontWeight="SemiBold" Text="{Binding DisbursedNsnnText}"/>
-                                                </Border>
-                                                <Border Grid.Column="11" Classes="gridCellBorder">
-                                                    <TextBlock Classes="gridCellRO num" FontWeight="SemiBold" Text="{Binding DisbursedNgoaiHoiText}"/>
-                                                </Border>
-                                                <Border Grid.Column="12" Classes="gridCellBorder">
-                                                    <TextBlock Classes="gridCellRO num" FontWeight="SemiBold" Text="{Binding UnrecoveredAdvanceText}"/>
-                                                </Border>
-                                                <Border Grid.Column="13" Classes="gridCellBorder">
-                                                    <TextBlock Classes="gridCellRO num" FontWeight="SemiBold" Text="{Binding TotalDisbursedText}"/>
-                                                </Border>
-                                                <!-- Full-width horizontal row separator — see the Group template above. -->
-                                                <Border Grid.Column="0" Grid.ColumnSpan="14" VerticalAlignment="Bottom" Height="1"
-                                                        Background="{DynamicResource LedgerGridLineBrush}" IsHitTestVisible="False"/>
-                                                <Border Grid.Column="0" Grid.ColumnSpan="14" Classes="rowSelectedOverlay"
-                                                        IsVisible="{Binding IsSelected}"/>
-                                            </Grid>
-                                        </DataTemplate>
-                                    </local:LedgerRowTemplateSelector.Package>
-
-                                    <!-- Entry: editable transaction cells + Fund dropdown -->
-                                    <local:LedgerRowTemplateSelector.Entry>
-                                        <DataTemplate x:DataType="vm:LedgerRowViewModel">
-                                            <!-- Background="Transparent" — same reason as the Package row above:
-                                                 keeps this Grid itself hit-testable so a click on an empty cell
-                                                 still selects the row instead of falling through. -->
-                                            <Grid Classes="gridRow entryRow"
-                                                  Classes.wrap="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).WrapText}"
-                                                  ClipToBounds="True" Background="Transparent">
-                                                <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.NgayWidth}"/>
-                                                    <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.NoiDung}"/>
-                                                    <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.NhaThauTk}"/>
-                                                    <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.GiaTriHd}"/>
-                                                    <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.PhuLuc}"/>
-                                                    <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.SoCt}"/>
-                                                    <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.TamUng}"/>
-                                                    <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.Klht}"/>
-                                                    <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.ThuHoi}"/>
-                                                    <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.Nguon}"/>
-                                                    <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.GnNsnn}"/>
-                                                    <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.GnNgoaiHoi}"/>
-                                                    <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.SoDuTu}"/>
-                                                    <ColumnDefinition Width="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.TongDaGn}"/>
-                                                </Grid.ColumnDefinitions>
-                                                <TextBox Grid.Column="0" Classes="gridCell" Text="{Binding DateText}"
-                                                         Tag="DateText" LostFocus="OnFacadeCellLostFocus"/>
-                                                <TextBox Grid.Column="1" Classes="gridCell overflowCell"
-                                                         Classes.wrap="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).WrapText}"
-                                                         MinWidth="{Binding #Root.((vm:VitriLedgerViewModel)DataContext).ColumnWidths.NoiDung.Value}"
-                                                         Padding="42,4,6,4" Text="{Binding Content}"/>
-                                                <Border Grid.Column="2" Classes="gridCellBorder"/>
-                                                <Border Grid.Column="3" Classes="gridCellBorder"/>
-                                                <Border Grid.Column="4" Classes="gridCellBorder"/>
-                                                <TextBox Grid.Column="5" Classes="gridCell" Text="{Binding DocumentNo}"/>
-                                                <TextBox Grid.Column="6" Classes="gridCell num" Text="{Binding AdvanceText}"
-                                                         Tag="AdvanceText" LostFocus="OnFacadeCellLostFocus"/>
-                                                <TextBox Grid.Column="7" Classes="gridCell num" Text="{Binding KlhtText}"
-                                                         Tag="KlhtText" LostFocus="OnFacadeCellLostFocus"/>
-                                                <TextBox Grid.Column="8" Classes="gridCell num" Text="{Binding RecoveredText}"
-                                                         Tag="RecoveredText" LostFocus="OnFacadeCellLostFocus"/>
-                                                <Border Grid.Column="9" Classes="gridCellBorder">
-                                                    <ComboBox Classes="gridCell" HorizontalAlignment="Stretch" BorderThickness="0"
-                                                              ItemsSource="{x:Static local:FundOptions.Names}"
-                                                              SelectedItem="{Binding FundText}"/>
-                                                </Border>
-                                                <Border Grid.Column="10" Classes="gridCellBorder"/>
-                                                <Border Grid.Column="11" Classes="gridCellBorder"/>
-                                                <Border Grid.Column="12" Classes="gridCellBorder"/>
-                                                <Border Grid.Column="13" Classes="gridCellBorder"/>
-                                                <!-- Full-width horizontal row separator — see the Group template above. -->
-                                                <Border Grid.Column="0" Grid.ColumnSpan="14" VerticalAlignment="Bottom" Height="1"
-                                                        Background="{DynamicResource LedgerGridLineBrush}" IsHitTestVisible="False"/>
-                                                <Border Grid.Column="0" Grid.ColumnSpan="14" Classes="rowSelectedOverlay"
-                                                        IsVisible="{Binding IsSelected}"/>
-                                            </Grid>
-                                        </DataTemplate>
-                                    </local:LedgerRowTemplateSelector.Entry>
-
-                                </local:LedgerRowTemplateSelector>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
-                        <!-- Continuous column-boundary overlay for the WHOLE scrollable body:
-                             ONE Grid (not one per row) spanning every Group/Package/Entry row's
-                             combined height, sharing this same ScrollViewer so it scrolls in
-                             lockstep with the rows. Same ColumnWidths source as everything
-                             else, so it's pixel-aligned with the header/TỔNG CỘNG overlay above
-                             and moves correctly the instant a column is resized. -->
-                        <!-- HorizontalAlignment=Left: cùng lý do như overlay TỔNG CỘNG ở trên —
-                             không có nó, overlay kẻ dọc của toàn bộ phần cuộn này (mặc định
-                             Stretch) nở ra bằng bề rộng khung nhìn khi khung nhìn rộng hơn 1880px,
-                             phần dư bị Avalonia rải cho từng cột, còn Grid của mỗi DÒNG bị
-                             ItemContainerTheme ghim Left nên luôn đúng 1880px — vạch kẻ dọc trôi
-                             khỏi biên cột thật, người dùng nhắm vào vạch lại bấm trúng ô bên cạnh
-                             (đây chính là nửa còn lại của lỗi mà cả loạt sửa này đang xử lý). -->
-                        <Grid IsHitTestVisible="False" VerticalAlignment="Stretch" HorizontalAlignment="Left">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="{Binding ColumnWidths.NgayWidth}"/>
-                                <ColumnDefinition Width="{Binding ColumnWidths.NoiDung}"/>
-                                <ColumnDefinition Width="{Binding ColumnWidths.NhaThauTk}"/>
-                                <ColumnDefinition Width="{Binding ColumnWidths.GiaTriHd}"/>
-                                <ColumnDefinition Width="{Binding ColumnWidths.PhuLuc}"/>
-                                <ColumnDefinition Width="{Binding ColumnWidths.SoCt}"/>
-                                <ColumnDefinition Width="{Binding ColumnWidths.TamUng}"/>
-                                <ColumnDefinition Width="{Binding ColumnWidths.Klht}"/>
-                                <ColumnDefinition Width="{Binding ColumnWidths.ThuHoi}"/>
-                                <ColumnDefinition Width="{Binding ColumnWidths.Nguon}"/>
-                                <ColumnDefinition Width="{Binding ColumnWidths.GnNsnn}"/>
-                                <ColumnDefinition Width="{Binding ColumnWidths.GnNgoaiHoi}"/>
-                                <ColumnDefinition Width="{Binding ColumnWidths.SoDuTu}"/>
-                                <ColumnDefinition Width="{Binding ColumnWidths.TongDaGn}"/>
-                            </Grid.ColumnDefinitions>
-                            <Border Grid.Column="0" Classes="colDivider"/>
-                            <Border Grid.Column="1" Classes="colDivider"/>
-                            <Border Grid.Column="2" Classes="colDivider"/>
-                            <Border Grid.Column="3" Classes="colDivider"/>
-                            <Border Grid.Column="4" Classes="colDivider"/>
-                            <Border Grid.Column="5" Classes="colDivider"/>
-                            <Border Grid.Column="6" Classes="colDivider"/>
-                            <Border Grid.Column="7" Classes="colDivider"/>
-                            <Border Grid.Column="8" Classes="colDivider"/>
-                            <Border Grid.Column="9" Classes="colDivider"/>
-                            <Border Grid.Column="10" Classes="colDivider"/>
-                            <Border Grid.Column="11" Classes="colDivider"/>
-                            <Border Grid.Column="12" Classes="colDivider"/>
-                            <Border Grid.Column="13" Classes="colDivider"/>
-                        </Grid>
-                      </Grid>
-                    </ScrollViewer>
-                </DockPanel>
-            </ScrollViewer>
+                          </Grid>
+                        </ScrollViewer>
+                    </DockPanel>
+                </ScrollViewer>
+            </DockPanel>
         </Border>
     </DockPanel>
 </UserControl>

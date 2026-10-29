@@ -3,65 +3,75 @@
         xmlns:ui="using:FluentAvalonia.UI.Controls">
 
     <Styles.Resources>
-        <!-- ===== Brand / color tokens ===== -->
-        <Color x:Key="BrandPrimaryColor">#1C4E80</Color>
-        <SolidColorBrush x:Key="BrandPrimaryBrush" Color="#1C4E80"/>
-        <SolidColorBrush x:Key="BrandPrimaryDarkBrush" Color="#163E66"/>
-        <!-- Soft brand tints for row hover / selection / subtle fills -->
-        <SolidColorBrush x:Key="AccentSoftBrush" Color="#EBF1F8"/>
-        <SolidColorBrush x:Key="AccentSoftHoverBrush" Color="#F1F5FA"/>
+        <!-- ===== Modern SaaS / Fintech Brand & Color Tokens (Slate + Royal Blue) ===== -->
+        <Color x:Key="BrandPrimaryColor">#2563EB</Color>
+        <SolidColorBrush x:Key="BrandPrimaryBrush" Color="#2563EB"/>
+        <SolidColorBrush x:Key="BrandPrimaryDarkBrush" Color="#1E40AF"/>
+        <SolidColorBrush x:Key="BrandPrimaryHoverBrush" Color="#1D4ED8"/>
 
-        <SolidColorBrush x:Key="AppBackgroundBrush" Color="#F4F6FA"/>
+        <!-- Soft brand tints for row hover / selection / group header fills -->
+        <SolidColorBrush x:Key="AccentSoftBrush" Color="#EFF6FF"/>
+        <SolidColorBrush x:Key="AccentSoftHoverBrush" Color="#F8FAFC"/>
+        <SolidColorBrush x:Key="AccentBorderBrush" Color="#BFDBFE"/>
+
+        <!-- Surface & Background Hierarchy -->
+        <SolidColorBrush x:Key="AppBackgroundBrush" Color="#F8FAFC"/>
         <SolidColorBrush x:Key="CardBackgroundBrush" Color="#FFFFFF"/>
-        <SolidColorBrush x:Key="CardBorderBrush" Color="#E6EBF2"/>
-        <SolidColorBrush x:Key="ToolbarStripBrush" Color="#FBFCFE"/>
+        <SolidColorBrush x:Key="CardBorderBrush" Color="#E2E8F0"/>
+        <SolidColorBrush x:Key="ToolbarStripBrush" Color="#FFFFFF"/>
+        <SolidColorBrush x:Key="SubtleSurfaceBrush" Color="#F1F5F9"/>
 
-        <SolidColorBrush x:Key="TextPrimaryBrush" Color="#1A2233"/>
-        <SolidColorBrush x:Key="TextMutedBrush" Color="#6B7688"/>
+        <!-- Typography Colors -->
+        <SolidColorBrush x:Key="TextPrimaryBrush" Color="#0F172A"/>
+        <SolidColorBrush x:Key="TextSecondaryBrush" Color="#334155"/>
+        <SolidColorBrush x:Key="TextMutedBrush" Color="#64748B"/>
 
-        <SolidColorBrush x:Key="GridHeaderBrush" Color="#F1F4F9"/>
-        <SolidColorBrush x:Key="GridLineBrush" Color="#EAEEF4"/>
+        <!-- Table / Grid Tokens -->
+        <SolidColorBrush x:Key="GridHeaderBrush" Color="#F8FAFC"/>
+        <SolidColorBrush x:Key="GridLineBrush" Color="#E2E8F0"/>
+        <SolidColorBrush x:Key="GridTotalRowBrush" Color="#F1F5F9"/>
 
-        <SolidColorBrush x:Key="DangerBrush" Color="#C0392B"/>
-        <SolidColorBrush x:Key="WarningBrush" Color="#B7791F"/>
-        <Color x:Key="SuccessColor">#2E7D32</Color>
-        <SolidColorBrush x:Key="SuccessBrush" Color="#2E7D32"/>
+        <!-- Semantic Status Colors -->
+        <SolidColorBrush x:Key="DangerBrush" Color="#DC2626"/>
+        <SolidColorBrush x:Key="DangerSoftBrush" Color="#FEF2F2"/>
+        <SolidColorBrush x:Key="DangerBorderBrush" Color="#FECACA"/>
+        <SolidColorBrush x:Key="WarningBrush" Color="#D97706"/>
+        <Color x:Key="SuccessColor">#16A34A</Color>
+        <SolidColorBrush x:Key="SuccessBrush" Color="#16A34A"/>
 
-        <SolidColorBrush x:Key="InfoBarBackgroundBrush" Color="#FFF8E1"/>
-        <SolidColorBrush x:Key="InfoBarBorderBrush" Color="#F0D27A"/>
-        <SolidColorBrush x:Key="InfoBarTextBrush" Color="#7A5B17"/>
+        <SolidColorBrush x:Key="InfoBarBackgroundBrush" Color="#EFF6FF"/>
+        <SolidColorBrush x:Key="InfoBarBorderBrush" Color="#BFDBFE"/>
+        <SolidColorBrush x:Key="InfoBarTextBrush" Color="#1E40AF"/>
 
-        <!-- ===== Navigation pane: deep-blue, high-contrast (applied via the SplitView + item styles below) ===== -->
-        <SolidColorBrush x:Key="NavPaneBrush" Color="#15355A"/>
-        <!-- Điểm nhấn ấm (hổ phách) dùng rất tiết kiệm: vạch chọn ở thanh bên và tab — để xanh navy khỏi đơn điệu. -->
-        <SolidColorBrush x:Key="WarmAccentBrush" Color="#E9A23B"/>
+        <!-- ===== Navigation Pane: Modern Deep Slate (#0F172A) with Electric Blue Accent ===== -->
+        <SolidColorBrush x:Key="NavPaneBrush" Color="#0F172A"/>
+        <SolidColorBrush x:Key="WarmAccentBrush" Color="#38BDF8"/>
 
-        <!-- FluentAvalonia NavigationView: thanh bên navy, chữ sáng, mục đang chọn nền sáng nhẹ + vạch hổ phách. -->
-        <SolidColorBrush x:Key="NavigationViewDefaultPaneBackground" Color="#15355A"/>
-        <SolidColorBrush x:Key="NavigationViewExpandedPaneBackground" Color="#15355A"/>
-        <SolidColorBrush x:Key="NavigationViewTopPaneBackground" Color="#15355A"/>
-        <SolidColorBrush x:Key="NavigationViewItemForeground" Color="#D3E0EF"/>
-        <SolidColorBrush x:Key="NavigationViewItemForegroundPointerOver" Color="#FFFFFF"/>
+        <SolidColorBrush x:Key="NavigationViewDefaultPaneBackground" Color="#0F172A"/>
+        <SolidColorBrush x:Key="NavigationViewExpandedPaneBackground" Color="#0F172A"/>
+        <SolidColorBrush x:Key="NavigationViewTopPaneBackground" Color="#0F172A"/>
+        <SolidColorBrush x:Key="NavigationViewItemForeground" Color="#94A3B8"/>
+        <SolidColorBrush x:Key="NavigationViewItemForegroundPointerOver" Color="#F8FAFC"/>
         <SolidColorBrush x:Key="NavigationViewItemForegroundPressed" Color="#FFFFFF"/>
         <SolidColorBrush x:Key="NavigationViewItemForegroundSelected" Color="#FFFFFF"/>
         <SolidColorBrush x:Key="NavigationViewItemForegroundSelectedPointerOver" Color="#FFFFFF"/>
         <SolidColorBrush x:Key="NavigationViewItemForegroundSelectedPressed" Color="#FFFFFF"/>
-        <SolidColorBrush x:Key="NavigationViewItemBackgroundPointerOver" Color="#1FFFFFFF"/>
-        <SolidColorBrush x:Key="NavigationViewItemBackgroundPressed" Color="#2BFFFFFF"/>
-        <SolidColorBrush x:Key="NavigationViewItemBackgroundSelected" Color="#2EFFFFFF"/>
-        <SolidColorBrush x:Key="NavigationViewItemBackgroundSelectedPointerOver" Color="#38FFFFFF"/>
-        <SolidColorBrush x:Key="NavigationViewItemBackgroundSelectedPressed" Color="#38FFFFFF"/>
-        <SolidColorBrush x:Key="NavigationViewItemHeaderForeground" Color="#8FA9C8"/>
-        <SolidColorBrush x:Key="NavigationViewSelectionIndicatorForeground" Color="#E9A23B"/>
+        <SolidColorBrush x:Key="NavigationViewItemBackgroundPointerOver" Color="#1E293B"/>
+        <SolidColorBrush x:Key="NavigationViewItemBackgroundPressed" Color="#334155"/>
+        <SolidColorBrush x:Key="NavigationViewItemBackgroundSelected" Color="#1E293B"/>
+        <SolidColorBrush x:Key="NavigationViewItemBackgroundSelectedPointerOver" Color="#334155"/>
+        <SolidColorBrush x:Key="NavigationViewItemBackgroundSelectedPressed" Color="#334155"/>
+        <SolidColorBrush x:Key="NavigationViewItemHeaderForeground" Color="#64748B"/>
+        <SolidColorBrush x:Key="NavigationViewSelectionIndicatorForeground" Color="#38BDF8"/>
         <SolidColorBrush x:Key="NavigationViewButtonForegroundPointerOver" Color="#FFFFFF"/>
         <SolidColorBrush x:Key="NavigationViewButtonForegroundPressed" Color="#FFFFFF"/>
 
-        <!-- Tab ở đáy sổ (kiểu tab trang tính): chữ vừa phải, tab đang chọn đậm + vạch nhấn. -->
-        <x:Double x:Key="TabItemHeaderFontSize">14</x:Double>
-        <SolidColorBrush x:Key="TabItemForeground" Color="#46546B"/>
-        <SolidColorBrush x:Key="TabItemForegroundPointerOver" Color="#1C4E80"/>
-        <SolidColorBrush x:Key="TabItemForegroundSelected" Color="#1C4E80"/>
-        <SolidColorBrush x:Key="TabItemBackgroundPointerOver" Color="#EBF1F8"/>
+        <!-- Bottom Sheet Tabs -->
+        <x:Double x:Key="TabItemHeaderFontSize">13</x:Double>
+        <SolidColorBrush x:Key="TabItemForeground" Color="#475569"/>
+        <SolidColorBrush x:Key="TabItemForegroundPointerOver" Color="#0F172A"/>
+        <SolidColorBrush x:Key="TabItemForegroundSelected" Color="#2563EB"/>
+        <SolidColorBrush x:Key="TabItemBackgroundPointerOver" Color="#E2E8F0"/>
         <SolidColorBrush x:Key="TabItemBackgroundSelected" Color="#FFFFFF"/>
         <SolidColorBrush x:Key="TabItemSelectionIndicatorColor" Color="Transparent"/>
     </Styles.Resources>
@@ -71,19 +81,29 @@
         <Setter Property="Background" Value="{StaticResource CardBackgroundBrush}"/>
         <Setter Property="BorderBrush" Value="{StaticResource CardBorderBrush}"/>
         <Setter Property="BorderThickness" Value="1"/>
-        <Setter Property="CornerRadius" Value="12"/>
-        <Setter Property="Padding" Value="18"/>
-        <Setter Property="BoxShadow" Value="0 4 14 0 #10141F2E"/>
+        <Setter Property="CornerRadius" Value="10"/>
+        <Setter Property="Padding" Value="16"/>
+        <Setter Property="BoxShadow" Value="0 1 3 0 #0A0F172A, 0 4 12 0 #060F172A"/>
+    </Style>
+
+    <!-- ===== Context / Header Bar surface ===== -->
+    <Style Selector="Border.contextBar">
+        <Setter Property="Background" Value="{StaticResource CardBackgroundBrush}"/>
+        <Setter Property="BorderBrush" Value="{StaticResource CardBorderBrush}"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="CornerRadius" Value="10"/>
+        <Setter Property="Padding" Value="14,10"/>
+        <Setter Property="BoxShadow" Value="0 1 2 0 #080F172A"/>
     </Style>
 
     <!-- ===== Typography ===== -->
     <Style Selector="TextBlock.pageTitle">
-        <Setter Property="FontSize" Value="22"/>
-        <Setter Property="FontWeight" Value="SemiBold"/>
-        <Setter Property="Foreground" Value="{StaticResource BrandPrimaryDarkBrush}"/>
+        <Setter Property="FontSize" Value="20"/>
+        <Setter Property="FontWeight" Value="Bold"/>
+        <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/>
     </Style>
     <Style Selector="TextBlock.pageSubtitle">
-        <Setter Property="FontSize" Value="13"/>
+        <Setter Property="FontSize" Value="12.5"/>
         <Setter Property="Foreground" Value="{StaticResource TextMutedBrush}"/>
     </Style>
     <Style Selector="TextBlock.sectionTitle">
@@ -93,16 +113,22 @@
     </Style>
     <Style Selector="TextBlock.muted">
         <Setter Property="Foreground" Value="{StaticResource TextMutedBrush}"/>
+        <Setter Property="FontSize" Value="12"/>
+    </Style>
+    <Style Selector="TextBlock.badge">
+        <Setter Property="FontSize" Value="11"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="Foreground" Value="{StaticResource BrandPrimaryBrush}"/>
     </Style>
 
-    <!-- ===== Table card: a card holding a toolbar strip + DataGrid (no inner padding) ===== -->
+    <!-- ===== Table card: a card holding a toolbar strip + DataGrid ===== -->
     <Style Selector="Border.tableCard">
         <Setter Property="Background" Value="{StaticResource CardBackgroundBrush}"/>
         <Setter Property="BorderBrush" Value="{StaticResource CardBorderBrush}"/>
         <Setter Property="BorderThickness" Value="1"/>
-        <Setter Property="CornerRadius" Value="12"/>
+        <Setter Property="CornerRadius" Value="10"/>
         <Setter Property="ClipToBounds" Value="True"/>
-        <Setter Property="BoxShadow" Value="0 4 14 0 #10141F2E"/>
+        <Setter Property="BoxShadow" Value="0 1 3 0 #0A0F172A, 0 4 12 0 #060F172A"/>
     </Style>
 
     <!-- ===== Toolbar strip attached to the top of a table card ===== -->
@@ -110,7 +136,7 @@
         <Setter Property="Background" Value="{StaticResource ToolbarStripBrush}"/>
         <Setter Property="BorderBrush" Value="{StaticResource CardBorderBrush}"/>
         <Setter Property="BorderThickness" Value="0,0,0,1"/>
-        <Setter Property="Padding" Value="14,10"/>
+        <Setter Property="Padding" Value="14,9"/>
     </Style>
 
     <!-- ===== Info / read-only banner ===== -->
@@ -123,16 +149,78 @@
     </Style>
     <Style Selector="Border.infoBar TextBlock">
         <Setter Property="Foreground" Value="{StaticResource InfoBarTextBrush}"/>
+        <Setter Property="FontSize" Value="12.5"/>
     </Style>
 
-    <!-- ===== Toolbar buttons: a touch more breathing room ===== -->
+    <!-- ===== Modern Button Hierarchy ===== -->
     <Style Selector="Button.toolbar">
-        <Setter Property="CornerRadius" Value="8"/>
-        <Setter Property="Padding" Value="12,7"/>
+        <Setter Property="CornerRadius" Value="6"/>
+        <Setter Property="Padding" Value="11,6"/>
+        <Setter Property="FontSize" Value="12.5"/>
+        <Setter Property="FontWeight" Value="Medium"/>
+        <Setter Property="Background" Value="#FFFFFF"/>
+        <Setter Property="BorderBrush" Value="#CBD5E1"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="Foreground" Value="#334155"/>
     </Style>
-    <!-- Nút In ở đáy thanh bên (màu nút khai ở Button.Resources trong MainWindow.axaml — Style.Resources rò ra mọi nút): nền hổ phách, chữ navy đậm — nổi bật trên nền navy, là điểm nhấn ấm duy nhất của thanh bên. -->
+    <Style Selector="Button.toolbar:pointerover">
+        <Setter Property="Background" Value="#F8FAFC"/>
+        <Setter Property="BorderBrush" Value="#94A3B8"/>
+        <Setter Property="Foreground" Value="#0F172A"/>
+    </Style>
+    <Style Selector="Button.toolbar.accent">
+        <Setter Property="Background" Value="{StaticResource BrandPrimaryBrush}"/>
+        <Setter Property="BorderBrush" Value="#1D4ED8"/>
+        <Setter Property="Foreground" Value="#FFFFFF"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+    </Style>
+    <Style Selector="Button.toolbar.accent:pointerover">
+        <Setter Property="Background" Value="{StaticResource BrandPrimaryHoverBrush}"/>
+        <Setter Property="BorderBrush" Value="#1E40AF"/>
+        <Setter Property="Foreground" Value="#FFFFFF"/>
+    </Style>
+    <Style Selector="Button.toolbar.danger">
+        <Setter Property="Background" Value="#FFFFFF"/>
+        <Setter Property="BorderBrush" Value="#FECACA"/>
+        <Setter Property="Foreground" Value="{StaticResource DangerBrush}"/>
+    </Style>
+    <Style Selector="Button.toolbar.danger:pointerover">
+        <Setter Property="Background" Value="{StaticResource DangerSoftBrush}"/>
+        <Setter Property="BorderBrush" Value="#FCA5A5"/>
+        <Setter Property="Foreground" Value="#B91C1C"/>
+    </Style>
+
+    <!-- Inline micro-chip button inside ledger rows (+ gói, + đợt) -->
+    <Style Selector="Button.inlineAction">
+        <Setter Property="CornerRadius" Value="5"/>
+        <Setter Property="Padding" Value="6,2"/>
+        <Setter Property="FontSize" Value="11"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="MinWidth" Value="0"/>
+        <Setter Property="MinHeight" Value="22"/>
+        <Setter Property="Background" Value="#FFFFFF"/>
+        <Setter Property="BorderBrush" Value="#CBD5E1"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="Foreground" Value="#2563EB"/>
+    </Style>
+    <Style Selector="Button.inlineAction:pointerover">
+        <Setter Property="Background" Value="#EFF6FF"/>
+        <Setter Property="BorderBrush" Value="#93C5FD"/>
+        <Setter Property="Foreground" Value="#1D4ED8"/>
+    </Style>
+
+    <!-- ToggleButton on toolbars -->
+    <Style Selector="ToggleButton.toolbar">
+        <Setter Property="CornerRadius" Value="6"/>
+        <Setter Property="Padding" Value="11,6"/>
+        <Setter Property="FontSize" Value="12.5"/>
+        <Setter Property="FontWeight" Value="Medium"/>
+    </Style>
+
+    <!-- Print / Export action button in Navigation Footer -->
     <Style Selector="Button#PrintButton">
         <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="FontSize" Value="13"/>
         <Setter Property="CornerRadius" Value="8"/>
         <Setter Property="Padding" Value="12,9"/>
     </Style>
@@ -143,7 +231,8 @@
     <!-- ===== Detail field label / value pairs ===== -->
     <Style Selector="TextBlock.fieldLabel">
         <Setter Property="Foreground" Value="{StaticResource TextMutedBrush}"/>
-        <Setter Property="FontSize" Value="13"/>
+        <Setter Property="FontSize" Value="12.5"/>
+        <Setter Property="FontWeight" Value="Medium"/>
         <Setter Property="VerticalAlignment" Value="Center"/>
         <Setter Property="Margin" Value="0,0,0,6"/>
     </Style>
@@ -161,40 +250,44 @@
         <Setter Property="Margin" Value="0,0,0,6"/>
     </Style>
 
-    <!-- ===== Dialog forms: consistent label + input ===== -->
+    <!-- ===== Dialog & toolbar forms: consistent label + input ===== -->
     <Style Selector="TextBlock.formLabel">
-        <Setter Property="Foreground" Value="{StaticResource TextMutedBrush}"/>
-        <Setter Property="FontSize" Value="13"/>
+        <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}"/>
+        <Setter Property="FontSize" Value="12.5"/>
+        <Setter Property="FontWeight" Value="Medium"/>
         <Setter Property="VerticalAlignment" Value="Center"/>
     </Style>
     <Style Selector="TextBlock.fieldError">
         <Setter Property="Foreground" Value="{StaticResource DangerBrush}"/>
-        <Setter Property="FontSize" Value="11"/>
+        <Setter Property="FontSize" Value="11.5"/>
         <Setter Property="Margin" Value="0,2,0,0"/>
     </Style>
 
-    <!-- Vertical + horizontal rhythm for dialog form grids (Grid.RowSpacing needs Avalonia 11.3+). -->
+    <!-- Vertical + horizontal rhythm for dialog form grids -->
     <Style Selector="Grid.formGrid &gt; :is(Control)">
         <Setter Property="Margin" Value="0,6,12,6"/>
     </Style>
 
-    <!-- ===== DataGrid polish ===== -->
+    <!-- ===== DataGrid polish (Modern SaaS Table) ===== -->
     <Style Selector="DataGrid">
-        <Setter Property="RowHeight" Value="40"/>
+        <Setter Property="RowHeight" Value="38"/>
         <Setter Property="FontSize" Value="13"/>
         <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="Background" Value="{StaticResource CardBackgroundBrush}"/>
         <Setter Property="GridLinesVisibility" Value="Horizontal"/>
         <Setter Property="HorizontalGridLinesBrush" Value="{StaticResource GridLineBrush}"/>
+        <Setter Property="VerticalGridLinesBrush" Value="#F1F5F9"/>
     </Style>
     <Style Selector="DataGridColumnHeader">
         <Setter Property="Background" Value="{StaticResource GridHeaderBrush}"/>
-        <Setter Property="BorderBrush" Value="#CBD6E4"/>
+        <Setter Property="BorderBrush" Value="{StaticResource GridLineBrush}"/>
+        <Setter Property="BorderThickness" Value="0,0,0,1"/>
+        <Setter Property="FontSize" Value="12"/>
         <Setter Property="FontWeight" Value="SemiBold"/>
-        <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/>
-        <Setter Property="MinHeight" Value="42"/>
+        <Setter Property="Foreground" Value="#475569"/>
+        <Setter Property="MinHeight" Value="40"/>
         <Setter Property="Padding" Value="12,0"/>
     </Style>
-    <!-- Row hover + selection tint -->
     <Style Selector="DataGridRow:pointerover /template/ Rectangle#BackgroundRectangle">
         <Setter Property="Fill" Value="{StaticResource AccentSoftHoverBrush}"/>
         <Setter Property="Opacity" Value="1"/>
@@ -209,15 +302,18 @@
 
     <!-- ===== Excel-like entry grid cell styles ===== -->
     <Style Selector="TextBlock.gridHeaderCell">
-        <Setter Property="Padding" Value="8,8"/>
+        <Setter Property="Padding" Value="8,9"/>
         <Setter Property="FontSize" Value="12"/>
         <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="Foreground" Value="#475569"/>
         <Setter Property="VerticalAlignment" Value="Center"/>
     </Style>
     <Style Selector="TextBlock.gridTotalCell">
         <Setter Property="Padding" Value="8,8"/>
-        <Setter Property="FontSize" Value="12"/>
+        <Setter Property="FontSize" Value="12.5"/>
         <Setter Property="FontWeight" Value="Bold"/>
+        <Setter Property="Foreground" Value="#0F172A"/>
+        <Setter Property="FontFeatures" Value="tnum"/>
         <Setter Property="VerticalAlignment" Value="Center"/>
     </Style>
     <Style Selector="Grid.gridRow">
@@ -229,10 +325,12 @@
         <Setter Property="CornerRadius" Value="0"/>
         <Setter Property="Padding" Value="6,4"/>
         <Setter Property="FontSize" Value="13"/>
+        <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/>
         <Setter Property="VerticalContentAlignment" Value="Center"/>
     </Style>
     <Style Selector="TextBox.gridCell.num">
         <Setter Property="TextAlignment" Value="Right"/>
+        <Setter Property="FontFeatures" Value="tnum"/>
     </Style>
     <Style Selector="TextBox.gridCell:focus">
         <Setter Property="BorderBrush" Value="{DynamicResource BrandPrimaryBrush}"/>
@@ -241,44 +339,55 @@
     <Style Selector="TextBlock.gridCellRO">
         <Setter Property="Padding" Value="6,4"/>
         <Setter Property="FontSize" Value="13"/>
+        <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/>
         <Setter Property="VerticalAlignment" Value="Center"/>
     </Style>
     <Style Selector="TextBlock.gridCellRO.num">
         <Setter Property="TextAlignment" Value="Right"/>
+        <Setter Property="FontFeatures" Value="tnum"/>
     </Style>
 
-    <!-- ===== Tab trang tính ở đáy sổ: thẻ phẳng, tab đang chọn trắng + vạch hổ phách phía trên ===== -->
+    <!-- ===== Modern Segmented Sheet Tabs at Bottom of Workbook ===== -->
     <Style Selector="TabControl#ViTriTabs">
-        <Setter Property="Background" Value="#E8EDF5"/>
+        <Setter Property="Background" Value="#F1F5F9"/>
         <Setter Property="BorderBrush" Value="{StaticResource CardBorderBrush}"/>
-        <Setter Property="BorderThickness" Value="0,1,0,0"/>
-        <Setter Property="Padding" Value="0"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="CornerRadius" Value="8"/>
+        <Setter Property="Padding" Value="4,3"/>
     </Style>
     <Style Selector="TabItem Border.tabChip">
-        <Setter Property="Padding" Value="18,9"/>
-        <Setter Property="BorderThickness" Value="0,3,0,0"/>
+        <Setter Property="Padding" Value="14,7"/>
+        <Setter Property="Margin" Value="2,2"/>
+        <Setter Property="CornerRadius" Value="6"/>
+        <Setter Property="BorderThickness" Value="1"/>
         <Setter Property="BorderBrush" Value="Transparent"/>
         <Setter Property="Background" Value="Transparent"/>
     </Style>
     <Style Selector="TabItem Border.tabChip TextBlock">
-        <Setter Property="Foreground" Value="#46546B"/>
+        <Setter Property="Foreground" Value="#475569"/>
+        <Setter Property="FontSize" Value="12.5"/>
+        <Setter Property="FontWeight" Value="Medium"/>
     </Style>
     <Style Selector="TabItem:pointerover Border.tabChip TextBlock">
-        <Setter Property="Foreground" Value="{StaticResource BrandPrimaryBrush}"/>
+        <Setter Property="Foreground" Value="#0F172A"/>
     </Style>
     <Style Selector="TabItem:pointerover Border.tabChip">
-        <Setter Property="Background" Value="#F3F6FB"/>
+        <Setter Property="Background" Value="#E2E8F0"/>
     </Style>
     <Style Selector="TabItem:selected Border.tabChip">
-        <Setter Property="Background" Value="{StaticResource CardBackgroundBrush}"/>
-        <Setter Property="BorderBrush" Value="{StaticResource WarmAccentBrush}"/>
+        <Setter Property="Background" Value="#FFFFFF"/>
+        <Setter Property="BorderBrush" Value="#CBD5E1"/>
+        <Setter Property="BoxShadow" Value="0 1 2 0 #140F172A"/>
     </Style>
     <Style Selector="TabItem:selected Border.tabChip TextBlock">
         <Setter Property="FontWeight" Value="SemiBold"/>
         <Setter Property="Foreground" Value="{StaticResource BrandPrimaryBrush}"/>
     </Style>
 
-    <!-- ===== Navigation pane: chữ mục chọn đậm hơn một chút ===== -->
+    <!-- ===== Navigation pane: active item emphasis ===== -->
+    <Style Selector="ui|NavigationViewItem">
+        <Setter Property="Margin" Value="4,1"/>
+    </Style>
     <Style Selector="ui|NavigationViewItem:selected">
         <Setter Property="FontWeight" Value="SemiBold"/>
     </Style>

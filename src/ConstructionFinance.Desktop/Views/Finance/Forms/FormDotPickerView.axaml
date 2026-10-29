@@ -4,33 +4,35 @@
              x:Class="ConstructionFinance.Desktop.Views.Finance.Forms.FormDotPickerView"
              x:DataType="vm:FormDotPickerViewModel"
              Width="1120">
-    <DockPanel>
-        <Border DockPanel.Dock="Top" Classes="toolbarStrip" Margin="0,0,0,6">
-            <StackPanel Orientation="Horizontal" Spacing="8">
-                <TextBlock Text="Tháng:" Classes="formLabel" VerticalAlignment="Center"/>
-                <TextBox Width="60" Text="{Binding MonthFilter}"/>
-                <TextBlock Text="Năm:" Classes="formLabel" VerticalAlignment="Center"/>
-                <TextBox Width="80" Text="{Binding YearFilter}"/>
-                <Button Classes="toolbar" Command="{Binding SelectAllCommand}" Content="Chọn tất cả"/>
-                <Button Classes="toolbar" Command="{Binding ClearSelectionCommand}" Content="Bỏ chọn"/>
-                <TextBlock Text="{Binding SelectionSummary}" Classes="muted" VerticalAlignment="Center"/>
-            </StackPanel>
-        </Border>
+    <Border Classes="tableCard">
+        <DockPanel>
+            <Border DockPanel.Dock="Top" Classes="toolbarStrip">
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <TextBlock Text="Tháng:" Classes="formLabel" VerticalAlignment="Center"/>
+                    <TextBox Width="68" Text="{Binding MonthFilter}" Watermark="Tất cả"/>
+                    <TextBlock Text="Năm:" Classes="formLabel" VerticalAlignment="Center" Margin="6,0,0,0"/>
+                    <TextBox Width="84" Text="{Binding YearFilter}" Watermark="Tất cả"/>
+                    <Button Classes="toolbar accent" Command="{Binding SelectAllCommand}" Content="Chọn tất cả" Margin="6,0,0,0"/>
+                    <Button Classes="toolbar" Command="{Binding ClearSelectionCommand}" Content="Bỏ chọn"/>
+                    <TextBlock Text="{Binding SelectionSummary}" Classes="muted" VerticalAlignment="Center" Margin="8,0,0,0"/>
+                </StackPanel>
+            </Border>
 
-        <DataGrid ItemsSource="{Binding Items}" IsReadOnly="False" Height="360"
-                  GridLinesVisibility="All" HeadersVisibility="All" CanUserSortColumns="False">
-            <DataGrid.Columns>
-                <DataGridCheckBoxColumn Header="Chọn" Binding="{Binding IsSelected}" Width="55"/>
-                <DataGridTextColumn Header="Ngày" Binding="{Binding DateText}" Width="105" IsReadOnly="True"/>
-                <DataGridTextColumn Header="Vị trí" Binding="{Binding ViTriName}" Width="100" IsReadOnly="True"/>
-                <DataGridTextColumn Header="Gói thầu" Binding="{Binding PackageName}" Width="110" IsReadOnly="True"/>
-                <DataGridTextColumn Header="Nội dung" Binding="{Binding ContentText}" Width="*" IsReadOnly="True"/>
-                <DataGridTextColumn Header="Nguồn" Binding="{Binding FundText}" Width="130" IsReadOnly="True"/>
-                <DataGridTextColumn Header="Tạm ứng" Binding="{Binding AdvanceText}" Width="115" IsReadOnly="True"/>
-                <DataGridTextColumn Header="TT KLHT" Binding="{Binding KlhtText}" Width="115" IsReadOnly="True"/>
-                <DataGridTextColumn Header="Thu hồi" Binding="{Binding RecoveredText}" Width="115" IsReadOnly="True"/>
-                <DataGridTextColumn Header="Giải ngân" Binding="{Binding DisbursedText}" Width="115" IsReadOnly="True"/>
-            </DataGrid.Columns>
-        </DataGrid>
-    </DockPanel>
+            <DataGrid ItemsSource="{Binding Items}" IsReadOnly="False" Height="380"
+                      GridLinesVisibility="Horizontal" HeadersVisibility="Column" CanUserSortColumns="False">
+                <DataGrid.Columns>
+                    <DataGridCheckBoxColumn Header="Chọn" Binding="{Binding IsSelected}" Width="60"/>
+                    <DataGridTextColumn Header="Ngày" Binding="{Binding DateText}" Width="105" IsReadOnly="True"/>
+                    <DataGridTextColumn Header="Vị trí" Binding="{Binding ViTriName}" Width="110" IsReadOnly="True"/>
+                    <DataGridTextColumn Header="Gói thầu" Binding="{Binding PackageName}" Width="120" IsReadOnly="True"/>
+                    <DataGridTextColumn Header="Nội dung" Binding="{Binding ContentText}" Width="*" IsReadOnly="True"/>
+                    <DataGridTextColumn Header="Nguồn" Binding="{Binding FundText}" Width="130" IsReadOnly="True"/>
+                    <DataGridTextColumn Header="Tạm ứng" Binding="{Binding AdvanceText}" Width="115" IsReadOnly="True"/>
+                    <DataGridTextColumn Header="TT KLHT" Binding="{Binding KlhtText}" Width="115" IsReadOnly="True"/>
+                    <DataGridTextColumn Header="Thu hồi" Binding="{Binding RecoveredText}" Width="115" IsReadOnly="True"/>
+                    <DataGridTextColumn Header="Giải ngân" Binding="{Binding DisbursedText}" Width="115" IsReadOnly="True"/>
+                </DataGrid.Columns>
+            </DataGrid>
+        </DockPanel>
+    </Border>
 </UserControl>

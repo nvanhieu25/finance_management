@@ -1,5 +1,6 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:ui="using:FluentAvalonia.UI.Controls"
              xmlns:vm="using:ConstructionFinance.Desktop.ViewModels.Finance"
              xmlns:conv="using:ConstructionFinance.Desktop.Common"
              x:Class="ConstructionFinance.Desktop.Views.Finance.WorkbookSummaryView"
@@ -8,46 +9,55 @@
         <StackPanel DockPanel.Dock="Top" Spacing="2" Margin="0,0,0,12">
             <TextBlock Classes="pageTitle" Text="Tổng hợp toàn bộ dự án"/>
             <TextBlock Classes="pageSubtitle"
-                       Text="Gộp mọi dự án theo Vị trí — nhấp đúp dòng dự án để mở sổ theo dõi"/>
+                       Text="Gộp mọi dự án theo Vị trí — nhấp đúp dòng dự án để mở sổ theo dõi chi tiết"/>
         </StackPanel>
 
-        <Border DockPanel.Dock="Top" Classes="toolbarStrip" Margin="0,0,0,8">
-            <StackPanel Orientation="Horizontal" Spacing="8">
-                <TextBlock Text="Lọc theo tên:" Classes="formLabel" VerticalAlignment="Center"/>
-                <TextBox MinWidth="240" Text="{Binding FilterText}"/>
-                <Button Classes="toolbar" Command="{Binding RefreshCommand}" Content="Làm mới"/>
-            </StackPanel>
-        </Border>
-
-        <TextBlock DockPanel.Dock="Top" Foreground="Red" Margin="0,0,0,8"
+        <TextBlock DockPanel.Dock="Top" Foreground="{DynamicResource DangerBrush}" Margin="0,0,0,8"
                    IsVisible="{Binding ErrorMessage, Converter={x:Static ObjectConverters.IsNotNull}}"
                    Text="{Binding ErrorMessage}"/>
 
-        <DataGrid ItemsSource="{Binding Rows}" SelectedItem="{Binding SelectedRow}"
-                  IsReadOnly="True" GridLinesVisibility="All" HeadersVisibility="All"
-                  CanUserResizeColumns="True" CanUserSortColumns="False"
-                  DoubleTapped="OnRowDoubleTapped">
-            <DataGrid.Styles>
-                <Style Selector="DataGridRow" x:DataType="vm:SummaryDisplayRow">
-                    <Setter Property="FontWeight"
-                            Value="{Binding IsBold, Converter={x:Static conv:BoolToFontWeightConverter.Instance}}"/>
-                </Style>
-            </DataGrid.Styles>
-            <DataGrid.Columns>
-                <DataGridTextColumn Header="TT" Binding="{Binding Ordinal}" Width="48"/>
-                <DataGridTextColumn Header="Tên dự án / vị trí" Binding="{Binding Label}" Width="220"/>
-                <DataGridTextColumn Header="Đơn vị thi công" Binding="{Binding Contractor}" Width="150"/>
-                <DataGridTextColumn Header="Giá trị HĐ, PLHĐ" Binding="{Binding ContractValue}" Width="130"/>
-                <DataGridTextColumn Header="Tạm ứng" Binding="{Binding Advance}" Width="120"/>
-                <DataGridTextColumn Header="TT KLHT" Binding="{Binding KLHT}" Width="120"/>
-                <DataGridTextColumn Header="Thu hồi" Binding="{Binding Recovered}" Width="120"/>
-                <DataGridTextColumn Header="TT cho nhà thầu" Binding="{Binding DisbursedToContractor}" Width="130"/>
-                <DataGridTextColumn Header="Tạm ứng chưa thu hồi" Binding="{Binding Unrecovered}" Width="140"/>
-                <DataGridTextColumn Header="GN Dự phòng NSNN" Binding="{Binding NSNN}" Width="140"/>
-                <DataGridTextColumn Header="GN Quỹ DTNH" Binding="{Binding NgoaiHoi}" Width="130"/>
-                <DataGridTextColumn Header="Tổng đã giải ngân" Binding="{Binding TotalDisbursed}" Width="140"/>
-                <DataGridTextColumn Header="Quyết toán năm" Binding="{Binding YearlyText}" Width="260"/>
-            </DataGrid.Columns>
-        </DataGrid>
+        <Border Classes="tableCard">
+            <DockPanel>
+                <Border DockPanel.Dock="Top" Classes="toolbarStrip">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <TextBlock Text="Tìm kiếm dự án / vị trí:" Classes="formLabel" VerticalAlignment="Center"/>
+                        <TextBox MinWidth="260" Text="{Binding FilterText}" Watermark="Nhập tên dự án hoặc vị trí..."/>
+                        <Button Classes="toolbar" Command="{Binding RefreshCommand}">
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <ui:SymbolIcon Symbol="{x:Static ui:Symbol.Refresh}" FontSize="13"/>
+                                <TextBlock Text="Làm mới"/>
+                            </StackPanel>
+                        </Button>
+                    </StackPanel>
+                </Border>
+
+                <DataGrid ItemsSource="{Binding Rows}" SelectedItem="{Binding SelectedRow}"
+                          IsReadOnly="True" GridLinesVisibility="All" HeadersVisibility="Column"
+                          CanUserResizeColumns="True" CanUserSortColumns="False"
+                          DoubleTapped="OnRowDoubleTapped">
+                    <DataGrid.Styles>
+                        <Style Selector="DataGridRow" x:DataType="vm:SummaryDisplayRow">
+                            <Setter Property="FontWeight"
+                                    Value="{Binding IsBold, Converter={x:Static conv:BoolToFontWeightConverter.Instance}}"/>
+                        </Style>
+                    </DataGrid.Styles>
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="TT" Binding="{Binding Ordinal}" Width="52"/>
+                        <DataGridTextColumn Header="Tên dự án / vị trí" Binding="{Binding Label}" Width="230"/>
+                        <DataGridTextColumn Header="Đơn vị thi công" Binding="{Binding Contractor}" Width="160"/>
+                        <DataGridTextColumn Header="Giá trị HĐ, PLHĐ" Binding="{Binding ContractValue}" Width="135"/>
+                        <DataGridTextColumn Header="Tạm ứng" Binding="{Binding Advance}" Width="125"/>
+                        <DataGridTextColumn Header="TT KLHT" Binding="{Binding KLHT}" Width="125"/>
+                        <DataGridTextColumn Header="Thu hồi" Binding="{Binding Recovered}" Width="125"/>
+                        <DataGridTextColumn Header="TT cho nhà thầu" Binding="{Binding DisbursedToContractor}" Width="135"/>
+                        <DataGridTextColumn Header="Tạm ứng chưa thu hồi" Binding="{Binding Unrecovered}" Width="145"/>
+                        <DataGridTextColumn Header="GN Dự phòng NSNN" Binding="{Binding NSNN}" Width="145"/>
+                        <DataGridTextColumn Header="GN Quỹ DTNH" Binding="{Binding NgoaiHoi}" Width="135"/>
+                        <DataGridTextColumn Header="Tổng đã giải ngân" Binding="{Binding TotalDisbursed}" Width="145"/>
+                        <DataGridTextColumn Header="Quyết toán năm" Binding="{Binding YearlyText}" Width="260"/>
+                    </DataGrid.Columns>
+                </DataGrid>
+            </DockPanel>
+        </Border>
     </DockPanel>
 </UserControl>

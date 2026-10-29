@@ -1,5 +1,6 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:ui="using:FluentAvalonia.UI.Controls"
              xmlns:vm="using:ConstructionFinance.Desktop.ViewModels.Finance"
              xmlns:finance="using:ConstructionFinance.Domain.Finance"
              xmlns:local="using:ConstructionFinance.Desktop.Views.Finance"
@@ -9,19 +10,17 @@
         <KeyBinding Gesture="Ctrl+S" Command="{Binding SaveAllCommand}"/>
     </UserControl.KeyBindings>
     <DockPanel>
-        <StackPanel DockPanel.Dock="Top" Spacing="2" Margin="0,0,0,12">
-            <TextBlock Classes="pageTitle" Text="Tài chính dự án"/>
-            <TextBlock Classes="pageSubtitle" Text="Chọn dự án để xem sổ theo Vị trí, tổng hợp, quyết toán năm và ba biểu mẫu"/>
-        </StackPanel>
-
-        <!-- Dự án picker + a Vị trí tab strip per project -->
-        <Border DockPanel.Dock="Top" Classes="toolbarStrip" Margin="0,0,0,8">
+        <!-- Unified Project Context Bar: replaces the old 2-line title + 2-row bulky toolbar -->
+        <Border DockPanel.Dock="Top" Classes="contextBar" Margin="0,0,0,10">
             <StackPanel Spacing="8">
-                <!-- Row 1: pick / create / delete the Dự án, then the Vị trí actions + Save-All -->
+                <!-- Row 1: Project Selector + Actions -->
                 <Grid ColumnDefinitions="Auto,Auto,Auto,Auto,*,Auto,Auto,Auto">
-                    <TextBlock Grid.Column="0" Text="Dự án:" Classes="formLabel"
-                               VerticalAlignment="Center" Margin="0,0,8,0"/>
-                    <ComboBox Grid.Column="1" MinWidth="220"
+                    <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center" Margin="0,0,10,0">
+                        <Border Width="8" Height="20" CornerRadius="3" Background="{DynamicResource BrandPrimaryBrush}" VerticalAlignment="Center"/>
+                        <TextBlock Text="Dự án" FontSize="15" FontWeight="Bold" Foreground="{DynamicResource TextPrimaryBrush}" VerticalAlignment="Center"/>
+                    </StackPanel>
+
+                    <ComboBox Grid.Column="1" MinWidth="240" FontWeight="SemiBold"
                               ItemsSource="{Binding Projects}"
                               SelectedItem="{Binding SelectedProject}">
                         <ComboBox.ItemTemplate>
@@ -30,32 +29,65 @@
                             </DataTemplate>
                         </ComboBox.ItemTemplate>
                     </ComboBox>
+
                     <Button Grid.Column="2" Classes="toolbar" Command="{Binding AddProjectCommand}"
-                            Content="＋ Thêm dự án" Margin="8,0,0,0"/>
+                            Margin="8,0,0,0" ToolTip.Tip="Tạo dự án mới">
+                        <StackPanel Orientation="Horizontal" Spacing="5">
+                            <ui:SymbolIcon Symbol="{x:Static ui:Symbol.Add}" FontSize="13"/>
+                            <TextBlock Text="Dự án mới"/>
+                        </StackPanel>
+                    </Button>
+
                     <Button Grid.Column="3" Classes="toolbar danger" Command="{Binding DeleteProjectCommand}"
-                            Content="Xóa dự án" Margin="8,0,0,0"/>
+                            Margin="6,0,0,0" ToolTip.Tip="Xóa dự án đang chọn">
+                        <StackPanel Orientation="Horizontal" Spacing="5">
+                            <ui:SymbolIcon Symbol="{x:Static ui:Symbol.Delete}" FontSize="13"/>
+                            <TextBlock Text="Xóa DA"/>
+                        </StackPanel>
+                    </Button>
+
                     <Button Grid.Column="5" Classes="toolbar" Command="{Binding AddViTriCommand}"
-                            Content="＋ Thêm Vị trí" Margin="12,0,0,0"/>
+                            Margin="12,0,0,0" ToolTip.Tip="Thêm một tab Vị trí mới vào dự án">
+                        <StackPanel Orientation="Horizontal" Spacing="5">
+                            <ui:SymbolIcon Symbol="{x:Static ui:Symbol.Add}" FontSize="13"/>
+                            <TextBlock Text="Thêm Vị trí"/>
+                        </StackPanel>
+                    </Button>
+
                     <Button Grid.Column="6" Classes="toolbar danger" Command="{Binding DeleteViTriCommand}"
-                            CommandParameter="{Binding SelectedViTriPage}" Content="Xóa Vị trí" Margin="8,0,0,0"/>
+                            CommandParameter="{Binding SelectedViTriPage}"
+                            Margin="6,0,0,0" ToolTip.Tip="Xóa Vị trí đang mở">
+                        <StackPanel Orientation="Horizontal" Spacing="5">
+                            <ui:SymbolIcon Symbol="{x:Static ui:Symbol.Delete}" FontSize="13"/>
+                            <TextBlock Text="Xóa Vị trí"/>
+                        </StackPanel>
+                    </Button>
+
                     <Button Grid.Column="7" Classes="toolbar accent" Command="{Binding SaveAllCommand}"
-                            Content="Lưu tất cả (Ctrl+S)" Margin="8,0,0,0"/>
+                            Margin="10,0,0,0" ToolTip.Tip="Lưu toàn bộ thay đổi (Ctrl+S)">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <ui:SymbolIcon Symbol="{x:Static ui:Symbol.Save}" FontSize="13"/>
+                            <TextBlock Text="Lưu tất cả (Ctrl+S)"/>
+                        </StackPanel>
+                    </Button>
                 </Grid>
 
-                <!-- Row 2: rename the selected Dự án inline (same style as Vị trí's "Tên vị trí" field) -->
-                <Grid ColumnDefinitions="Auto,2*,Auto,Auto,*">
+                <!-- Subtle divider + inline Project Name & Code fields -->
+                <Border Height="1" Background="#F1F5F9" Margin="0,1"/>
+                <Grid ColumnDefinitions="Auto,2*,Auto,160,*">
                     <TextBlock Grid.Column="0" Text="Tên dự án:" Classes="formLabel"
                                VerticalAlignment="Center" Margin="0,0,8,0"/>
-                    <TextBox Grid.Column="1" Text="{Binding SelectedProjectName}"/>
+                    <TextBox Grid.Column="1" Text="{Binding SelectedProjectName}" Watermark="Nhập tên đầy đủ của dự án..."/>
                     <TextBlock Grid.Column="2" Text="Mã dự án:" Classes="formLabel"
                                VerticalAlignment="Center" Margin="16,0,8,0"/>
-                    <TextBox Grid.Column="3" MinWidth="120" Text="{Binding SelectedProjectCode}"/>
+                    <TextBox Grid.Column="3" Text="{Binding SelectedProjectCode}" Watermark="Mã DA"/>
                 </Grid>
             </StackPanel>
         </Border>
 
         <!-- Dải tab (tiêu đề) ở đáy; nội dung từng tab do PagesHost giữ (dựng một lần, chỉ ẩn/hiện khi chuyển tab). -->
         <TabControl x:Name="ViTriTabs" DockPanel.Dock="Bottom"
+                    Margin="0,8,0,0"
                     ItemsSource="{Binding ViTriPages}"
                     SelectedItem="{Binding SelectedViTriPage}"
                     TabStripPlacement="Bottom">

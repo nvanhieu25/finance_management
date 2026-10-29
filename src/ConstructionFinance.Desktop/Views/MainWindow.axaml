@@ -11,22 +11,49 @@
         WindowStartupLocation="CenterScreen"
         WindowState="Maximized">
     <DockPanel>
+        <!-- Modern compact status bar -->
         <Border DockPanel.Dock="Bottom"
                 Background="{DynamicResource CardBackgroundBrush}"
                 BorderBrush="{DynamicResource CardBorderBrush}"
                 BorderThickness="0,1,0,0"
-                Padding="14,6">
-            <TextBlock Text="{Binding StatusText}" FontSize="12"
-                       Foreground="{DynamicResource TextMutedBrush}"/>
+                Padding="16,5">
+            <Grid ColumnDefinitions="Auto,*,Auto">
+                <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                    <Border Width="7" Height="7" CornerRadius="4"
+                            Background="{DynamicResource SuccessBrush}" VerticalAlignment="Center"/>
+                    <TextBlock Text="{Binding StatusText}" FontSize="11.5"
+                               Foreground="{DynamicResource TextMutedBrush}" VerticalAlignment="Center"/>
+                </StackPanel>
+                <TextBlock Grid.Column="2" Text="Ctrl+S: Lưu nhanh  •  Ctrl+V: Dán từ Excel"
+                           FontSize="11" Foreground="{DynamicResource TextMutedBrush}"
+                           VerticalAlignment="Center"/>
+            </Grid>
         </Border>
+
         <ui:NavigationView x:Name="Nav"
                            PaneDisplayMode="Left"
                            IsPaneToggleButtonVisible="True"
                            IsSettingsVisible="False"
                            IsBackButtonVisible="False"
-                           OpenPaneLength="240">
+                           OpenPaneLength="232">
+            <ui:NavigationView.PaneHeader>
+                <Border Padding="14,10,14,6">
+                    <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                        <Border Width="28" Height="28" CornerRadius="7" Background="#2563EB">
+                            <ui:SymbolIcon Symbol="{x:Static ui:Symbol.Calculator}"
+                                           Foreground="#FFFFFF" FontSize="15"
+                                           HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <StackPanel Spacing="0" VerticalAlignment="Center">
+                            <TextBlock Text="TÀI CHÍNH DỰ ÁN" FontSize="12" FontWeight="Bold" Foreground="#F8FAFC"/>
+                            <TextBlock Text="Quản lý &amp; Quyết toán" FontSize="10.5" Foreground="#64748B"/>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+            </ui:NavigationView.PaneHeader>
+
             <ui:NavigationView.MenuItems>
-                <ui:NavigationViewItemHeader Content="Nghiệp vụ"/>
+                <ui:NavigationViewItemHeader Content="NGHIỆP VỤ"/>
                 <ui:NavigationViewItem x:Name="NavFinanceWorkbook" Content="Tài chính dự án" Tag="FinanceWorkbook">
                     <ui:NavigationViewItem.IconSource><ui:SymbolIconSource Symbol="{x:Static ui:Symbol.Calculator}"/></ui:NavigationViewItem.IconSource>
                 </ui:NavigationViewItem>
@@ -40,44 +67,41 @@
                     <ui:NavigationViewItem.IconSource><ui:SymbolIconSource Symbol="{x:Static ui:Symbol.Document}"/></ui:NavigationViewItem.IconSource>
                 </ui:NavigationViewItem>
 
-                <ui:NavigationViewItemHeader Content="Hệ thống"/>
+                <ui:NavigationViewItemHeader Content="HỆ THỐNG"/>
                 <ui:NavigationViewItem Content="Cài đặt" Tag="Settings">
                     <ui:NavigationViewItem.IconSource><ui:SymbolIconSource Symbol="{x:Static ui:Symbol.Settings}"/></ui:NavigationViewItem.IconSource>
                 </ui:NavigationViewItem>
             </ui:NavigationView.MenuItems>
+
             <ui:NavigationView.PaneFooter>
-                <StackPanel>
-                    <!-- Nút In nằm một chỗ cố định ở mọi màn. Màn đang mở không có gì để in thì nút MỜ chứ không ẩn, để
-                         người dùng quen tay; ShowOnDisabled để lúc mờ vẫn đọc được tooltip nói vì sao. -->
+                <StackPanel Margin="0,0,0,6">
+                    <!-- Nút In nằm một chỗ cố định ở mọi màn. Màn đang mở không có gì để in thì nút MỜ chứ không ẩn -->
                     <Button x:Name="PrintButton"
                             HorizontalAlignment="Stretch"
                             HorizontalContentAlignment="Center"
-                            Margin="8,4"
+                            Margin="10,4"
                             IsEnabled="{Binding CanPrint}"
                             ToolTip.Tip="{Binding PrintToolTip}"
                             ToolTip.ShowOnDisabled="True">
                         <Button.Resources>
-                        <SolidColorBrush x:Key="ButtonBackground" Color="#E9A23B"/>
-                        <SolidColorBrush x:Key="ButtonBackgroundPointerOver" Color="#F2B656"/>
-                        <SolidColorBrush x:Key="ButtonBackgroundPressed" Color="#D8912C"/>
-                        <SolidColorBrush x:Key="ButtonBackgroundDisabled" Color="#2EFFFFFF"/>
-                        <SolidColorBrush x:Key="ButtonForeground" Color="#14253D"/>
-                        <SolidColorBrush x:Key="ButtonForegroundPointerOver" Color="#14253D"/>
-                        <SolidColorBrush x:Key="ButtonForegroundPressed" Color="#14253D"/>
-                        <SolidColorBrush x:Key="ButtonForegroundDisabled" Color="#8FA9C8"/>
-                        <SolidColorBrush x:Key="ButtonBorderBrush" Color="Transparent"/>
-                        <SolidColorBrush x:Key="ButtonBorderBrushPointerOver" Color="Transparent"/>
-                        <SolidColorBrush x:Key="ButtonBorderBrushPressed" Color="Transparent"/>
-                        <SolidColorBrush x:Key="ButtonBorderBrushDisabled" Color="Transparent"/>
+                            <SolidColorBrush x:Key="ButtonBackground" Color="#2563EB"/>
+                            <SolidColorBrush x:Key="ButtonBackgroundPointerOver" Color="#3B82F6"/>
+                            <SolidColorBrush x:Key="ButtonBackgroundPressed" Color="#1D4ED8"/>
+                            <SolidColorBrush x:Key="ButtonBackgroundDisabled" Color="#1E293B"/>
+                            <SolidColorBrush x:Key="ButtonForeground" Color="#FFFFFF"/>
+                            <SolidColorBrush x:Key="ButtonForegroundPointerOver" Color="#FFFFFF"/>
+                            <SolidColorBrush x:Key="ButtonForegroundPressed" Color="#FFFFFF"/>
+                            <SolidColorBrush x:Key="ButtonForegroundDisabled" Color="#475569"/>
+                            <SolidColorBrush x:Key="ButtonBorderBrush" Color="#3B82F6"/>
+                            <SolidColorBrush x:Key="ButtonBorderBrushPointerOver" Color="#60A5FA"/>
+                            <SolidColorBrush x:Key="ButtonBorderBrushPressed" Color="#1D4ED8"/>
+                            <SolidColorBrush x:Key="ButtonBorderBrushDisabled" Color="#334155"/>
                         </Button.Resources>
                         <StackPanel Orientation="Horizontal" Spacing="8">
-                            <ui:SymbolIcon Symbol="{x:Static ui:Symbol.Print}"/>
-                            <TextBlock Text="In"/>
+                            <ui:SymbolIcon Symbol="{x:Static ui:Symbol.Print}" FontSize="15"/>
+                            <TextBlock Text="In &amp; Xuất báo cáo"/>
                         </StackPanel>
                         <Button.Flyout>
-                            <!-- Placement="Top": nút In nằm sát đáy khung trái, menu mở xuống
-                                 chỉ còn ~10px dư trên màn 1080px và che nút bên dưới. Năm
-                                 mục thì mở xuống là tràn khỏi màn hình. -->
                             <MenuFlyout Placement="Top">
                                 <MenuItem Header="In sheet này" Command="{Binding PrintCurrentSheetCommand}"/>
                                 <MenuItem Header="In toàn bộ" Command="{Binding PrintAllCommand}"/>
@@ -92,8 +116,9 @@
                     </Button>
                 </StackPanel>
             </ui:NavigationView.PaneFooter>
+
             <Border Background="{DynamicResource AppBackgroundBrush}">
-                <ContentControl Content="{Binding CurrentContent}" Margin="20"/>
+                <ContentControl Content="{Binding CurrentContent}" Margin="16,14"/>
             </Border>
         </ui:NavigationView>
     </DockPanel>

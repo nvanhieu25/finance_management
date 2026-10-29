@@ -4,35 +4,46 @@
              xmlns:v="using:ConstructionFinance.Desktop.Views.Finance.Forms"
              x:Class="ConstructionFinance.Desktop.Views.Finance.Forms.FormPageView"
              x:DataType="vm:FormPageViewModel">
-    <DockPanel>
-        <Border DockPanel.Dock="Top" Classes="toolbarStrip" Margin="0,0,0,6">
-            <StackPanel Orientation="Horizontal">
-                <Button Classes="toolbar" Command="{Binding ChooseDotsCommand}"
-                        Content="{Binding ChooseDotsText}" Margin="0,0,8,0"/>
-                <Button Classes="toolbar accent" Command="{Binding ExportCommand}"
-                        Content="Xuất Excel" Margin="0,0,12,0"/>
-                <Button x:Name="ResetLayoutButton" Classes="toolbar" Command="{Binding ResetLayoutCommand}"
-                        Content="Đặt lại cỡ ô" Margin="0,0,12,0"
-                        ToolTip.Tip="Kéo biên cột/hàng để đổi cỡ ô; nút này đưa về đúng cỡ của Mẫu"/>
-                <Button x:Name="ZoomOutButton" Classes="toolbar" Content="−" Margin="0,0,2,0"
-                        ToolTip.Tip="Thu nhỏ (Ctrl + lăn chuột)"/>
-                <Button x:Name="ZoomResetButton" Classes="toolbar" Content="100%" MinWidth="56" Margin="0,0,2,0"
-                        ToolTip.Tip="Về cỡ gốc của Mẫu"/>
-                <Button x:Name="ZoomInButton" Classes="toolbar" Content="+" Margin="0,0,12,0"
-                        ToolTip.Tip="Phóng to (Ctrl + lăn chuột)"/>
-                <TextBlock Text="{Binding StatusText}" Classes="muted" VerticalAlignment="Center"
-                           IsVisible="{Binding !HasError}"/>
-                <TextBlock Text="{Binding StatusText}" Foreground="#B00020" FontWeight="SemiBold"
-                           VerticalAlignment="Center" IsVisible="{Binding HasError}"/>
-            </StackPanel>
-        </Border>
+    <Border Classes="tableCard">
+        <DockPanel>
+            <Border DockPanel.Dock="Top" Classes="toolbarStrip">
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                    <Button Classes="toolbar" Command="{Binding ChooseDotsCommand}"
+                            Content="{Binding ChooseDotsText}"/>
+                    <Button Classes="toolbar accent" Command="{Binding ExportCommand}"
+                            Content="Xuất Excel"/>
+                    <Button x:Name="ResetLayoutButton" Classes="toolbar" Command="{Binding ResetLayoutCommand}"
+                            Content="Đặt lại cỡ ô"
+                            ToolTip.Tip="Kéo biên cột/hàng để đổi cỡ ô; nút này đưa về đúng cỡ của Mẫu"/>
 
-        <ScrollViewer x:Name="SheetScroll" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto"
-                      Background="#E4E9F1">
-            <!-- Phóng to/thu nhỏ cả tờ (ô nhập to ra theo), không đổi bố cục của Mẫu. Tờ giấy nằm giữa vùng xem (rộng hơn tờ thì hai bên chừa đều). -->
-            <LayoutTransformControl x:Name="ZoomHost" HorizontalAlignment="Center" VerticalAlignment="Top">
-                <v:FormSheetControl x:Name="SheetHost" Margin="16,16,16,24"/>
-            </LayoutTransformControl>
-        </ScrollViewer>
-    </DockPanel>
+                    <Border Width="1" Height="20" Background="#E2E8F0" Margin="4,0"/>
+
+                    <!-- Segmented Zoom Controls -->
+                    <Border Background="#F1F5F9" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="6" Padding="2">
+                        <StackPanel Orientation="Horizontal" Spacing="2">
+                            <Button x:Name="ZoomOutButton" Classes="toolbar" Content="−" Padding="9,4"
+                                    ToolTip.Tip="Thu nhỏ (Ctrl + lăn chuột)"/>
+                            <Button x:Name="ZoomResetButton" Classes="toolbar" Content="100%" MinWidth="58" Padding="8,4"
+                                    ToolTip.Tip="Về cỡ gốc của Mẫu"/>
+                            <Button x:Name="ZoomInButton" Classes="toolbar" Content="+" Padding="9,4"
+                                    ToolTip.Tip="Phóng to (Ctrl + lăn chuột)"/>
+                        </StackPanel>
+                    </Border>
+
+                    <TextBlock Text="{Binding StatusText}" Classes="muted" VerticalAlignment="Center" Margin="8,0,0,0"
+                               IsVisible="{Binding !HasError}"/>
+                    <TextBlock Text="{Binding StatusText}" Foreground="{DynamicResource DangerBrush}" FontWeight="SemiBold"
+                               VerticalAlignment="Center" Margin="8,0,0,0" IsVisible="{Binding HasError}"/>
+                </StackPanel>
+            </Border>
+
+            <ScrollViewer x:Name="SheetScroll" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto"
+                          Background="#E2E8F0">
+                <!-- Phóng to/thu nhỏ cả tờ (ô nhập to ra theo), không đổi bố cục của Mẫu. Tờ giấy nằm giữa vùng xem (rộng hơn tờ thì hai bên chừa đều). -->
+                <LayoutTransformControl x:Name="ZoomHost" HorizontalAlignment="Center" VerticalAlignment="Top">
+                    <v:FormSheetControl x:Name="SheetHost" Margin="16,16,16,24"/>
+                </LayoutTransformControl>
+            </ScrollViewer>
+        </DockPanel>
+    </Border>
 </UserControl>
